@@ -1,0 +1,117 @@
+:root {
+  --bg: #0d0d0d;
+  --surface: #1a1a1a;
+  --surface-elevated: #252525;
+  --primary: #6366f1;
+  --primary-glow: rgba(99, 102, 241, 0.3);
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --text: #f5f5f5;
+  --text-dim: #666;
+  --border: #333;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.app { min-height: 100vh; display: flex; flex-direction: column; background: radial-gradient(ellipse at top, #1a1a2e 0%, #0d0d0d 70%); }
+
+/* Toast */
+.toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.9);
+  color: #fff;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  z-index: 1000;
+  animation: toast-in 0.3s ease;
+  pointer-events: none;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Loading */
+.loading { display: flex; justify-content: center; align-items: center; min-height: 100vh; font-size: 1.2rem; color: var(--text-dim); }
+
+/* Menu */
+.menu { flex: 1; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
+.logo { font-size: 4rem; margin-bottom: 10px; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.menu h1 { font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, var(--primary), #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.menu .subtitle { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; }
+.user-info { background: var(--surface); padding: 12px 24px; border-radius: 20px; margin-bottom: 30px; font-size: 0.95rem; }
+.difficulty { width: 100%; max-width: 320px; }
+.difficulty h2 { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 2px; }
+.diff-btn { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; margin-bottom: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; color: var(--text); font-size: 1rem; cursor: pointer; transition: all 0.2s; }
+.diff-btn:hover { background: var(--surface-elevated); border-color: var(--primary); transform: scale(1.02); }
+.diff-btn .best { font-size: 0.8rem; color: var(--success); }
+
+/* Game */
+.game { flex: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+.game-header { width: 100%; max-width: 360px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.icon-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 1.1rem; cursor: pointer; }
+.icon-btn:hover { background: var(--surface-elevated); }
+.icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.game-info { display: flex; align-items: center; gap: 16px; }
+.timer { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--primary); }
+.lives { font-size: 1.3rem; letter-spacing: 2px; }
+
+/* Board */
+.board { background: var(--surface); padding: 6px; border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+.row { display: flex; }
+.cell { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 600; border: 1px solid var(--border); cursor: pointer; transition: all 0.1s; position: relative; }
+.cell:nth-child(3n) { border-right: 2px solid var(--primary); }
+.row:nth-child(3n) .cell { border-bottom: 2px solid var(--primary); }
+.cell:last-child { border-right: 1px solid var(--border); }
+.row:last-child .cell { border-bottom: 1px solid var(--border); }
+.cell:hover { background: rgba(255,255,255,0.05); }
+.cell.fixed { color: var(--text-dim); }
+.cell.selected { background: var(--primary) !important; color: white !important; box-shadow: 0 0 15px var(--primary-glow); }
+.cell.error { color: var(--error) !important; }
+.cell.highlight { background: rgba(99, 102, 241, 0.1); }
+.cell.highlight-same { background: rgba(99, 102, 241, 0.2); }
+
+/* Controls */
+.controls { width: 100%; max-width: 360px; margin-top: 15px; }
+.numpad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.num-btn { padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.num-btn:hover:not(:disabled) { background: var(--surface-elevated); border-color: var(--primary); }
+.num-btn:active:not(:disabled) { transform: scale(0.95); }
+.num-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.actions { display: flex; gap: 8px; margin-top: 10px; }
+.action-btn { flex: 1; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.95rem; cursor: pointer; }
+.action-btn:hover:not(:disabled) { background: var(--surface-elevated); }
+.action-btn.active { background: var(--primary); border-color: var(--primary); }
+
+/* Won */
+.won { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
+.trophy { font-size: 4rem; animation: bounce 0.6s; }
+@keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+.won h1 { font-size: 2rem; margin: 15px 0; }
+.won .time { font-size: 2.5rem; font-weight: 700; color: var(--primary); }
+.won .diff { color: var(--text-dim); margin-bottom: 25px; }
+.won-btns { display: flex; flex-direction: column; gap: 10px; width: 200px; }
+.won button { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 10px; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; }
+.won button:hover { background: #818cf8; }
+.won button.secondary { background: var(--surface); border: 1px solid var(--border); }
+.won button.secondary:hover { background: var(--surface-elevated); }
+
+/* Responsive */
+@media (max-width: 380px) {
+  .cell { width: 32px; height: 32px; font-size: 1rem; }
+  .num-btn { padding: 12px; font-size: 1.1rem; }
+}

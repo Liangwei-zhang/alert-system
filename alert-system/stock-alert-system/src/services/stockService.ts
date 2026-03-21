@@ -146,7 +146,27 @@ class StockService {
   }
 
   getAvailableStocks(): string[] {
-    return STOCK_CONFIGS.map((c) => c.symbol);
+    return Array.from(this.stockConfigs.keys());
+  }
+
+  addStock(symbol: string, name: string, basePrice: number, volatility: number = 0.02): boolean {
+    if (this.stockConfigs.has(symbol)) {
+      return false;
+    }
+    const config: StockConfig = { symbol, name, basePrice, volatility };
+    const data = generateStockData(config);
+    this.stockData.set(symbol, data);
+    this.stockConfigs.set(symbol, config);
+    return true;
+  }
+
+  deleteStock(symbol: string): boolean {
+    if (!this.stockConfigs.has(symbol)) {
+      return false;
+    }
+    this.stockConfigs.delete(symbol);
+    this.stockData.delete(symbol);
+    return true;
   }
 }
 

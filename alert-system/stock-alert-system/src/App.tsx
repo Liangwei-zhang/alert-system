@@ -14,6 +14,7 @@ const { Title, Text } = Typography;
 const App: React.FC = () => {
   const [selectedStock, setSelectedStock] = useState<string>('AAPL');
   const [alertVisible, setAlertVisible] = useState(false);
+  const [addModalVisible, setAddModalVisible] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [stocks, setStocks] = useState<{ stock: StockData; buySignal?: SignalResult; sellSignal?: SignalResult }[]>([]);
   const [chartContainer, setChartContainer] = useState<HTMLDivElement | null>(null);
@@ -235,9 +236,27 @@ const App: React.FC = () => {
                         <Title level={4} style={{ margin: 0, color: '#fff' }}>{stock.symbol}</Title>
                         <Text className="stock-name">{stock.name}</Text>
                       </div>
-                      {buySignal?.signal && <Tag color="green">买入</Tag>}
-                      {sellSignal?.signal && <Tag color="red">卖出</Tag>}
-                      {!buySignal?.signal && !sellSignal?.signal && <Tag color="default">观望</Tag>}
+                      <div className="stock-tags">
+                        {buySignal?.signal && <Tag color="green">买入</Tag>}
+                        {sellSignal?.signal && <Tag color="red">卖出</Tag>}
+                        {!buySignal?.signal && !sellSignal?.signal && <Tag color="default">观望</Tag>}
+                        <Button 
+                          type="text" 
+                          size="small" 
+                          danger 
+                          icon={<DeleteOutlined />} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (stockService.deleteStock(stock.symbol)) {
+                              const newStocks = stocks.filter(s => s.stock.symbol !== stock.symbol);
+                              setStocks(newStocks);
+                              if (selectedStock === stock.symbol && newStocks.length > 0) {
+                                setSelectedStock(newStocks[0].stock.symbol);
+                              }
+                            }
+                          }} 
+                        />
+                      </div>
                     </div>
                     <div className="stock-price">
                       <Text className="price-value">${stock.price.toFixed(2)}</Text>

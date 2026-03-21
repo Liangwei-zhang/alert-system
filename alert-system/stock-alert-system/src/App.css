@@ -128,6 +128,18 @@ html, body, #root {
   margin-bottom: 16px;
 }
 
+.stock-card-header > div:first-child {
+  flex: 1;
+}
+
+.stock-tags {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .stock-name {
   color: #8b949e !important;
   font-size: 12px;

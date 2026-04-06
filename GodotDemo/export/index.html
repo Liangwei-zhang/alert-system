@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Squirrel Bros</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            overflow: hidden; 
+            background: #5C94FC;
+            font-family: Arial, sans-serif;
+        }
+        canvas { display: block; }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-shadow: 2px 2px 0 #000;
+            z-index: 10;
+        }
+        #score { font-size: 28px; font-weight: bold; }
+        #coins { font-size: 24px; color: #FFD700; }
+        #lives { font-size: 24px; color: #FF6B6B; margin-top: 5px; }
+        #win-screen {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 100;
+        }
+        #win-screen h1 { font-size: 48px; color: #FFD700; margin-bottom: 20px; }
+        #win-screen button {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        
+        /* Controls */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: none;
+            z-index: 100;
+        }
+        .dpad {
+            display: grid;
+            grid-template-columns: 60px 60px 60px;
+            gap: 5px;
+        }
+        .btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .btn:active { background: rgba(255,255,255,0.6); }
+        
+        #jump-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 30px;
+            width: 90px;
+            height: 90px;
+            background: rgba(255,100,100,0.5);
+            border-radius: 50%;
+            border: 3px solid rgba(255,100,100,0.8);
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 100;
+        }
+        
+        @media (max-width: 768px) {
+            #controls, #jump-btn { display: block; }
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div id="score">SCORE: 00000</div>
+        <div id="coins">☆ COINS: 0</div>
+        <div id="lives">❤ LIVES: 3</div>
+    </div>
+    
+    <div id="win-screen">
+        <h1>🎉 YOU WIN! 🎉</h1>
+        <p id="final-score">Score: 0</p>
+        <br>
+        <button onclick="restartGame()">PLAY AGAIN</button>
+    </div>
+    
+    <div id="controls">
+        <div class="dpad">
+            <div></div>
+            <div class="btn" id="up">▲</div>
+            <div></div>
+            <div class="btn" id="left">◀</div>
+            <div></div>
+            <div class="btn" id="right">▶</div>
+        </div>
+    </div>
+    <div id="jump-btn">JUMP</div>
+    
+    <canvas id="game"></canvas>
+    
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        
+        // Responsive
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        
+        // Game state
+        let score = 0;
+        let coins = 0;
+        let lives = 3;
+        let gameTime = 0;
+        let gameOver = false;
+        
+        // Player (Mario-style squirrel)
+        const player = {
+            x: 100,
+            y: 300,
+            width: 32,
+            height: 40,
+            vx: 0,
+            vy: 0,
+            speed: 5,
+            jumpPower: -14,
+            runSpeed: 7,
+            onGround: false,
+            facing: 1,
+            frame: 0,
+            running: false,
+            jumping: false,
+            small: false
+        };
+        
+        const gravity = 0.7;
+        const friction = 0.85;
+        
+        // Level
+        const levelWidth = 4000;
+        const groundY = 450;
+        
+        // Camera
+        let cameraX = 0;
+        let cameraY = 0;
+        
+        // Platforms & Terrain
+        const platforms = [
+            // Ground sections with gaps
+            { x: 0, y: groundY, w: 600, h: 200 },
+            { x: 700, y: groundY, w: 400, h: 200 },
+            { x: 1200, y: groundY, w: 300, h: 200 },
+            { x: 1650, y: groundY, w: 500, h: 200 },
+            { x: 2300, y: groundY, w: 400, h: 200 },
+            { x: 2850, y: groundY, w: 300, h: 200 },
+            { x: 3300, y: groundY, w: 700, h: 200 },
+            
+            // Floating platforms
+            { x: 300, y: 350, w: 100, h: 20 },
+            { x: 500, y: 280, w: 80, h: 20 },
+            { x: 750, y: 320, w: 100, h: 20 },
+            { x: 950, y: 250, w: 80, h: 20 },
+            { x: 1100, y: 350, w: 80, h: 20 },
+            { x: 1300, y: 280, w: 100, h: 20 },
+            { x: 1450, y: 200, w: 80, h: 20 },
+            { x: 1700, y: 320, w: 100, h: 20 },
+            { x: 1900, y: 250, w: 80, h: 20 },
+            { x: 2050, y: 180, w: 100, h: 20 },
+            { x: 2200, y: 300, w: 80, h: 20 },
+            { x: 2400, y: 220, w: 100, h: 20 },
+            { x: 2550, y: 320, w: 80, h: 20 },
+            { x: 2700, y: 250, w: 100, h: 20 },
+            { x: 2900, y: 320, w: 80, h: 20 },
+            { x: 3050, y: 250, w: 100, h: 20 },
+            { x: 3200, y: 180, w: 80, h: 20 },
+            { x: 3400, y: 320, w: 100, h: 20 },
+            { x: 3550, y: 250, w: 80, h: 20 },
+        ];
+        
+        // Coins
+        const coinPositions = [
+            [340, 310], [540, 240], [790, 280], [990, 210], [1140, 310],
+            [1340, 240], [1490, 160], [1740, 280], [1940, 210], [2090, 140],
+            [2240, 260], [2440, 180], [2590, 280], [2740, 210], [2940, 280],
+            [3090, 210], [3240, 140], [3440, 280], [3590, 210], [3800, 350]
+        ];
+        let coinsData = coinPositions.map(c => ({ x: c[0], y: c[1], collected: false, frame: 0 }));
+        
+        // Enemies (Goombas)
+        const enemyPositions = [
+            [400, groundY - 30], [800, groundY - 30], [1300, groundY - 30],
+            [1800, groundY - 30], [2400, groundY - 30], [2950, groundY - 30],
+            [3500, groundY - 30], [500, 250], [1300, 250], [2200, 250], [3050, 250]
+        ];
+        let enemies = enemyPositions.map(e => ({
+            x: e[0], y: e[1], w: 30, h: 30, vx: 1.5, alive: true, squash: false
+        }));
+        
+        // Pipes
+        const pipes = [
+            { x: 600, y: groundY - 80, h: 80 },
+            { x: 1100, y: groundY - 60, h: 60 },
+            { x: 1600, y: groundY - 100, h: 100 },
+            { x: 2150, y: groundY - 80, h: 80 },
+            { x: 2700, y: groundY - 120, h: 120 },
+            { x: 3250, y: groundY - 60, h: 60 },
+        ];
+        
+        // Flag (end)
+        const flag = { x: 3900, y: groundY - 200 };
+        
+        // Power-ups
+        let mushroom = { x: 500, y: groundY - 50, collected: false };
+        
+        // Input
+        const keys = { left: false, right: false, up: false, down: false, jump: false };
+        
+        document.addEventListener('keydown', e => {
+            if (e.key === 'a' || e.key === 'ArrowLeft') keys.left = true;
+            if (e.key === 'd' || e.key === 'ArrowRight') keys.right = true;
+            if (e.key === 'w' || e.key === 'ArrowUp') keys.up = true;
+            if (e.key === 's' || e.key === 'ArrowDown') keys.down = true;
+            if (e.key === ' ' || e.key === 'ArrowUp') { keys.jump = true; e.preventDefault(); }
+        });
+        
+        document.addEventListener('keyup', e => {
+            if (e.key === 'a' || e.key === 'ArrowLeft') keys.left = false;
+            if (e.key === 'd' || e.key === 'ArrowRight') keys.right = false;
+            if (e.key === 'w' || e.key === 'ArrowUp') keys.up = false;
+            if (e.key === 's' || e.key === 'ArrowDown') keys.down = false;
+            if (e.key === ' ' || e.key === 'ArrowUp') keys.jump = false;
+        });
+        
+        // Touch controls
+        document.getElementById('left').ontouchstart = () => keys.left = true;
+        document.getElementById('left').ontouchend = () => keys.left = false;
+        document.getElementById('right').ontouchstart = () => keys.right = true;
+        document.getElementById('right').ontouchend = () => keys.right = false;
+        document.getElementById('up').ontouchstart = () => keys.up = true;
+        document.getElementById('up').ontouchend = () => keys.up = false;
+        document.getElementById('jump-btn').ontouchstart = () => keys.jump = true;
+        document.getElementById('jump-btn').ontouchend = () => keys.jump = false;
+        
+        function drawBackground() {
+            // Sky
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, '#5C94FC');
+            grad.addColorStop(1, '#A8D8FF');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Clouds
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            for (let i = 0; i < 15; i++) {
+                const cx = ((i * 300) - cameraX * 0.2) % (canvas.width + 400) - 200;
+                const cy = 50 + (i % 3) * 40;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+                ctx.arc(cx + 25, cy - 10, 25, 0, Math.PI * 2);
+                ctx.arc(cx + 50, cy, 30, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Hills
+            ctx.fillStyle = '#228B22';
+            for (let i = 0; i < 10; i++) {
+                const hx = (i * 500 - cameraX * 0.1) % (canvas.width + 500) - 250;
+                ctx.beginPath();
+                ctx.arc(hx, groundY + 50, 200, Math.PI, 0);
+                ctx.fill();
+            }
+            
+            // Distant mountains
+            ctx.fillStyle = '#8B7355';
+            for (let i = 0; i < 5; i++) {
+                const mx = (i * 800 - cameraX * 0.05) % (canvas.width + 800) - 400;
+                ctx.beginPath();
+                ctx.moveTo(mx, groundY + 100);
+                ctx.lineTo(mx + 200, groundY - 150);
+                ctx.lineTo(mx + 400, groundY + 100);
+                ctx.fill();
+            }
+        }
+        
+        function drawPlayer() {
+            const x = player.x - cameraX;
+            const y = player.y - cameraY;
+            const f = player.facing;
+            const fr = player.frame;
+            
+            ctx.save();
+            ctx.translate(x + player.width/2, y + player.height/2);
+            ctx.scale(f, 1);
+            ctx.translate(-player.width/2, -player.height/2);
+            
+            // Hat
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(-2, 0, 36, 8);
+            ctx.fillRect(2, -8, 28, 10);
+            
+            // Face
+            ctx.fillStyle = '#FFCC99';
+            ctx.fillRect(4, 8, 24, 16);
+            
+            // Eye
+            ctx.fillStyle = 'black';
+            ctx.fillRect(20, 12, 4, 6);
+            
+            // Nose
+            ctx.fillStyle = '#FF6666';
+            ctx.fillRect(24, 16, 4, 4);
+            
+            // Mustache
+            ctx.fillStyle = '#333';
+            ctx.fillRect(22, 20, 8, 2);
+            
+            // Body (overalls)
+            ctx.fillStyle = '#0066CC';
+            ctx.fillRect(2, 24, 28, 14);
+            
+            // Straps
+            ctx.fillStyle = '#004499';
+            ctx.fillRect(4, 24, 4, 14);
+            ctx.fillRect(24, 24, 4, 14);
+            
+            // Buttons
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(10, 31, 3, 0, Math.PI * 2);
+            ctx.arc(22, 31, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Shirt under overalls
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(4, 24, 24, 4);
+            
+            // Arms
+            const armY = player.running ? Math.sin(fr * 0.5) * 5 : 0;
+            ctx.fillStyle = '#FFCC99';
+            ctx.fillRect(-4, 26 + armY, 6, 12);
+            ctx.fillRect(30, 26 - armY, 6, 12);
+            
+            // Legs
+            const legY = player.running ? Math.sin(fr * 0.5) * 4 : 0;
+            ctx.fillStyle = '#004499';
+            ctx.fillRect(6, 38, 8, 6 + legY);
+            ctx.fillRect(18, 38, 8, 6 - legY);
+            
+            // Shoes
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(4, 42 + legY, 10, 4);
+            ctx.fillRect(18, 42 - legY, 10, 4);
+            
+            ctx.restore();
+        }
+        
+        function drawPlatform(p) {
+            const x = p.x - cameraX;
+            const y = p.y - cameraY;
+            
+            // Main block
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(x, y, p.w, p.h);
+            
+            // Grass top
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(x, y, p.w, 8);
+            
+            // Brick pattern
+            ctx.strokeStyle = '#654321';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < p.w; i += 20) {
+                ctx.strokeRect(x + i, y + 8, 20, 20);
+            }
+        }
+        
+        function drawPipe(p) {
+            const x = p.x - cameraX;
+            const y = p.y - cameraY;
+            
+            // Pipe body
+            ctx.fillStyle = '#00AA00';
+            ctx.fillRect(x, y, 50, p.h);
+            
+            // Pipe rim
+            ctx.fillStyle = '#00DD00';
+            ctx.fillRect(x - 5, y, 60, 15);
+            
+            // Highlights
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.fillRect(x + 5, y + 15, 10, p.h - 20);
+        }
+        
+        function drawCoin(c) {
+            if (c.collected) return;
+            const x = c.x - cameraX;
+            const y = c.y - cameraY;
+            const offset = Math.sin(c.frame * 0.2) * 3;
+            
+            // Coin
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.ellipse(x + 10, y + 10 + offset, 10, 10 + offset, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Shine
+            ctx.fillStyle = '#FFFF00';
+            ctx.beginPath();
+            ctx.ellipse(x + 7, y + 7 + offset, 3, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function drawEnemy(e) {
+            if (!e.alive) {
+                if (e.squash) {
+                    // Squashed goomba
+                    const x = e.x - cameraX;
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(x, e.y - cameraY + 20, 30, 10);
+                }
+                return;
+            }
+            
+            const x = e.x - cameraX;
+            const y = e.y - cameraY;
+            const walk = Math.sin(gameTime * 0.2) * 3;
+            
+            // Body
+            ctx.fillStyle = '#8B4513';
+            ctx.beginPath();
+            ctx.arc(x + 15, y + 15, 15, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Head
+            ctx.fillRect(x + 3, y + 5, 24, 12);
+            
+            // Eyes
+            ctx.fillStyle = 'white';
+            ctx.fillRect(x + 5, y + 8, 8, 8);
+            ctx.fillRect(x + 17, y + 8, 8, 8);
+            ctx.fillStyle = 'black';
+            ctx.fillRect(x + 7 + walk, y + 10, 4, 4);
+            ctx.fillRect(x + 19 + walk, y + 10, 4, 4);
+            
+            // Feet
+            ctx.fillStyle = '#654321';
+            ctx.fillRect(x + 2 + walk, y + 25, 10, 5);
+            ctx.fillRect(x + 18 - walk, y + 25, 10, 5);
+        }
+        
+        function drawMushroom(m) {
+            if (m.collected) return;
+            const x = m.x - cameraX;
+            const y = m.y - cameraY;
+            const bounce = Math.sin(gameTime * 0.1) * 2;
+            
+            // Stem
+            ctx.fillStyle = '#FFFAF0';
+            ctx.fillRect(x + 10, y + 15 + bounce, 12, 15);
+            
+            // Cap
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath();
+            ctx.arc(x + 16, y + 15 + bounce, 16, Math.PI, 0);
+            ctx.fill();
+            
+            // Spots
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(x + 10, y + 8 + bounce, 4, 0, Math.PI * 2);
+            ctx.arc(x + 20, y + 5 + bounce, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function drawFlag() {
+            const x = flag.x - cameraX;
+            const y = flag.y - cameraY;
+            
+            // Pole
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(x, y, 10, 200);
+            
+            // Flag
+            const wave = Math.sin(gameTime * 0.1) * 5;
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.moveTo(x + 10, y + 10);
+            ctx.lineTo(x + 60 + wave, y + 30);
+            ctx.lineTo(x + 10, y + 50);
+            ctx.fill();
+            
+            // Ball on top
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath();
+            ctx.arc(x + 5, y, 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function update() {
+            if (gameOver) return;
+            gameTime++;
+            
+            // Player input
+            if (keys.left) {
+                player.vx = -player.speed;
+                player.facing = -1;
+                player.running = true;
+            } else if (keys.right) {
+                player.vx = player.speed;
+                player.facing = 1;
+                player.running = true;
+            } else {
+                player.vx *= friction;
+                player.running = false;
+            }
+            
+            // Jump
+            if (keys.jump && player.onGround) {
+                player.vy = player.jumpPower;
+                player.onGround = false;
+                player.jumping = true;
+            }
+            
+            // Gravity
+            player.vy += gravity;
+            
+            // Move
+            player.x += player.vx;
+            player.y += player.vy;
+            
+            // Animate
+            if (Math.abs(player.vx) > 0.5) player.frame++;
+            
+            // World bounds
+            player.x = Math.max(0, Math.min(player.x, levelWidth - player.width));
+            
+            // Camera
+            const targetX = player.x - canvas.width / 3;
+            cameraX += (targetX - cameraX) * 0.1;
+            cameraX = Math.max(0, Math.min(cameraX, levelWidth - canvas.width));
+            
+            // Platform collision
+            player.onGround = false;
+            platforms.forEach(p => {
+                if (player.x + player.width > p.x && player.x < p.x + p.w &&
+                    player.y + player.height > p.y && player.y + player.height < p.y + p.h + 15 &&
+                    player.vy >= 0) {
+                    player.y = p.y - player.height;
+                    player.vy = 0;
+                    player.onGround = true;
+                    player.jumping = false;
+                }
+            });
+            
+            // Pipe collision (side)
+            pipes.forEach(p => {
+                if (player.y + player.height > p.y && player.y < p.y + p.h) {
+                    if (player.x + player.width > p.x && player.x < p.x + 20) {
+                        player.x = p.x - player.width;
+                        player.vx = 0;
+                    }
+                    if (player.x < p.x + 50 && player.x + player.width > p.x + 30) {
+                        player.x = p.x + 50;
+                        player.vx = 0;
+                    }
+                }
+            });
+            
+            // Coins
+            coinsData.forEach(c => {
+                if (!c.collected && 
+                    player.x + player.width > c.x && player.x < c.x + 20 &&
+                    player.y + player.height > c.y && player.y < c.y + 20) {
+                    c.collected = true;
+                    coins++;
+                    score += 100;
+                    updateUI();
+                }
+                c.frame++;
+            });
+            
+            // Enemies
+            enemies.forEach(e => {
+                if (!e.alive) return;
+                
+                // Move
+                if (!e.squash) {
+                    e.x += e.vx;
+                    if (e.x < 0 || e.x > levelWidth) e.vx *= -1;
+                }
+                
+                // Player collision
+                if (player.x + player.width > e.x && player.x < e.x + e.w &&
+                    player.y + player.height > e.y && player.y < e.y + e.h) {
+                    
+                    if (player.vy > 0 && player.y + player.height < e.y + 15) {
+                        // Stomp!
+                        e.alive = false;
+                        e.squash = true;
+                        player.vy = -8;
+                        score += 50;
+                    } else {
+                        // Hit by enemy
+                        if (!player.small) {
+                            player.small = true;
+                            player.height = 30;
+                            player.y += 10;
+                            lives--;
+                        } else {
+                            // Die
+                            respawnPlayer();
+                        }
+                    }
+                    updateUI();
+                }
+            });
+            
+            // Mushroom
+            if (!mushroom.collected &&
+                player.x + player.width > mushroom.x && player.x < mushroom.x + 32 &&
+                player.y + player.height > mushroom.y && player.y < mushroom.y + 32) {
+                mushroom.collected = true;
+                player.small = false;
+                player.height = 40;
+                score += 1000;
+                updateUI();
+            }
+            
+            // Fall death
+            if (player.y > canvas.height + 100) {
+                respawnPlayer();
+            }
+            
+            // Win
+            if (player.x > flag.x) {
+                winGame();
+            }
+        }
+        
+        function respawnPlayer() {
+            lives--;
+            updateUI();
+            if (lives <= 0) {
+                gameOver = true;
+                document.getElementById('win-screen').style.display = 'block';
+                document.getElementById('final-score').textContent = 'Score: ' + score;
+            } else {
+                player.x = 100;
+                player.y = 300;
+                player.vx = 0;
+                player.vy = 0;
+                cameraX = 0;
+            }
+        }
+        
+        function winGame() {
+            gameOver = true;
+            score += 10000;
+            document.getElementById('win-screen').style.display = 'block';
+            document.getElementById('final-score').textContent = 'Score: ' + score + ' | Coins: ' + coins;
+        }
+        
+        function updateUI() {
+            document.getElementById('score').textContent = 'SCORE: ' + score.toString().padStart(5, '0');
+            document.getElementById('coins').textContent = '☆ COINS: ' + coins;
+            document.getElementById('lives').textContent = '❤ LIVES: ' + lives;
+        }
+        
+        window.restartGame = function() {
+            score = 0;
+            coins = 0;
+            lives = 3;
+            gameOver = false;
+            player.x = 100;
+            player.y = 300;
+            player.vx = 0;
+            player.vy = 0;
+            player.small = false;
+            player.height = 40;
+            cameraX = 0;
+            coinsData.forEach(c => c.collected = false);
+            enemies.forEach(e => { e.alive = true; e.squash = false; });
+            mushroom.collected = false;
+            updateUI();
+            document.getElementById('win-screen').style.display = 'none';
+        }
+        
+        function draw() {
+            drawBackground();
+            
+            // Platforms
+            platforms.forEach(drawPlatform);
+            
+            // Pipes
+            pipes.forEach(drawPipe);
+            
+            // Coins
+            coinsData.forEach(drawCoin);
+            
+            // Mushroom
+            drawMushroom(mushroom);
+            
+            // Enemies
+            enemies.forEach(drawEnemy);
+            
+            // Flag
+            drawFlag();
+            
+            // Player
+            drawPlayer();
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        updateUI();
+        gameLoop();
+    </script>
+</body>
+</html>

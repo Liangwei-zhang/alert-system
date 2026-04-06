@@ -1,0 +1,163 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Push Devices - Admin{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+  <h1 class="page-title">Push Devices</h1>
+  <button class="btn btn-primary" onclick="refreshDevices()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+    Refresh
+  </button>
+</div>
+
+<div class="row mb-3">
+  <div class="col-md-4">
+    <div class="card stat-card">
+      <div class="card-body text-center">
+        <div class="text-muted small">Total Devices</div>
+        <div class="h1 mb-0" id="statTotal">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card">
+      <div class="card-body text-center">
+        <div class="text-muted small">Active</div>
+        <div class="h1 mb-0 text-success" id="statActive">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card">
+      <div class="card-body text-center">
+        <div class="text-muted small">Inactive</div>
+        <div class="h1 mb-0 text-muted" id="statInactive">-</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <input type="text" class="form-control" id="searchInput" placeholder="Search by user or device..." onkeyup="filterTable()">
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" id="platformFilter" onchange="filterTable()">
+          <option value="">All Platforms</option>
+          <option value="web">Web</option>
+          <option value="ios">iOS</option>
+          <option value="android">Android</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" id="statusFilter" onchange="filterTable()">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-outline-danger w-100" onclick="sendBroadcast()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.24-.09.48-.09.72s.04.48.09.72l-7.12 4.16c-.54.5-1.25.8-2.04.8-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3c0 .24-.04.47-.09.7l7.05 4.11c.54-.5 1.25-.8 2.04-.8 1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3"></path></svg>
+          Broadcast
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table card-table table-vcenter">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>User</th>
+          <th>Platform</th>
+          <th>Device Name</th>
+          <th>Status</th>
+          <th>Last Active</th>
+          <th>Subscribed</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="devicesTableBody">
+        <tr><td colspan="8" class="text-center text-muted py-4">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let devicesData = [];
+
+async function loadDevices() {
+  try {
+    const resp = await fetch('/api/v1/admin/webpush');
+    const data = await resp.json();
+    devicesData = data.devices || data || [];
+    updateStats();
+    renderDevices();
+  } catch (e) {
+    document.getElementById('devicesTableBody').innerHTML = '<tr><td colspan="8" class="text-danger py-4">Failed to load devices</td></tr>';
+  }
+}
+
+function updateStats() {
+  const total = devicesData.length;
+  const active = devicesData.filter(d => d.status === 'active').length;
+  const inactive = total - active;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statActive').textContent = active;
+  document.getElementById('statInactive').textContent = inactive;
+}
+
+function renderDevices(data = devicesData) {
+  const tbody = document.getElementById('devicesTableBody');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-muted py-4">No devices found</td></tr>';
+    return;
+  }
+  const platformIcons = { web: '🌐', ios: '🍎', android: '🤖' };
+  tbody.innerHTML = data.map(d => `
+    <tr>
+      <td><code>${d.id || ''}</code></td>
+      <td>${d.user_email || d.user_id || '-'}</td>
+      <td>${platformIcons[d.platform] || '?'} ${d.platform || 'unknown'}</td>
+      <td>${d.device_name || d.name || '-'}</td>
+      <td><span class="badge bg-${d.status === 'active' ? 'success' : 'secondary'}">${d.status || 'unknown'}</span></td>
+      <td>${d.last_active ? new Date(d.last_active).toLocaleString() : '-'}</td>
+      <td>${d.subscribed ? '<span class="text-success">Yes</span>' : '<span class="text-muted">No</span>'}</td>
+      <td>
+        <button class="btn btn-sm btn-outline-primary" onclick="sendPush('${d.id}')">Push</button>
+        <button class="btn btn-sm btn-outline-danger" onclick="revokeDevice('${d.id}')">Revoke</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const platform = document.getElementById('platformFilter').value;
+  const status = document.getElementById('statusFilter').value;
+  
+  const filtered = devicesData.filter(d => {
+    const matchSearch = !search || (d.user_email || '').toLowerCase().includes(search) || (d.device_name || '').toLowerCase().includes(search);
+    const matchPlatform = !platform || d.platform === platform;
+    const matchStatus = !status || d.status === status;
+    return matchSearch && matchPlatform && matchStatus;
+  });
+  renderDevices(filtered);
+}
+
+function refreshDevices() { loadDevices(); }
+function sendPush(id) { alert('Send push to device: ' + id); }
+function revokeDevice(id) { if (confirm('Revoke this device?')) alert('Revoked: ' + id); }
+function sendBroadcast() { alert('Send broadcast to all active devices'); }
+
+loadDevices();
+</script>
+{% endblock %}

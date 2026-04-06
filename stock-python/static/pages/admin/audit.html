@@ -1,0 +1,157 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Audit Logs - Admin{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+  <h1 class="page-title">Audit Logs</h1>
+  <button class="btn btn-primary" onclick="refreshLogs()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+    Refresh
+  </button>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <input type="text" class="form-control" id="searchInput" placeholder="Search logs..." onkeyup="filterTable()">
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" id="actionFilter" onchange="filterTable()">
+          <option value="">All Actions</option>
+          <option value="login">Login</option>
+          <option value="logout">Logout</option>
+          <option value="create">Create</option>
+          <option value="update">Update</option>
+          <option value="delete">Delete</option>
+          <option value="subscribe">Subscribe</option>
+          <option value="cancel">Cancel</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" id="resourceFilter" onchange="filterTable()">
+          <option value="">All Resources</option>
+          <option value="user">User</option>
+          <option value="subscription">Subscription</option>
+          <option value="task">Task</option>
+          <option value="api">API</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <input type="date" class="form-control" id="dateFilter" onchange="filterTable()">
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" id="levelFilter" onchange="filterTable()">
+          <option value="">All Levels</option>
+          <option value="info">Info</option>
+          <option value="warning">Warning</option>
+          <option value="error">Error</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table card-table table-vcenter">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Level</th>
+          <th>Action</th>
+          <th>Resource</th>
+          <th>User</th>
+          <th>IP Address</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody id="auditTableBody">
+        <tr><td colspan="7" class="text-center text-muted py-4">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<nav>
+  <ul class="pagination justify-content-center mt-3" id="pagination"></ul>
+</nav>
+
+<script>
+let auditData = [];
+const PAGE_SIZE = 50;
+let currentPage = 1;
+
+async function loadLogs() {
+  try {
+    const resp = await fetch('/api/v1/admin/audit');
+    const data = await resp.json();
+    auditData = data.logs || data || [];
+    renderLogs();
+  } catch (e) {
+    document.getElementById('auditTableBody').innerHTML = '<tr><td colspan="7" class="text-danger py-4">Failed to load audit logs</td></tr>';
+  }
+}
+
+function renderLogs() {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageData = auditData.slice(start, start + PAGE_SIZE);
+  const tbody = document.getElementById('auditTableBody');
+  
+  if (!pageData.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-muted py-4">No audit logs found</td></tr>';
+    return;
+  }
+  
+  const levelColors = { info: 'info', warning: 'warning', error: 'danger' };
+  tbody.innerHTML = pageData.map(l => `
+    <tr>
+      <td><code class="text-muted">${l.timestamp ? new Date(l.timestamp).toLocaleString() : '-'}</code></td>
+      <td><span class="badge bg-${levelColors[l.level] || 'secondary'}">${l.level || 'info'}</span></td>
+      <td>${l.action || '-'}</td>
+      <td>${l.resource || '-'}</td>
+      <td>${l.user_email || l.user_id || '-'}</td>
+      <td><code>${l.ip_address || '-'}</code></td>
+      <td><button class="btn btn-sm btn-link" onclick="showDetails('${l.id}')">View</button></td>
+    </tr>
+  `).join('');
+  
+  renderPagination();
+}
+
+function renderPagination() {
+  const totalPages = Math.ceil(auditData.length / PAGE_SIZE);
+  const nav = document.getElementById('pagination');
+  if (totalPages <= 1) { nav.innerHTML = ''; return; }
+  
+  let html = `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="goToPage(${currentPage - 1})">Prev</a></li>`;
+  for (let i = 1; i <= Math.min(totalPages, 10); i++) {
+    html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="goToPage(${i})">${i}</a></li>`;
+  }
+  html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="goToPage(${currentPage + 1})">Next</a></li>`;
+  nav.innerHTML = html;
+}
+
+function goToPage(p) {
+  currentPage = p;
+  renderLogs();
+}
+
+function filterTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const action = document.getElementById('actionFilter').value;
+  const resource = document.getElementById('resourceFilter').value;
+  const date = document.getElementById('dateFilter').value;
+  const level = document.getElementById('levelFilter').value;
+  
+  currentPage = 1;
+  renderLogs();
+}
+
+function refreshLogs() { loadLogs(); }
+function showDetails(id) { alert('Log details: ' + id); }
+
+loadLogs();
+</script>
+{% endblock %}

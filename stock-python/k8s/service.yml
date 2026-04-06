@@ -1,0 +1,72 @@
+---
+# Public API Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: public-api
+  labels:
+    app: stock-python
+    component: public-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+  selector:
+    app: stock-python
+    component: public-api
+---
+# Admin API Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-api
+  labels:
+    app: stock-python
+    component: admin-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8001
+      protocol: TCP
+  selector:
+    app: stock-python
+    component: admin-api
+---
+# Celery Worker Headless Service (for discovery)
+apiVersion: v1
+kind: Service
+metadata:
+  name: celery-worker
+  labels:
+    app: stock-python
+    component: celery-worker
+spec:
+  clusterIP: None
+  ports:
+    - port: 5555
+      targetPort: 5555
+      protocol: TCP
+  selector:
+    app: stock-python
+    component: celery-worker
+---
+# Flower Monitoring Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: flower
+  labels:
+    app: stock-python
+    component: flower
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 5555
+      protocol: TCP
+  selector:
+    app: stock-python
+    component: flower

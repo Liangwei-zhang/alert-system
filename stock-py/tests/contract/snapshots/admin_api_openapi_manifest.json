@@ -1,0 +1,547 @@
+{
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "root__get",
+        "summary": "Root",
+        "tags": []
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_check_health_get",
+        "summary": "Health Check",
+        "tags": []
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "liveness_check_health_live_get",
+        "summary": "Liveness Check",
+        "tags": []
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "readiness_check_health_ready_get",
+        "summary": "Readiness Check",
+        "tags": []
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "metrics_endpoint_metrics_get",
+        "summary": "Metrics Endpoint",
+        "tags": []
+      }
+    },
+    "/v1/admin/acceptance/report": {
+      "get": {
+        "operationId": "get_acceptance_report_v1_admin_acceptance_report_get",
+        "summary": "Get Acceptance Report",
+        "tags": [
+          "admin",
+          "acceptance"
+        ]
+      }
+    },
+    "/v1/admin/acceptance/status": {
+      "get": {
+        "operationId": "get_acceptance_status_v1_admin_acceptance_status_get",
+        "summary": "Get Acceptance Status",
+        "tags": [
+          "admin",
+          "acceptance"
+        ]
+      }
+    },
+    "/v1/admin/analytics/distribution": {
+      "get": {
+        "operationId": "get_distribution_v1_admin_analytics_distribution_get",
+        "summary": "Get Distribution",
+        "tags": [
+          "admin",
+          "analytics"
+        ]
+      }
+    },
+    "/v1/admin/analytics/overview": {
+      "get": {
+        "operationId": "get_overview_v1_admin_analytics_overview_get",
+        "summary": "Get Overview",
+        "tags": [
+          "admin",
+          "analytics"
+        ]
+      }
+    },
+    "/v1/admin/analytics/strategy-health": {
+      "get": {
+        "operationId": "get_strategy_health_v1_admin_analytics_strategy_health_get",
+        "summary": "Get Strategy Health",
+        "tags": [
+          "admin",
+          "analytics"
+        ]
+      }
+    },
+    "/v1/admin/analytics/tradingagents": {
+      "get": {
+        "operationId": "get_tradingagents_metrics_v1_admin_analytics_tradingagents_get",
+        "summary": "Get Tradingagents Metrics",
+        "tags": [
+          "admin",
+          "analytics"
+        ]
+      }
+    },
+    "/v1/admin/anomalies/ohlcv": {
+      "get": {
+        "operationId": "list_ohlcv_anomalies_v1_admin_anomalies_ohlcv_get",
+        "summary": "List Ohlcv Anomalies",
+        "tags": [
+          "admin",
+          "anomalies"
+        ]
+      }
+    },
+    "/v1/admin/audit": {
+      "get": {
+        "operationId": "list_audit_events_v1_admin_audit_get",
+        "summary": "List Audit Events",
+        "tags": [
+          "admin",
+          "audit"
+        ]
+      }
+    },
+    "/v1/admin/backtests": {
+      "get": {
+        "operationId": "get_backtests_root_v1_admin_backtests_get",
+        "summary": "Get Backtests Root",
+        "tags": [
+          "admin",
+          "backtests"
+        ]
+      }
+    },
+    "/v1/admin/backtests/rankings/latest": {
+      "get": {
+        "operationId": "list_latest_rankings_v1_admin_backtests_rankings_latest_get",
+        "summary": "List Latest Rankings",
+        "tags": [
+          "admin",
+          "backtests"
+        ]
+      }
+    },
+    "/v1/admin/backtests/runs": {
+      "get": {
+        "operationId": "list_runs_v1_admin_backtests_runs_get",
+        "summary": "List Runs",
+        "tags": [
+          "admin",
+          "backtests"
+        ]
+      },
+      "post": {
+        "operationId": "create_run_v1_admin_backtests_runs_post",
+        "summary": "Create Run",
+        "tags": [
+          "admin",
+          "backtests"
+        ]
+      }
+    },
+    "/v1/admin/backtests/runs/{run_id}": {
+      "get": {
+        "operationId": "get_run_v1_admin_backtests_runs__run_id__get",
+        "summary": "Get Run",
+        "tags": [
+          "admin",
+          "backtests"
+        ]
+      }
+    },
+    "/v1/admin/distribution/manual-message": {
+      "post": {
+        "operationId": "create_manual_message_v1_admin_distribution_manual_message_post",
+        "summary": "Create Manual Message",
+        "tags": [
+          "admin",
+          "distribution"
+        ]
+      }
+    },
+    "/v1/admin/operators": {
+      "get": {
+        "operationId": "list_operators_v1_admin_operators_get",
+        "summary": "List Operators",
+        "tags": [
+          "admin",
+          "operators"
+        ]
+      }
+    },
+    "/v1/admin/operators/{user_id}": {
+      "put": {
+        "operationId": "upsert_operator_v1_admin_operators__user_id__put",
+        "summary": "Upsert Operator",
+        "tags": [
+          "admin",
+          "operators"
+        ]
+      }
+    },
+    "/v1/admin/runtime/alerts": {
+      "get": {
+        "operationId": "get_runtime_alerts_v1_admin_runtime_alerts_get",
+        "summary": "Get Runtime Alerts",
+        "tags": [
+          "admin",
+          "runtime-monitoring"
+        ]
+      }
+    },
+    "/v1/admin/runtime/components": {
+      "get": {
+        "operationId": "list_components_v1_admin_runtime_components_get",
+        "summary": "List Components",
+        "tags": [
+          "admin",
+          "runtime-monitoring"
+        ]
+      }
+    },
+    "/v1/admin/runtime/components/{component_kind}/{component_name}": {
+      "get": {
+        "operationId": "get_component_v1_admin_runtime_components__component_kind___component_name__get",
+        "summary": "Get Component",
+        "tags": [
+          "admin",
+          "runtime-monitoring"
+        ]
+      }
+    },
+    "/v1/admin/runtime/health": {
+      "get": {
+        "operationId": "get_runtime_health_v1_admin_runtime_health_get",
+        "summary": "Get Runtime Health",
+        "tags": [
+          "admin",
+          "runtime-monitoring"
+        ]
+      }
+    },
+    "/v1/admin/runtime/metrics": {
+      "get": {
+        "operationId": "get_runtime_metrics_v1_admin_runtime_metrics_get",
+        "summary": "Get Runtime Metrics",
+        "tags": [
+          "admin",
+          "runtime-monitoring"
+        ]
+      }
+    },
+    "/v1/admin/runtime/stats": {
+      "get": {
+        "operationId": "get_runtime_stats_v1_admin_runtime_stats_get",
+        "summary": "Get Runtime Stats",
+        "tags": [
+          "admin",
+          "runtime-monitoring"
+        ]
+      }
+    },
+    "/v1/admin/scanner": {
+      "get": {
+        "operationId": "get_scanner_root_v1_admin_scanner_get",
+        "summary": "Get Scanner Root",
+        "tags": [
+          "admin",
+          "scanner"
+        ]
+      }
+    },
+    "/v1/admin/scanner/live-decision": {
+      "get": {
+        "operationId": "list_live_decisions_v1_admin_scanner_live_decision_get",
+        "summary": "List Live Decisions",
+        "tags": [
+          "admin",
+          "scanner"
+        ]
+      }
+    },
+    "/v1/admin/scanner/observability": {
+      "get": {
+        "operationId": "get_observability_v1_admin_scanner_observability_get",
+        "summary": "Get Observability",
+        "tags": [
+          "admin",
+          "scanner"
+        ]
+      }
+    },
+    "/v1/admin/scanner/runs/{run_id}": {
+      "get": {
+        "operationId": "get_run_v1_admin_scanner_runs__run_id__get",
+        "summary": "Get Run",
+        "tags": [
+          "admin",
+          "scanner"
+        ]
+      }
+    },
+    "/v1/admin/signal-stats": {
+      "get": {
+        "operationId": "list_signal_stats_v1_admin_signal_stats_get",
+        "summary": "List Signal Stats",
+        "tags": [
+          "admin",
+          "signal-stats"
+        ]
+      }
+    },
+    "/v1/admin/signal-stats/summary": {
+      "get": {
+        "operationId": "get_signal_stats_summary_v1_admin_signal_stats_summary_get",
+        "summary": "Get Signal Stats Summary",
+        "tags": [
+          "admin",
+          "signal-stats"
+        ]
+      }
+    },
+    "/v1/admin/tasks": {
+      "get": {
+        "operationId": "get_tasks_root_v1_admin_tasks_get",
+        "summary": "Get Tasks Root",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/emails/claim": {
+      "post": {
+        "operationId": "claim_email_tasks_v1_admin_tasks_emails_claim_post",
+        "summary": "Claim Email Tasks",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/emails/retry": {
+      "post": {
+        "operationId": "retry_email_tasks_v1_admin_tasks_emails_retry_post",
+        "summary": "Retry Email Tasks",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/outbox": {
+      "get": {
+        "operationId": "list_outbox_v1_admin_tasks_outbox_get",
+        "summary": "List Outbox",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/outbox/release-stale": {
+      "post": {
+        "operationId": "release_stale_outbox_messages_v1_admin_tasks_outbox_release_stale_post",
+        "summary": "Release Stale Outbox Messages",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/outbox/retry": {
+      "post": {
+        "operationId": "retry_outbox_messages_v1_admin_tasks_outbox_retry_post",
+        "summary": "Retry Outbox Messages",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/outbox/{outbox_id}/requeue": {
+      "post": {
+        "operationId": "requeue_outbox_message_v1_admin_tasks_outbox__outbox_id__requeue_post",
+        "summary": "Requeue Outbox Message",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/receipts": {
+      "get": {
+        "operationId": "list_receipts_v1_admin_tasks_receipts_get",
+        "summary": "List Receipts",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/receipts/ack": {
+      "post": {
+        "operationId": "acknowledge_receipt_v1_admin_tasks_receipts_ack_post",
+        "summary": "Acknowledge Receipt",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/receipts/escalate-overdue": {
+      "post": {
+        "operationId": "escalate_overdue_receipts_v1_admin_tasks_receipts_escalate_overdue_post",
+        "summary": "Escalate Overdue Receipts",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/receipts/{receipt_id}/claim": {
+      "post": {
+        "operationId": "claim_receipt_follow_up_v1_admin_tasks_receipts__receipt_id__claim_post",
+        "summary": "Claim Receipt Follow Up",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/receipts/{receipt_id}/resolve": {
+      "post": {
+        "operationId": "resolve_receipt_follow_up_v1_admin_tasks_receipts__receipt_id__resolve_post",
+        "summary": "Resolve Receipt Follow Up",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/trades": {
+      "get": {
+        "operationId": "list_trade_tasks_v1_admin_tasks_trades_get",
+        "summary": "List Trade Tasks",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/trades/claim": {
+      "post": {
+        "operationId": "claim_trade_tasks_v1_admin_tasks_trades_claim_post",
+        "summary": "Claim Trade Tasks",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tasks/trades/expire": {
+      "post": {
+        "operationId": "expire_trade_tasks_v1_admin_tasks_trades_expire_post",
+        "summary": "Expire Trade Tasks",
+        "tags": [
+          "admin",
+          "tasks"
+        ]
+      }
+    },
+    "/v1/admin/tradingagents/analyses": {
+      "get": {
+        "operationId": "list_analyses_v1_admin_tradingagents_analyses_get",
+        "summary": "List Analyses",
+        "tags": [
+          "admin",
+          "tradingagents"
+        ]
+      }
+    },
+    "/v1/admin/tradingagents/analyses/{request_id}": {
+      "get": {
+        "operationId": "get_analysis_v1_admin_tradingagents_analyses__request_id__get",
+        "summary": "Get Analysis",
+        "tags": [
+          "admin",
+          "tradingagents"
+        ]
+      }
+    },
+    "/v1/admin/tradingagents/reconcile-delayed": {
+      "post": {
+        "operationId": "reconcile_delayed_v1_admin_tradingagents_reconcile_delayed_post",
+        "summary": "Reconcile Delayed",
+        "tags": [
+          "admin",
+          "tradingagents"
+        ]
+      }
+    },
+    "/v1/admin/tradingagents/stats": {
+      "get": {
+        "operationId": "get_stats_v1_admin_tradingagents_stats_get",
+        "summary": "Get Stats",
+        "tags": [
+          "admin",
+          "tradingagents"
+        ]
+      }
+    },
+    "/v1/admin/users": {
+      "get": {
+        "operationId": "list_users_v1_admin_users_get",
+        "summary": "List Users",
+        "tags": [
+          "admin",
+          "users"
+        ]
+      }
+    },
+    "/v1/admin/users/bulk": {
+      "post": {
+        "operationId": "bulk_update_users_v1_admin_users_bulk_post",
+        "summary": "Bulk Update Users",
+        "tags": [
+          "admin",
+          "users"
+        ]
+      }
+    },
+    "/v1/admin/users/{user_id}": {
+      "get": {
+        "operationId": "get_user_v1_admin_users__user_id__get",
+        "summary": "Get User",
+        "tags": [
+          "admin",
+          "users"
+        ]
+      },
+      "put": {
+        "operationId": "update_user_v1_admin_users__user_id__put",
+        "summary": "Update User",
+        "tags": [
+          "admin",
+          "users"
+        ]
+      }
+    }
+  },
+  "title": "Stock API Admin API",
+  "version": "1.0.0"
+}

@@ -1,0 +1,24 @@
+{
+  "Rules": [
+    {
+      "ID": "analytics-archive-expiration",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "analytics-archive/"
+      },
+      "Expiration": {
+        "Days": 180
+      }
+    },
+    {
+      "ID": "retention-archive-expiration",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "retention-archive/"
+      },
+      "Expiration": {
+        "Days": 365
+      }
+    }
+  ]
+}

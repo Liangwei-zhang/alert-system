@@ -1,0 +1,414 @@
+{
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "root__get",
+        "summary": "Root",
+        "tags": []
+      }
+    },
+    "/alerts": {
+      "post": {
+        "operationId": "create_bridge_alert_alerts_post",
+        "summary": "Create Bridge Alert",
+        "tags": [
+          "sidecars"
+        ]
+      }
+    },
+    "/api/binance/{symbol}": {
+      "get": {
+        "operationId": "binance_proxy_history_api_binance__symbol__get",
+        "summary": "Binance Proxy History",
+        "tags": [
+          "sidecars"
+        ]
+      }
+    },
+    "/api/telegram": {
+      "post": {
+        "operationId": "relay_telegram_message_api_telegram_post",
+        "summary": "Relay Telegram Message",
+        "tags": [
+          "sidecars"
+        ]
+      }
+    },
+    "/api/yahoo/{symbol}": {
+      "get": {
+        "operationId": "yahoo_proxy_history_api_yahoo__symbol__get",
+        "summary": "Yahoo Proxy History",
+        "tags": [
+          "sidecars"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_check_health_get",
+        "summary": "Health Check",
+        "tags": []
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "liveness_check_health_live_get",
+        "summary": "Liveness Check",
+        "tags": []
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "readiness_check_health_ready_get",
+        "summary": "Readiness Check",
+        "tags": []
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "metrics_endpoint_metrics_get",
+        "summary": "Metrics Endpoint",
+        "tags": []
+      }
+    },
+    "/v1/account/dashboard": {
+      "get": {
+        "operationId": "get_dashboard_v1_account_dashboard_get",
+        "summary": "Get Dashboard",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/v1/account/profile": {
+      "get": {
+        "operationId": "get_profile_v1_account_profile_get",
+        "summary": "Get Profile",
+        "tags": [
+          "account"
+        ]
+      },
+      "put": {
+        "operationId": "update_profile_v1_account_profile_put",
+        "summary": "Update Profile",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/v1/account/start-subscription": {
+      "post": {
+        "operationId": "start_subscription_v1_account_start_subscription_post",
+        "summary": "Start Subscription",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "operationId": "logout_v1_auth_logout_post",
+        "summary": "Logout",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "operationId": "refresh_v1_auth_refresh_post",
+        "summary": "Refresh",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/send-code": {
+      "post": {
+        "operationId": "send_code_v1_auth_send_code_post",
+        "summary": "Send Code",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/verify": {
+      "post": {
+        "operationId": "verify_code_v1_auth_verify_post",
+        "summary": "Verify Code",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/internal/signals/desktop": {
+      "post": {
+        "operationId": "ingest_desktop_signal_v1_internal_signals_desktop_post",
+        "summary": "Ingest Desktop Signal",
+        "tags": [
+          "signal-ingest"
+        ]
+      }
+    },
+    "/v1/internal/tradingagents/health": {
+      "get": {
+        "operationId": "webhook_health_v1_internal_tradingagents_health_get",
+        "summary": "Webhook Health",
+        "tags": [
+          "tradingagents"
+        ]
+      }
+    },
+    "/v1/internal/tradingagents/job-status": {
+      "post": {
+        "operationId": "receive_status_update_v1_internal_tradingagents_job_status_post",
+        "summary": "Receive Status Update",
+        "tags": [
+          "tradingagents"
+        ]
+      }
+    },
+    "/v1/internal/tradingagents/job-terminal": {
+      "post": {
+        "operationId": "receive_terminal_event_v1_internal_tradingagents_job_terminal_post",
+        "summary": "Receive Terminal Event",
+        "tags": [
+          "tradingagents"
+        ]
+      }
+    },
+    "/v1/internal/tradingagents/submit": {
+      "post": {
+        "operationId": "submit_tradingagents_job_v1_internal_tradingagents_submit_post",
+        "summary": "Submit Tradingagents Job",
+        "tags": [
+          "tradingagents"
+        ]
+      }
+    },
+    "/v1/notifications": {
+      "get": {
+        "operationId": "list_notifications_v1_notifications_get",
+        "summary": "List Notifications",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/v1/notifications/push-devices": {
+      "get": {
+        "operationId": "list_push_devices_v1_notifications_push_devices_get",
+        "summary": "List Push Devices",
+        "tags": [
+          "notifications"
+        ]
+      },
+      "post": {
+        "operationId": "register_push_device_v1_notifications_push_devices_post",
+        "summary": "Register Push Device",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/v1/notifications/push-devices/{device_id}": {
+      "delete": {
+        "operationId": "disable_push_device_v1_notifications_push_devices__device_id__delete",
+        "summary": "Disable Push Device",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/v1/notifications/push-devices/{device_id}/test": {
+      "post": {
+        "operationId": "test_push_device_v1_notifications_push_devices__device_id__test_post",
+        "summary": "Test Push Device",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/v1/notifications/read-all": {
+      "put": {
+        "operationId": "mark_all_read_v1_notifications_read_all_put",
+        "summary": "Mark All Read",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/v1/notifications/{notification_id}/ack": {
+      "put": {
+        "operationId": "acknowledge_v1_notifications__notification_id__ack_put",
+        "summary": "Acknowledge",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/v1/notifications/{notification_id}/read": {
+      "put": {
+        "operationId": "mark_read_v1_notifications__notification_id__read_put",
+        "summary": "Mark Read",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/v1/portfolio": {
+      "get": {
+        "operationId": "list_portfolio_v1_portfolio_get",
+        "summary": "List Portfolio",
+        "tags": [
+          "portfolio"
+        ]
+      },
+      "post": {
+        "operationId": "create_position_v1_portfolio_post",
+        "summary": "Create Position",
+        "tags": [
+          "portfolio"
+        ]
+      }
+    },
+    "/v1/portfolio/{item_id}": {
+      "delete": {
+        "operationId": "delete_position_v1_portfolio__item_id__delete",
+        "summary": "Delete Position",
+        "tags": [
+          "portfolio"
+        ]
+      },
+      "put": {
+        "operationId": "update_position_v1_portfolio__item_id__put",
+        "summary": "Update Position",
+        "tags": [
+          "portfolio"
+        ]
+      }
+    },
+    "/v1/search/symbols": {
+      "get": {
+        "operationId": "search_symbols_v1_search_symbols_get",
+        "summary": "Search Symbols",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/v1/trades/{trade_id}/adjust": {
+      "post": {
+        "operationId": "adjust_trade_v1_trades__trade_id__adjust_post",
+        "summary": "Adjust Trade",
+        "tags": [
+          "trades"
+        ]
+      }
+    },
+    "/v1/trades/{trade_id}/app-adjust": {
+      "post": {
+        "operationId": "app_adjust_trade_v1_trades__trade_id__app_adjust_post",
+        "summary": "App Adjust Trade",
+        "tags": [
+          "trades"
+        ]
+      }
+    },
+    "/v1/trades/{trade_id}/app-confirm": {
+      "post": {
+        "operationId": "app_confirm_trade_v1_trades__trade_id__app_confirm_post",
+        "summary": "App Confirm Trade",
+        "tags": [
+          "trades"
+        ]
+      }
+    },
+    "/v1/trades/{trade_id}/app-ignore": {
+      "post": {
+        "operationId": "app_ignore_trade_v1_trades__trade_id__app_ignore_post",
+        "summary": "App Ignore Trade",
+        "tags": [
+          "trades"
+        ]
+      }
+    },
+    "/v1/trades/{trade_id}/app-info": {
+      "get": {
+        "operationId": "get_trade_app_info_v1_trades__trade_id__app_info_get",
+        "summary": "Get Trade App Info",
+        "tags": [
+          "trades"
+        ]
+      }
+    },
+    "/v1/trades/{trade_id}/confirm": {
+      "get": {
+        "operationId": "get_trade_confirm_page_v1_trades__trade_id__confirm_get",
+        "summary": "Get Trade Confirm Page",
+        "tags": [
+          "trades"
+        ]
+      },
+      "post": {
+        "operationId": "confirm_trade_v1_trades__trade_id__confirm_post",
+        "summary": "Confirm Trade",
+        "tags": [
+          "trades"
+        ]
+      }
+    },
+    "/v1/trades/{trade_id}/ignore": {
+      "post": {
+        "operationId": "ignore_trade_v1_trades__trade_id__ignore_post",
+        "summary": "Ignore Trade",
+        "tags": [
+          "trades"
+        ]
+      }
+    },
+    "/v1/trades/{trade_id}/info": {
+      "get": {
+        "operationId": "get_trade_info_v1_trades__trade_id__info_get",
+        "summary": "Get Trade Info",
+        "tags": [
+          "trades"
+        ]
+      }
+    },
+    "/v1/watchlist": {
+      "get": {
+        "operationId": "list_watchlist_v1_watchlist_get",
+        "summary": "List Watchlist",
+        "tags": [
+          "watchlist"
+        ]
+      },
+      "post": {
+        "operationId": "create_watchlist_item_v1_watchlist_post",
+        "summary": "Create Watchlist Item",
+        "tags": [
+          "watchlist"
+        ]
+      }
+    },
+    "/v1/watchlist/{item_id}": {
+      "delete": {
+        "operationId": "delete_watchlist_item_v1_watchlist__item_id__delete",
+        "summary": "Delete Watchlist Item",
+        "tags": [
+          "watchlist"
+        ]
+      },
+      "put": {
+        "operationId": "update_watchlist_item_v1_watchlist__item_id__put",
+        "summary": "Update Watchlist Item",
+        "tags": [
+          "watchlist"
+        ]
+      }
+    }
+  },
+  "title": "Stock API Public API",
+  "version": "1.0.0"
+}

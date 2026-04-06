@@ -1,0 +1,516 @@
+openapi: 3.0.3
+info:
+  title: Stock API - Admin
+  description: Admin API endpoints for system management
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: Admin API v1
+
+tags:
+  - name: admin
+    description: User management endpoints
+  - name: admin-stats
+    description: Statistics and monitoring endpoints
+  - name: admin-audit
+    description: Audit log endpoints
+  - name: admin-tasks
+    description: Celery task management endpoints
+
+paths:
+  # Admin Users
+  /admin/users:
+    get:
+      summary: List admin users
+      tags: [admin]
+      parameters:
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: List of admin users
+    post:
+      summary: Create admin user
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password]
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                full_name:
+                  type: string
+                role:
+                  type: string
+                  enum: [VIEWER, USER, MODERATOR, ADMIN, SUPER_ADMIN]
+      responses:
+        '201':
+          description: User created
+
+  /admin/users/{user_id}:
+    get:
+      summary: Get admin user
+      tags: [admin]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User data
+    patch:
+      summary: Update admin user
+      tags: [admin]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                full_name:
+                  type: string
+                role:
+                  type: string
+                  enum: [VIEWER, USER, MODERATOR, ADMIN, SUPER_ADMIN]
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: User updated
+    delete:
+      summary: Delete admin user
+      tags: [admin]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: User deleted
+
+  # Admin Stats
+  /admin/stats:
+    get:
+      summary: Get system statistics
+      tags: [admin-stats]
+      responses:
+        '200':
+          description: System statistics
+
+  /admin/subscription-stats:
+    get:
+      summary: Get subscription statistics
+      tags: [admin-stats]
+      responses:
+        '200':
+          description: Subscription statistics
+
+  /admin/subscriptions:
+    get:
+      summary: List all subscriptions
+      tags: [admin-stats]
+      parameters:
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: tier
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of subscriptions
+
+  /admin/subscriptions/{subscription_id}:
+    get:
+      summary: Get subscription
+      tags: [admin-stats]
+      parameters:
+        - name: subscription_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Subscription data
+    patch:
+      summary: Update subscription
+      tags: [admin-stats]
+      parameters:
+        - name: subscription_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tier:
+                  type: string
+                status:
+                  type: string
+                signals_per_day:
+                  type: integer
+                max_portfolios:
+                  type: integer
+                max_strategies:
+                  type: integer
+                realtime_signals:
+                  type: boolean
+                backtesting:
+                  type: boolean
+                api_access:
+                  type: boolean
+      responses:
+        '200':
+          description: Subscription updated
+
+  # Operational Stats
+  /admin/operational-stats:
+    get:
+      summary: Get operational statistics
+      tags: [admin-stats]
+      responses:
+        '200':
+          description: Comprehensive operational stats
+
+  /admin/users-stats:
+    get:
+      summary: Get user statistics
+      tags: [admin-stats]
+      responses:
+        '200':
+          description: User statistics
+
+  /admin/signals-stats:
+    get:
+      summary: Get signal statistics
+      tags: [admin-stats]
+      responses:
+        '200':
+          description: Signal statistics
+
+  /admin/signals-distribution:
+    get:
+      summary: Get signal distribution
+      tags: [admin-stats]
+      responses:
+        '200':
+          description: Signal distribution by type and source
+
+  /admin/celery-status:
+    get:
+      summary: Get Celery status
+      tags: [admin-stats]
+      responses:
+        '200':
+          description: Celery task queue status
+
+  /admin/system-health:
+    get:
+      summary: Get system health
+      tags: [admin-stats]
+      responses:
+        '200':
+          description: System health metrics
+
+  # Admin Tasks
+  /admin/tasks/status/{task_id}:
+    get:
+      summary: Get task status
+      tags: [admin-tasks]
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task status
+
+  /admin/tasks/result/{task_id}:
+    get:
+      summary: Get task result
+      tags: [admin-tasks]
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task result
+
+  /admin/tasks/stats:
+    get:
+      summary: Get task statistics
+      tags: [admin-tasks]
+      responses:
+        '200':
+          description: Task statistics
+
+  /admin/tasks/queues:
+    get:
+      summary: Get queue status
+      tags: [admin-tasks]
+      responses:
+        '200':
+          description: Queue status
+
+  /admin/tasks/queues/pending:
+    get:
+      summary: Get pending tasks
+      tags: [admin-tasks]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Pending tasks
+
+  /admin/tasks/queues/running:
+    get:
+      summary: Get running tasks
+      tags: [admin-tasks]
+      responses:
+        '200':
+          description: Running tasks
+
+  /admin/tasks/workers:
+    get:
+      summary: Get worker status
+      tags: [admin-tasks]
+      responses:
+        '200':
+          description: Worker status
+
+  /admin/tasks/workers/stats:
+    get:
+      summary: Get worker stats
+      tags: [admin-tasks]
+      responses:
+        '200':
+          description: Worker statistics
+
+  /admin/tasks/workers/active:
+    get:
+      summary: Get active workers
+      tags: [admin-tasks]
+      responses:
+        '200':
+          description: Active worker names
+
+  /admin/tasks/health:
+    get:
+      summary: Get system health
+      tags: [admin-tasks]
+      responses:
+        '200':
+          description: System health
+
+  /admin/tasks/dashboard:
+    get:
+      summary: Get dashboard data
+      tags: [admin-tasks]
+      responses:
+        '200':
+          description: Dashboard data
+
+  # Admin Audit
+  /admin/audit:
+    get:
+      summary: List audit logs
+      tags: [admin-audit]
+      parameters:
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: admin_user_id
+          in: query
+          schema:
+            type: integer
+        - name: username
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: resource_type
+          in: query
+          schema:
+            type: string
+        - name: resource_id
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: List of audit logs
+
+  /admin/audit/stats:
+    get:
+      summary: Get audit statistics
+      tags: [admin-audit]
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: Audit statistics
+
+  /admin/audit/actions:
+    get:
+      summary: List audit actions
+      tags: [admin-audit]
+      responses:
+        '200':
+          description: Available audit action types
+
+  /admin/audit/{log_id}:
+    get:
+      summary: Get audit log
+      tags: [admin-audit]
+      parameters:
+        - name: log_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Audit log entry
+
+  /admin/audit:
+    post:
+      summary: Create audit log
+      tags: [admin-audit]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [admin_user_id, action]
+              properties:
+                admin_user_id:
+                  type: integer
+                username:
+                  type: string
+                action:
+                  type: string
+                resource_type:
+                  type: string
+                resource_id:
+                  type: string
+                details:
+                  type: string
+                ip_address:
+                  type: string
+                user_agent:
+                  type: string
+                status:
+                  type: string
+                error_message:
+                  type: string
+      responses:
+        '201':
+          description: Audit log created
+
+  /admin/audit/{log_id}:
+    delete:
+      summary: Delete audit log
+      tags: [admin-audit]
+      parameters:
+        - name: log_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Audit log deleted
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer

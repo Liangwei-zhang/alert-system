@@ -1,0 +1,175 @@
+openapi: 3.0.3
+info:
+  title: Stock API - Internal
+  description: Internal API endpoints for runtime metrics and configuration
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: Internal API v1
+
+tags:
+  - name: runtime
+    description: Runtime metrics and configuration
+
+paths:
+  # Metrics
+  /metrics:
+    get:
+      summary: Get metrics history
+      tags: [runtime]
+      parameters:
+        - name: metric_name
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: since
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Metrics history
+
+  /metrics/latest:
+    get:
+      summary: Get latest metric value
+      tags: [runtime]
+      parameters:
+        - name: metric_name
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Latest metric
+
+  /metrics/aggregates:
+    get:
+      summary: Get aggregated metrics
+      tags: [runtime]
+      parameters:
+        - name: metric_name
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: interval_minutes
+          in: query
+          schema:
+            type: integer
+            default: 5
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Aggregated metrics
+
+  /metrics:
+    post:
+      summary: Record metric
+      tags: [runtime]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [metric_name, value]
+              properties:
+                metric_name:
+                  type: string
+                value:
+                  type: number
+                metric_type:
+                  type: string
+                  default: gauge
+                labels:
+                  type: object
+      responses:
+        '200':
+          description: Metric recorded
+
+  # Configuration
+  /config:
+    get:
+      summary: Get all configurations
+      tags: [runtime]
+      responses:
+        '200':
+          description: All configurations
+
+  /config/{key}:
+    get:
+      summary: Get configuration
+      tags: [runtime]
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Configuration value
+
+  /config:
+    post:
+      summary: Set configuration
+      tags: [runtime]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, value]
+              properties:
+                key:
+                  type: string
+                value:
+                  type: string
+                value_type:
+                  type: string
+                  default: string
+                description:
+                  type: string
+                is_secret:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Configuration set
+
+  # Runtime
+  /runtime/summary:
+    get:
+      summary: Get runtime summary
+      tags: [runtime]
+      responses:
+        '200':
+          description: Runtime status summary
+
+  /runtime/status:
+    get:
+      summary: Get runtime status
+      tags: [runtime]
+      responses:
+        '200':
+          description: Overall runtime status
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer

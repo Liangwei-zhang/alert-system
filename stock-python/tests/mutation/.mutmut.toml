@@ -1,0 +1,37 @@
+"""Mutation testing configuration using mutmut."""
+from __future__ import annotations
+
+# mutmut configuration
+# Run with: mutmut run --source-dir=domains/ --tests-dir=tests/mutation/
+
+[mutmut]
+# Paths to mutate
+source_dir = domains/
+tests_dir = tests/mutation/
+
+# Exclude these directories
+exclude_dirs = 
+    __pycache__
+    .pytest_cache
+    venv
+    .venv
+
+# Exclude these files
+exclude_files = 
+    *test*.py
+    conftest.py
+    __init__.py
+
+# Disable these mutations
+disable_mutations =
+    # Arithmetic mutations (can cause false positives in financial calcs)
+    arithmetic
+    # Number mutations (precision matters for prices)
+    numbers
+
+# Minimum mutations to keep
+minimum_mutation_score = 70
+
+[view]
+# Use terminal UI
+terminal = true

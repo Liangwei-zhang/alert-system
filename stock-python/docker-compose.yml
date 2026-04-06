@@ -1,0 +1,225 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: stock-python-postgres
+    environment:
+      POSTGRES_USER: stock_user
+      POSTGRES_PASSWORD: stock_password
+      POSTGRES_DB: stock_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stock_user -d stock_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: stock-python-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka (using Redpanda as lighter alternative)
+  kafka:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.3.9
+    container_name: stock-python-kafka
+    command: redpanda start --kafka-addr 0.0.0.0:9092 --advertise-kafka-addr localhost:9092
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/var/lib/redpanda/data
+    environment:
+      - REDPANDA_AUTO_CREATE_TOPICS_ENABLED=true
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Public API
+  public_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-python-public-api
+    command: uvicorn apps.public_api.main:app --host 0.0.0.0 --port 8000
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://stock_user:stock_password@postgres:5432/stock_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    ports:
+      - "8080:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Admin API
+  admin_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-python-admin-api
+    command: uvicorn apps.admin_api.main:app --host 0.0.0.0 --port 8001
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://stock_user:stock_password@postgres:5432/stock_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    ports:
+      - "8080:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Celery Worker (General)
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-python-celery-worker
+    command: celery -A apps.workers.celery_app worker --loglevel=info --concurrency=2
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://stock_user:stock_password@postgres:5432/stock_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Scanner Worker
+  scanner_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-python-scanner-worker
+    command: celery -A apps.workers.celery_app worker --loglevel=info --concurrency=1 -Q scanner
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://stock_user:stock_password@postgres:5432/stock_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Notification Worker
+  notification_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-python-notification-worker
+    command: celery -A apps.workers.celery_app worker --loglevel=info --concurrency=2 -Q notification
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://stock_user:stock_password@postgres:5432/stock_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Email Worker
+  email_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-python-email-worker
+    command: celery -A apps.workers.celery_app worker --loglevel=info --concurrency=2 -Q email
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://stock_user:stock_password@postgres:5432/stock_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Celery Beat (Scheduler)
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-python-celery-beat
+    command: celery -A apps.workers.celery_app beat --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://stock_user:stock_password@postgres:5432/stock_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Flower (Celery Monitoring)
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-python-flower
+    command: celery -A apps.workers.celery_app flower --port=5555
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  kafka_data:

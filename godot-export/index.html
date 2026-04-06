@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Coin Collector</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #87CEEB; font-family: Arial, sans-serif; touch-action: none; }
+        #score { position: absolute; top: 20px; left: 20px; color: gold; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px #000; z-index: 100; }
+        #instructions { position: absolute; bottom: 20px; left: 20px; color: #aaa; font-size: 14px; }
+        
+        /* Mobile Controls */
+        #dpad { 
+            position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+            display: grid; grid-template-columns: 60px 60px 60px; gap: 5px;
+            z-index: 100;
+        }
+        .btn {
+            width: 60px; height: 60px; background: rgba(255,255,255,0.15);
+            border-radius: 12px; border: 2px solid rgba(255,255,255,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; color: white; user-select: none; -webkit-user-select: none;
+        }
+        .btn:active { background: rgba(255,255,255,0.4); }
+        #up { grid-column: 2; }
+        #left { grid-column: 1; grid-row: 2; }
+        #right { grid-column: 3; grid-row: 2; }
+        #down { grid-column: 2; grid-row: 3; }
+        
+        @media (min-width: 769px) {
+            #dpad { display: none; }
+            #jumpBtn { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <div id="instructions">WASD / Arrow to move • Space to jump • Collect coins for stones • Hit caterpillars!</div>
+    
+    <div id="dpad">
+        <div class="btn" id="up">↑</div>
+        <div class="btn" id="left">←</div>
+        <div class="btn" id="right">→</div>
+        <div class="btn" id="down">↓</div>
+    </div>
+    
+    <button id="jumpBtn" style="
+        position: absolute; bottom: 160px; right: 30px;
+        width: 70px; height: 70px;
+        background: rgba(255,100,100,0.4); border: 3px solid rgba(255,100,100,0.7);
+        border-radius: 50%; color: white; font-size: 24px; font-weight: bold;
+        z-index: 100; touch-action: none;
+    ">↑</button>
+    
+    <script src="three.min.js"></script>
+    <script>
+        // Global variables - declared once
+        let scene, camera, renderer, player, coins = [];
+        let score = 0;
+        let keys = { w:false, a:false, s:false, d:false };
+        
+        // Camera rotation
+        let cameraAngle = 0;
+        let cameraHeight = 8;
+        let cameraDistance = 10;
+        let isDragging = false;
+        let lastMouseX = 0;
+        
+        // Jump
+        let velocityY = 0;
+        let isOnGround = true;
+        const gravity = -0.015;
+        const jumpForce = 0.35;
+        
+        // Orbit stones function (global)
+        function activateOrbitStones() {
+            if (!window.orbitStones) window.orbitStones = [];
+            
+            // Remove old stones
+            window.orbitStones.forEach(s => scene.remove(s));
+            window.orbitStones = [];
+            
+            // Create 3 orbiting stones
+            for (let i = 0; i < 3; i++) {
+                const stoneGeo = new THREE.DodecahedronGeometry(0.15);
+                const stoneMat = new THREE.MeshPhongMaterial({ color: 0x888888, shininess: 100 });
+                const stone = new THREE.Mesh(stoneGeo, stoneMat);
+                stone.userData = { angle: (i / 3) * Math.PI * 2, radius: 1.2, yOffset: 0.8 + i * 0.3 };
+                window.orbitStones.push(stone);
+                scene.add(stone);
+            }
+            
+            window.stoneActive = true;
+            window.stoneTimer = Date.now();
+        }
+        
+        // Camera rotation
+        
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB); // Sky blue
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 10);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+            
+            // Ground
+            const groundGeo = new THREE.BoxGeometry(20, 1, 20);
+            const groundMat = new THREE.MeshPhongMaterial({ color: 0x228B22 }); // Grass green
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.position.y = -0.5;
+            scene.add(ground);
+            
+            // Grid
+            const grid = new THREE.GridHelper(20, 20, 0x444444, 0x333333);
+            grid.position.y = 0.01;
+            scene.add(grid);
+            
+            // Rocky hill
+            const hillGroup = new THREE.Group();
+            
+            // Main hill rock
+            const hillGeo = new THREE.DodecahedronGeometry(3, 1);
+            hillGeo.scale(1.5, 0.8, 1.2);
+            const hillMat = new THREE.MeshPhongMaterial({ color: 0x696969 });
+            const hill = new THREE.Mesh(hillGeo, hillMat);
+            hill.position.set(6, 1.5, -6);
+            hill.rotation.y = 0.5;
+            hillGroup.add(hill);
+            
+            // Extra rocks
+            const rockGeo = new THREE.DodecahedronGeometry(1, 0);
+            const rockMat = new THREE.MeshPhongMaterial({ color: 0x808080 });
+            const rock1 = new THREE.Mesh(rockGeo, rockMat);
+            rock1.position.set(7, 0.8, -5);
+            rock1.scale.set(1.2, 0.6, 1);
+            hillGroup.add(rock1);
+            const rock2 = new THREE.Mesh(rockGeo, rockMat);
+            rock2.position.set(5.5, 0.6, -7);
+            rock2.scale.set(0.8, 0.5, 0.8);
+            hillGroup.add(rock2);
+            
+            scene.add(hillGroup);
+            
+            // Acorn on top of hill
+            const acornGroup = new THREE.Group();
+            
+            // Acorn nut (brown sphere)
+            const nutGeo = new THREE.SphereGeometry(0.3, 12, 12);
+            nutGeo.scale(0.8, 1, 0.8);
+            const nutMat = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+            const nut = new THREE.Mesh(nutGeo, nutMat);
+            nut.position.y = 0.2;
+            acornGroup.add(nut);
+            
+            // Acorn cap (lighter brown)
+            const capGeo = new THREE.SphereGeometry(0.32, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+            const capMat = new THREE.MeshPhongMaterial({ color: 0xA0522D });
+            const cap = new THREE.Mesh(capGeo, capMat);
+            cap.position.y = 0.45;
+            acornGroup.add(cap);
+            
+            // Stem
+            const stemGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.15, 6);
+            const stem = new THREE.Mesh(stemGeo, capMat);
+            stem.position.y = 0.6;
+            acornGroup.add(stem);
+            
+            acornGroup.position.set(6, 3.2, -6);
+            acornGroup.userData = { collected: false };
+            scene.add(acornGroup);
+            window.acorn = acornGroup;
+            
+            // Traps
+            const traps = [];
+            const trapPositions = [
+                [-4, 0.1, 3], [4, 0.1, -2]
+            ];
+            
+            trapPositions.forEach((pos, i) => {
+                const trap = new THREE.Group();
+                
+                // Pit/hole
+                const pitGeo = new THREE.CylinderGeometry(0.8, 0.6, 0.2, 16);
+                const pitMat = new THREE.MeshPhongMaterial({ color: 0x1a1a1a });
+                const pit = new THREE.Mesh(pitGeo, pitMat);
+                pit.position.y = -0.1;
+                trap.add(pit);
+                
+                // Spikes
+                for (let j = 0; j < 5; j++) {
+                    const spikeGeo = new THREE.ConeGeometry(0.08, 0.3, 6);
+                    const spikeMat = new THREE.MeshPhongMaterial({ color: 0x444444 });
+                    const spike = new THREE.Mesh(spikeGeo, spikeMat);
+                    const angle = (j / 5) * Math.PI * 2;
+                    spike.position.set(Math.cos(angle) * 0.4, 0.15, Math.sin(angle) * 0.4);
+                    trap.add(spike);
+                }
+                
+                trap.position.set(pos[0], pos[1], pos[2]);
+                trap.userData = { active: true };
+                traps.push(trap);
+                scene.add(trap);
+            });
+            
+            window.traps = traps;
+            
+            // Trees
+            const treePositions = [
+                [-6, -5], [7, 3]
+            ];
+            
+            treePositions.forEach((pos, i) => {
+                const tree = new THREE.Group();
+                
+                // Trunk
+                const trunkGeo = new THREE.CylinderGeometry(0.3, 0.4, 2, 8);
+                const trunkMat = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                trunk.position.y = 1;
+                tree.add(trunk);
+                
+                // Foliage (multiple spheres)
+                const foliageMat = new THREE.MeshPhongMaterial({ color: 0x228B22 });
+                
+                const foliage1 = new THREE.Mesh(new THREE.SphereGeometry(1.2, 8, 8), foliageMat);
+                foliage1.position.y = 2.5;
+                tree.add(foliage1);
+                
+                const foliage2 = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 8), foliageMat);
+                foliage2.position.set(0.5, 3, 0.3);
+                tree.add(foliage2);
+                
+                const foliage3 = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 8), foliageMat);
+                foliage3.position.set(-0.4, 3.2, -0.2);
+                tree.add(foliage3);
+                
+                tree.position.set(pos[0], 0, pos[1]);
+                
+                // Berries (3 on each tree)
+                const berryGeo = new THREE.SphereGeometry(0.1, 6, 6);
+                const berryMat = new THREE.MeshPhongMaterial({ color: 0xFF0000 });
+                for (let b = 0; b < 3; b++) {
+                    const berry = new THREE.Mesh(berryGeo, berryMat);
+                    const bAngle = (b / 3) * Math.PI * 2;
+                    berry.position.set(
+                        Math.cos(bAngle) * 0.8 + (Math.random() - 0.5) * 0.3,
+                        2.5 + Math.random() * 0.5,
+                        Math.sin(bAngle) * 0.8 + (Math.random() - 0.5) * 0.3
+                    );
+                    berry.userData = { collected: false, isBerry: true };
+                    tree.add(berry);
+                }
+                
+                scene.add(tree);
+            });
+            
+            // Track all berries
+            window.berries = [];
+            
+            // Player - Cute Squirrel
+            player = new THREE.Group();
+            
+            // Body (brown ellipsoid)
+            const bodyGeo = new THREE.SphereGeometry(0.4, 16, 16);
+            bodyGeo.scale(1, 1.3, 0.8);
+            const bodyMat = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.5;
+            player.add(body);
+            
+            // Head
+            const headGeo = new THREE.SphereGeometry(0.3, 16, 16);
+            const headMat = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 1.1;
+            player.add(head);
+            
+            // Belly (lighter)
+            const bellyGeo = new THREE.SphereGeometry(0.25, 16, 16);
+            const bellyMat = new THREE.MeshPhongMaterial({ color: 0xDEB887 });
+            const belly = new THREE.Mesh(bellyGeo, bellyMat);
+            belly.position.set(0, 0.5, 0.2);
+            player.add(belly);
+            
+            // Eyes
+            const eyeGeo = new THREE.SphereGeometry(0.06, 8, 8);
+            const eyeMat = new THREE.MeshPhongMaterial({ color: 0x000000 });
+            const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+            eyeL.position.set(-0.12, 1.2, 0.25);
+            player.add(eyeL);
+            const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+            eyeR.position.set(0.12, 1.2, 0.25);
+            player.add(eyeR);
+            
+            // Eye whites
+            const eyeWhiteGeo = new THREE.SphereGeometry(0.03, 8, 8);
+            const eyeWhiteMat = new THREE.MeshPhongMaterial({ color: 0xffffff });
+            const eyeWhiteL = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
+            eyeWhiteL.position.set(-0.1, 1.22, 0.3);
+            player.add(eyeWhiteL);
+            const eyeWhiteR = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
+            eyeWhiteR.position.set(0.14, 1.22, 0.3);
+            player.add(eyeWhiteR);
+            
+            // Nose
+            const noseGeo = new THREE.SphereGeometry(0.05, 8, 8);
+            const noseMat = new THREE.MeshPhongMaterial({ color: 0x000000 });
+            const nose = new THREE.Mesh(noseGeo, noseMat);
+            nose.position.set(0, 1.05, 0.3);
+            player.add(nose);
+            
+            // Ears
+            const earGeo = new THREE.ConeGeometry(0.1, 0.15, 8);
+            const earMat = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+            const earL = new THREE.Mesh(earGeo, earMat);
+            earL.position.set(-0.2, 1.35, 0);
+            earL.rotation.z = -0.3;
+            player.add(earL);
+            const earR = new THREE.Mesh(earGeo, earMat);
+            earR.position.set(0.2, 1.35, 0);
+            earR.rotation.z = 0.3;
+            player.add(earR);
+            
+            // Tail (big fluffy)
+            const tailGeo = new THREE.SphereGeometry(0.35, 16, 16);
+            tailGeo.scale(1, 1.5, 0.8);
+            const tailMat = new THREE.MeshPhongMaterial({ color: 0xA0522D });
+            const tail = new THREE.Mesh(tailGeo, tailMat);
+            tail.position.set(0, 0.6, -0.5);
+            player.add(tail);
+            
+            // Arms
+            const armGeo = new THREE.CapsuleGeometry(0.06, 0.25, 4, 8);
+            const armMat = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+            const armL = new THREE.Mesh(armGeo, armMat);
+            armL.position.set(-0.35, 0.6, 0);
+            armL.rotation.z = 0.5;
+            player.add(armL);
+            const armR = new THREE.Mesh(armGeo, armMat);
+            armR.position.set(0.35, 0.6, 0);
+            armR.rotation.z = -0.5;
+            player.add(armR);
+            
+            // Legs
+            const legGeo = new THREE.CapsuleGeometry(0.08, 0.2, 4, 8);
+            const legMat = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+            const legL = new THREE.Mesh(legGeo, legMat);
+            legL.position.set(-0.15, 0.15, 0);
+            player.add(legL);
+            const legR = new THREE.Mesh(legGeo, legMat);
+            legR.position.set(0.15, 0.15, 0);
+            player.add(legR);
+            
+            player.position.y = 0.3;
+            scene.add(player);
+            
+            // Light
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(5, 10, 5);
+            scene.add(light);
+            scene.add(new THREE.AmbientLight(0x606060));
+            
+            // Extra light for stones visibility
+            const pointLight = new THREE.PointLight(0xffffaa, 0.5, 20);
+            pointLight.position.set(0, 5, 0);
+            scene.add(pointLight);
+            window.pointLight = pointLight;
+            
+            // Caterpillars
+            
+            // Coins
+            const coinPositions = [
+                [3, 0.5, 0], [-3, 0.5, 2], [0, 0.5, -3], 
+                [5, 0.5, -2], [-4, 0.5, -4], [2, 0.5, 4],
+                [6, 0.5, 3], [-6, 0.5, -1], [1, 0.5, 6]
+            ];
+            
+            coinPositions.forEach(pos => {
+                const coinGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.15, 24);
+                const coinMat = new THREE.MeshPhongMaterial({ color: 0xffd700, shininess: 150 });
+                const coin = new THREE.Mesh(coinGeo, coinMat);
+                coin.position.set(pos[0], pos[1], pos[2]);
+                coin.userData.collected = false;
+                coins.push(coin);
+                scene.add(coin);
+            });
+            
+            // Enemies - Crows
+            const crows = [];
+            const crowPositions = [
+                [4, 3, 4], [-5, 4, -3], [0, 5, 5], [-6, 3.5, 2]
+            ];
+            
+            crowPositions.forEach((pos, i) => {
+                const crow = new THREE.Group();
+                
+                // Body
+                const bodyGeo = new THREE.SphereGeometry(0.3, 12, 12);
+                bodyGeo.scale(1.5, 1, 1);
+                const bodyMat = new THREE.MeshPhongMaterial({ color: 0x111111 });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                crow.add(body);
+                
+                // Head
+                const headGeo = new THREE.SphereGeometry(0.2, 12, 12);
+                const head = new THREE.Mesh(headGeo, bodyMat);
+                head.position.set(0.4, 0.1, 0);
+                crow.add(head);
+                
+                // Beak
+                const beakGeo = new THREE.ConeGeometry(0.08, 0.2, 8);
+                const beakMat = new THREE.MeshPhongMaterial({ color: 0xffa500 });
+                const beak = new THREE.Mesh(beakGeo, beakMat);
+                beak.position.set(0.6, 0.1, 0);
+                beak.rotation.z = -Math.PI / 2;
+                crow.add(beak);
+                
+                // Wings
+                const wingGeo = new THREE.BoxGeometry(0.6, 0.05, 0.4);
+                const wingL = new THREE.Mesh(wingGeo, bodyMat);
+                wingL.position.set(-0.1, 0.15, 0.3);
+                crow.add(wingL);
+                const wingR = new THREE.Mesh(wingGeo, bodyMat);
+                wingR.position.set(-0.1, 0.15, -0.3);
+                crow.add(wingR);
+                
+                // Tail feathers
+                const tailGeo = new THREE.BoxGeometry(0.3, 0.05, 0.2);
+                const tail = new THREE.Mesh(tailGeo, bodyMat);
+                tail.position.set(-0.4, 0, 0);
+                crow.add(tail);
+                
+                crow.position.set(pos[0], pos[1], pos[2]);
+                crow.userData = {
+                    baseY: pos[1],
+                    phase: Math.random() * Math.PI * 2,
+                    speed: 0.5 + Math.random() * 0.5,
+                    radius: 2 + Math.random() * 3,
+                    angle: Math.random() * Math.PI * 2
+                };
+                crows.push(crow);
+                scene.add(crow);
+            });
+            
+            // Store for animation
+            window.crows = crows;
+            window.scene = scene;
+            window.player = player;
+            
+            // Caterpillars
+            const caterpillars = [];
+            const caterpillarPositions = [
+                [2, 0.2, 2], [-3, 0.2, -2], [5, 0.2, -5], [-5, 0.2, 4]
+            ];
+            
+            caterpillarPositions.forEach((pos, i) => {
+                const caterpillar = new THREE.Group();
+                
+                // Body segments
+                for (let j = 0; j < 5; j++) {
+                    const segGeo = new THREE.SphereGeometry(0.15 - j * 0.02, 8, 8);
+                    const segMat = new THREE.MeshPhongMaterial({ 
+                        color: j % 2 === 0 ? 0x90EE90 : 0x228B22 
+                    });
+                    const seg = new THREE.Mesh(segGeo, segMat);
+                    seg.position.x = -j * 0.25;
+                    caterpillar.add(seg);
+                }
+                
+                // Head
+                const headGeo = new THREE.SphereGeometry(0.18, 8, 8);
+                const headMat = new THREE.MeshPhongMaterial({ color: 0x32CD32 });
+                const head = new THREE.Mesh(headGeo, headMat);
+                head.position.set(0.2, 0.05, 0);
+                caterpillar.add(head);
+                
+                // Eyes
+                const eyeGeo = new THREE.SphereGeometry(0.04, 6, 6);
+                const eyeMat = new THREE.MeshPhongMaterial({ color: 0x000000 });
+                const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+                eyeL.position.set(0.3, 0.1, 0.08);
+                caterpillar.add(eyeL);
+                const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+                eyeR.position.set(0.3, 0.1, -0.08);
+                caterpillar.add(eyeR);
+                
+                caterpillar.position.set(pos[0], pos[1], pos[2]);
+                caterpillar.userData = {
+                    phase: Math.random() * Math.PI * 2,
+                    direction: Math.random() > 0.5 ? 1 : -1
+                };
+                caterpillars.push(caterpillar);
+                scene.add(caterpillar);
+            });
+            
+            window.caterpillars = caterpillars;
+            
+            // Orbiting stones (power-up)
+            window.orbitStones = [];
+            window.stoneActive = false;
+            window.stoneTimer = 0;
+            
+            // Keyboard
+            window.addEventListener('keydown', e => {
+                const k = e.key.toLowerCase();
+                if(k==='w'||k==='arrowup') keys.w=true;
+                if(k==='s'||k==='arrowdown') keys.s=true;
+                if(k==='a'||k==='arrowleft') keys.a=true;
+                if(k==='d'||k==='arrowright') keys.d=true;
+                if(k===' ' && isOnGround) { // Space to jump
+                    velocityY = jumpForce;
+                    isOnGround = false;
+                }
+            });
+            window.addEventListener('keyup', e => {
+                const k = e.key.toLowerCase();
+                if(k==='w'||k==='arrowup') keys.w=false;
+                if(k==='s'||k==='arrowdown') keys.s=false;
+                if(k==='a'||k==='arrowleft') keys.a=false;
+                if(k==='d'||k==='arrowright') keys.d=false;
+            });
+            
+            // Touch D-Pad
+            const setupBtn = (id, key) => {
+                const btn = document.getElementById(id);
+                btn.addEventListener('touchstart', e => { e.preventDefault(); keys[key] = true; });
+                btn.addEventListener('touchend', e => { e.preventDefault(); keys[key] = false; });
+                btn.addEventListener('mousedown', () => keys[key] = true);
+                btn.addEventListener('mouseup', () => keys[key] = false);
+                btn.addEventListener('mouseleave', () => keys[key] = false);
+            };
+            setupBtn('up', 'w'); setupBtn('down', 's');
+            setupBtn('left', 'a'); setupBtn('right', 'd');
+            
+            // Touch joystick (full screen)
+            let touchStartX, touchStartY;
+            document.addEventListener('touchstart', e => {
+                if(e.touches[0].target.closest('#dpad')) return;
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            });
+            document.addEventListener('touchmove', e => {
+                if(e.touches[0].target.closest('#dpad')) return;
+                const dx = e.touches[0].clientX - touchStartX;
+                const dy = e.touches[0].clientY - touchStartY;
+                keys.a = dx < -30; keys.d = dx > 30;
+                keys.w = dy < -30; keys.s = dy > 30;
+            });
+            document.addEventListener('touchend', () => {
+                keys.w = keys.a = keys.s = keys.d = false;
+            });
+            
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            
+            // Mouse/Touch camera rotation
+            document.addEventListener('mousedown', e => {
+                isDragging = true;
+                lastMouseX = e.clientX;
+            });
+            document.addEventListener('mousemove', e => {
+                if (isDragging) {
+                    const deltaX = e.clientX - lastMouseX;
+                    cameraAngle -= deltaX * 0.01;
+                    lastMouseX = e.clientX;
+                }
+            });
+            document.addEventListener('mouseup', () => isDragging = false);
+            document.addEventListener('mouseleave', () => isDragging = false);
+            
+            // Touch rotation
+            document.addEventListener('touchstart', e => {
+                if (e.touches.length === 1 && !e.target.closest('#dpad')) {
+                    isDragging = true;
+                    lastMouseX = e.touches[0].clientX;
+                }
+            });
+            document.addEventListener('touchmove', e => {
+                if (isDragging && e.touches.length === 1) {
+                    const deltaX = e.touches[0].clientX - lastMouseX;
+                    cameraAngle -= deltaX * 0.01;
+                    lastMouseX = e.touches[0].clientX;
+                }
+            });
+            document.addEventListener('touchend', () => isDragging = false);
+            
+            // Jump button (mobile)
+            const jumpBtn = document.getElementById('jumpBtn');
+            jumpBtn.addEventListener('touchstart', e => { e.preventDefault(); if (isOnGround) { velocityY = jumpForce; isOnGround = false; } });
+            jumpBtn.addEventListener('mousedown', () => { if (isOnGround) { velocityY = jumpForce; isOnGround = false; } });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const speed = 0.12;
+            if (keys.w) player.position.z -= speed;
+            if (keys.s) player.position.z += speed;
+            if (keys.a) player.position.x -= speed;
+            if (keys.d) player.position.x += speed;
+            
+            // Tail wagging animation
+            const time = Date.now() * 0.005;
+            if (player.children[7]) { // Tail is at index 7
+                player.children[7].rotation.y = Math.sin(time) * 0.3;
+            }
+            
+            // Bobbing animation (only when on ground)
+            if (isOnGround) {
+                player.children[0].position.y = 0.5 + Math.sin(time * 2) * 0.03;
+            }
+            
+            // Jump physics
+            if (!isOnGround) {
+                velocityY += gravity;
+                player.position.y += velocityY;
+                
+                if (player.position.y <= 0.3) {
+                    player.position.y = 0.3;
+                    velocityY = 0;
+                    isOnGround = true;
+                }
+            }
+            
+            // Bounds
+            player.position.x = Math.max(-9, Math.min(9, player.position.x));
+            player.position.z = Math.max(-9, Math.min(9, player.position.z));
+            
+            // Hill collision - can jump on top
+            const hillX = 6, hillZ = -6, hillRadius = 3.5, hillHeight = 2.5;
+            const dx = player.position.x - hillX;
+            const dz = player.position.z - hillZ;
+            const distToHill = Math.sqrt(dx*dx + dz*dz);
+            
+            if (distToHill < hillRadius + 0.5) {
+                if (player.position.y <= hillHeight && player.position.y > 0.3) {
+                    // On hill slope - push away
+                    const angle = Math.atan2(dz, dx);
+                    player.position.x = hillX + Math.cos(angle) * (hillRadius + 0.5);
+                    player.position.z = hillZ + Math.sin(angle) * (hillRadius + 0.5);
+                } else if (player.position.y <= 0.3 && !isOnGround && distToHill < hillRadius * 0.8) {
+                    // Landing on top of hill
+                    player.position.y = hillHeight;
+                    velocityY = 0;
+                    isOnGround = true;
+                }
+            }
+            
+            // Trap collision
+            // Tree collision
+            const treePositions = [
+                { x: -6, z: -5, r: 1 }, { x: 7, z: 3, r: 1 }
+            ];
+            treePositions.forEach(tree => {
+                const dx = player.position.x - tree.x;
+                const dz = player.position.z - tree.z;
+                const dist = Math.sqrt(dx*dx + dz*dz);
+                if (dist < tree.r + 0.5 && player.position.y < 2) {
+                    const angle = Math.atan2(dz, dx);
+                    player.position.x = tree.x + Math.cos(angle) * (tree.r + 0.5);
+                    player.position.z = tree.z + Math.sin(angle) * (tree.r + 0.5);
+                }
+            });
+            
+            // Trap collision
+            if (window.traps) {
+                window.traps.forEach((trap, idx) => {
+                    if (!trap.userData.active) return;
+                    const dist = player.position.distanceTo(trap.position);
+                    if (dist < 0.8 && player.position.y < 0.5) {
+                        // Hit trap - penalty
+                        trap.userData.active = false;
+                        scene.remove(trap);
+                        score = Math.max(0, score - 30);
+                        document.getElementById('score').textContent = 'Score: ' + score;
+                    }
+                });
+            }
+            
+            // Coins
+            coins.forEach(coin => {
+                if (!coin.userData.collected) {
+                    coin.rotation.y += 0.03;
+                    if (player.position.distanceTo(coin.position) < 1) {
+                        coin.userData.collected = true;
+                        scene.remove(coin);
+                        score += 10;
+                        document.getElementById('score').textContent = 'Score: ' + score;
+                        
+                        // Activate orbiting stones
+                        activateOrbitStones();
+                    }
+                }
+            });
+            
+            // Check acorn collection
+            if (window.acorn && !window.acorn.userData.collected) {
+                window.acorn.rotation.y += 0.02;
+                if (player.position.distanceTo(window.acorn.position) < 1.2) {
+                    window.acorn.userData.collected = true;
+                    scene.remove(window.acorn);
+                    score += 100;
+                    document.getElementById('score').textContent = 'Score: ' + score;
+                    // Extra stones for acorn
+                    activateOrbitStones();
+                }
+            }
+            
+            // Animate crows
+            if (window.crows) {
+                const time = Date.now() * 0.001;
+                window.crows.forEach((crow, idx) => {
+                    if (crow.userData.knockedDown) {
+                        // Fall down animation
+                        crow.position.y -= 0.2;
+                        crow.rotation.x += 0.1;
+                        crow.rotation.z += 0.05;
+                        if (crow.position.y < -2) {
+                            scene.remove(crow);
+                            window.crows.splice(idx, 1);
+                        }
+                        return;
+                    }
+                    
+                    const d = crow.userData;
+                    // Fly in circles/figure-8
+                    d.angle += d.speed * 0.02;
+                    crow.position.x += Math.sin(d.angle) * 0.05;
+                    crow.position.z += Math.cos(d.angle * 0.7) * 0.03;
+                    // Bob up and down
+                    crow.position.y = d.baseY + Math.sin(time * 2 + d.phase) * 0.5;
+                    // Face direction
+                    crow.rotation.y = Math.cos(d.angle) * 0.5;
+                    // Wing flap
+                    if (crow.children[3]) crow.children[3].rotation.z = Math.sin(time * 10) * 0.3;
+                    if (crow.children[4]) crow.children[4].rotation.z = -Math.sin(time * 10) * 0.3;
+                    
+                    // Check collision with player (when jumping)
+                    if (!isOnGround && player.position.y > 1.5) {
+                        const dist = player.position.distanceTo(crow.position);
+                        if (dist < 1.2) {
+                            crow.userData.knockedDown = true;
+                            score += 50; // Bonus for hitting crow
+                            document.getElementById('score').textContent = 'Score: ' + score;
+                        }
+                    }
+                });
+            }
+            
+            // Animate orbiting stones
+            if (window.stoneActive && window.orbitStones) {
+                const elapsed = Date.now() - window.stoneTimer;
+                if (elapsed > 5000) {
+                    // Deactivate
+                    window.orbitStones.forEach(s => scene.remove(s));
+                    window.orbitStones = [];
+                    window.stoneActive = false;
+                } else {
+                    const time = Date.now() * 0.003;
+                    window.orbitStones.forEach((stone, i) => {
+                        const d = stone.userData;
+                        stone.position.x = player.position.x + Math.cos(time + d.angle) * d.radius;
+                        stone.position.z = player.position.z + Math.sin(time + d.angle) * d.radius;
+                        stone.position.y = player.position.y + d.yOffset + Math.sin(time * 2) * 0.2;
+                        stone.rotation.x += 0.1;
+                        stone.rotation.y += 0.1;
+                    });
+                }
+            }
+            
+            // Animate caterpillars
+            if (window.caterpillars) {
+                window.caterpillars.forEach((cat, idx) => {
+                    if (cat.userData.knockedDown) {
+                        cat.position.y -= 0.15;
+                        cat.rotation.x += 0.1;
+                        if (cat.position.y < -1) {
+                            scene.remove(cat);
+                            window.caterpillars.splice(idx, 1);
+                        }
+                        return;
+                    }
+                    
+                    const time = Date.now() * 0.002;
+                    const d = cat.userData;
+                    // Move back and forth
+                    cat.position.x += Math.sin(time + d.phase) * 0.02 * d.direction;
+                    cat.position.z += Math.cos(time * 0.7 + d.phase) * 0.01 * d.direction;
+                    // Wiggle
+                    cat.children.forEach((child, j) => {
+                        if (j < 5) { // Body segments
+                            child.position.y = Math.sin(time * 3 + j * 0.5) * 0.05;
+                        }
+                    });
+                    
+                    // Check collision with player (or orbit stones)
+                    let hit = false;
+                    const dist = player.position.distanceTo(cat.position);
+                    if (dist < 0.8) hit = true;
+                    
+                    // Check with orbit stones
+                    if (window.stoneActive && window.orbitStones) {
+                        window.orbitStones.forEach(stone => {
+                            if (stone.position.distanceTo(cat.position) < 0.5) hit = true;
+                        });
+                    }
+                    
+                    if (hit && !cat.userData.knockedDown) {
+                        cat.userData.knockedDown = true;
+                        score += 20;
+                        document.getElementById('score').textContent = 'Score: ' + score;
+                    }
+                });
+            }
+            
+            // Camera follow with rotation
+            // Update point light to follow player
+            if (window.pointLight) {
+                window.pointLight.position.x = player.position.x;
+                window.pointLight.position.z = player.position.z;
+            }
+            
+            const targetX = player.position.x + Math.sin(cameraAngle) * cameraDistance;
+            const targetZ = player.position.z + Math.cos(cameraAngle) * cameraDistance;
+            camera.position.x += (targetX - camera.position.x) * 0.1;
+            camera.position.z += (targetZ - camera.position.z) * 0.1;
+            camera.position.y += (cameraHeight - camera.position.y) * 0.1;
+            camera.lookAt(player.position.x, 0.5, player.position.z);
+            
+            renderer.render(scene, camera);
+        }
+        
+        init();
+        animate();
+    </script>
+</body>
+</html>

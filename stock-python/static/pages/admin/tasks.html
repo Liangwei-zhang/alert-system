@@ -1,0 +1,165 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Tasks - Admin{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+  <h1 class="page-title">Task Queue</h1>
+  <button class="btn btn-primary" onclick="refreshTasks()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+    Refresh
+  </button>
+</div>
+
+<div class="row mb-3">
+  <div class="col-md-3">
+    <div class="card stat-card">
+      <div class="card-body text-center">
+        <div class="text-muted small">Pending</div>
+        <div class="h1 mb-0 text-warning" id="statPending">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card">
+      <div class="card-body text-center">
+        <div class="text-muted small">Running</div>
+        <div class="h1 mb-0 text-info" id="statRunning">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card">
+      <div class="card-body text-center">
+        <div class="text-muted small">Completed</div>
+        <div class="h1 mb-0 text-success" id="statCompleted">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card">
+      <div class="card-body text-center">
+        <div class="text-muted small">Failed</div>
+        <div class="h1 mb-0 text-danger" id="statFailed">-</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <input type="text" class="form-control" id="searchInput" placeholder="Search by task ID or user..." onkeyup="filterTable()">
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" id="typeFilter" onchange="filterTable()">
+          <option value="">All Types</option>
+          <option value="data_fetch">Data Fetch</option>
+          <option value="report">Report</option>
+          <option value="sync">Sync</option>
+          <option value="notify">Notification</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" id="statusFilter" onchange="filterTable()">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="running">Running</option>
+          <option value="completed">Completed</option>
+          <option value="failed">Failed</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table card-table table-vcenter">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Type</th>
+          <th>User</th>
+          <th>Status</th>
+          <th>Progress</th>
+          <th>Created</th>
+          <th>Updated</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tasksTableBody">
+        <tr><td colspan="8" class="text-center text-muted py-4">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let tasksData = [];
+
+async function loadTasks() {
+  try {
+    const resp = await fetch('/api/v1/admin/tasks');
+    const data = await resp.json();
+    tasksData = data.tasks || data || [];
+    updateStats();
+    renderTasks();
+  } catch (e) {
+    document.getElementById('tasksTableBody').innerHTML = '<tr><td colspan="8" class="text-danger py-4">Failed to load tasks</td></tr>';
+  }
+}
+
+function updateStats() {
+  const pending = tasksData.filter(t => t.status === 'pending').length;
+  const running = tasksData.filter(t => t.status === 'running').length;
+  const completed = tasksData.filter(t => t.status === 'completed').length;
+  const failed = tasksData.filter(t => t.status === 'failed').length;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statRunning').textContent = running;
+  document.getElementById('statCompleted').textContent = completed;
+  document.getElementById('statFailed').textContent = failed;
+}
+
+function renderTasks(data = tasksData) {
+  const tbody = document.getElementById('tasksTableBody');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-muted py-4">No tasks found</td></tr>';
+    return;
+  }
+  const statusColors = { pending: 'warning', running: 'info', completed: 'success', failed: 'danger' };
+  tbody.innerHTML = data.map(t => `
+    <tr>
+      <td><code>${t.id || ''}</code></td>
+      <td><span class="badge bg-secondary">${t.type || 'unknown'}</span></td>
+      <td>${t.user_email || t.user_id || '-'}</td>
+      <td><span class="badge bg-${statusColors[t.status] || 'secondary'}">${t.status || 'unknown'}</span></td>
+      <td>${t.progress !== undefined ? t.progress + '%' : '-'}</td>
+      <td>${t.created_at ? new Date(t.created_at).toLocaleString() : '-'}</td>
+      <td>${t.updated_at ? new Date(t.updated_at).toLocaleString() : '-'}</td>
+      <td><button class="btn btn-sm btn-outline-secondary" onclick="viewTask('${t.id}')">View</button></td>
+    </tr>
+  `).join('');
+}
+
+function filterTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const type = document.getElementById('typeFilter').value;
+  const status = document.getElementById('statusFilter').value;
+  
+  const filtered = tasksData.filter(t => {
+    const matchSearch = !search || (t.id || '').toLowerCase().includes(search) || (t.user_email || '').toLowerCase().includes(search);
+    const matchType = !type || t.type === type;
+    const matchStatus = !status || t.status === status;
+    return matchSearch && matchType && matchStatus;
+  });
+  renderTasks(filtered);
+}
+
+function refreshTasks() { loadTasks(); }
+function viewTask(id) { alert('View task: ' + id); }
+
+loadTasks();
+</script>
+{% endblock %}

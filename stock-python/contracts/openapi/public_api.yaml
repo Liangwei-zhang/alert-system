@@ -1,0 +1,1078 @@
+openapi: 3.0.3
+info:
+  title: Stock API - Public
+  description: Public API endpoints for stock trading platform
+  version: 1.0.0
+  contact:
+    name: Stock API Support
+
+servers:
+  - url: /api/v1
+    description: Public API v1
+
+tags:
+  - name: auth
+    description: Authentication endpoints
+  - name: health
+    description: Health check endpoints
+  - name: websocket
+    description: WebSocket endpoints
+  - name: stocks
+    description: Stock search and data endpoints
+  - name: portfolio
+    description: Portfolio management endpoints
+  - name: signals
+    description: Trading signal endpoints
+  - name: notifications
+    description: Notification endpoints
+
+paths:
+  # Health
+  /health:
+    get:
+      summary: Health check
+      tags: [health]
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+
+  /health/ready:
+    get:
+      summary: Readiness check
+      tags: [health]
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  database:
+                    type: string
+
+  /health/live:
+    get:
+      summary: Liveness check
+      tags: [health]
+      responses:
+        '200':
+          description: Service is alive
+
+  /health/detailed:
+    get:
+      summary: Detailed health check
+      tags: [health]
+      responses:
+        '200':
+          description: Detailed health status
+
+  # Auth
+  /auth/register:
+    post:
+      summary: Register new user
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password]
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                full_name:
+                  type: string
+      responses:
+        '200':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /auth/login:
+    post:
+      summary: Login with email and password
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+
+  /auth/login/code:
+    post:
+      summary: Login with verification code
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email:
+                  type: string
+                  format: email
+                code:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+
+  /auth/code/send:
+    post:
+      summary: Send verification code
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Code sent
+
+  /auth/verify:
+    post:
+      summary: Verify email
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email:
+                  type: string
+                  format: email
+                code:
+                  type: string
+      responses:
+        '200':
+          description: Email verified
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed
+
+  /auth/logout:
+    post:
+      summary: Logout current session
+      tags: [auth]
+      responses:
+        '200':
+          description: Logged out
+
+  # Stocks
+  /stocks/quote/{symbol}:
+    get:
+      summary: Get stock quote
+      tags: [stocks]
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: source
+          in: query
+          schema:
+            type: string
+            default: yahoo
+      responses:
+        '200':
+          description: Quote data
+
+  /stocks/quotes/batch:
+    post:
+      summary: Get quotes for multiple symbols
+      tags: [stocks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                symbols:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: List of quotes
+
+  /stocks/search:
+    get:
+      summary: Search stocks
+      tags: [stocks]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: source
+          in: query
+          schema:
+            type: string
+            default: yahoo
+      responses:
+        '200':
+          description: Search results
+
+  /stocks/history/{symbol}:
+    get:
+      summary: Get historical price data
+      tags: [stocks]
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: period
+          in: query
+          schema:
+            type: string
+            default: 1mo
+        - name: source
+          in: query
+          schema:
+            type: string
+            default: yahoo
+      responses:
+        '200':
+          description: Historical data
+
+  /stocks/watchlists:
+    get:
+      summary: Get user watchlists
+      tags: [stocks]
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of watchlists
+    post:
+      summary: Create watchlist
+      tags: [stocks]
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Watchlist created
+
+  /stocks/watchlists/{watchlist_id}:
+    get:
+      summary: Get watchlist
+      tags: [stocks]
+      parameters:
+        - name: watchlist_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Watchlist data
+    put:
+      summary: Update watchlist
+      tags: [stocks]
+      parameters:
+        - name: watchlist_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Watchlist updated
+    delete:
+      summary: Delete watchlist
+      tags: [stocks]
+      parameters:
+        - name: watchlist_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Watchlist deleted
+
+  /stocks/watchlists/{watchlist_id}/items:
+    post:
+      summary: Add stock to watchlist
+      tags: [stocks]
+      parameters:
+        - name: watchlist_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                symbol:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Stock added
+
+  /stocks/watchlists/{watchlist_id}/items/{stock_id}:
+    delete:
+      summary: Remove stock from watchlist
+      tags: [stocks]
+      parameters:
+        - name: watchlist_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: stock_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Stock removed
+
+  # Portfolio
+  /portfolios:
+    post:
+      summary: Create portfolio
+      tags: [portfolio]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                initial_cash:
+                  type: number
+      responses:
+        '201':
+          description: Portfolio created
+    get:
+      summary: List portfolios
+      tags: [portfolio]
+      responses:
+        '200':
+          description: List of portfolios
+
+  /portfolios/{portfolio_id}:
+    get:
+      summary: Get portfolio
+      tags: [portfolio]
+      parameters:
+        - name: portfolio_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Portfolio data
+
+  /portfolios/{portfolio_id}/summary:
+    get:
+      summary: Get portfolio summary
+      tags: [portfolio]
+      parameters:
+        - name: portfolio_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Portfolio summary with P&L
+
+  /portfolios/{portfolio_id}/positions:
+    get:
+      summary: List positions
+      tags: [portfolio]
+      parameters:
+        - name: portfolio_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of positions
+    post:
+      summary: Create position
+      tags: [portfolio]
+      parameters:
+        - name: portfolio_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stock_id:
+                  type: integer
+                quantity:
+                  type: integer
+                average_cost:
+                  type: number
+      responses:
+        '201':
+          description: Position created
+
+  /portfolios/{portfolio_id}/positions/{position_id}:
+    delete:
+      summary: Delete position
+      tags: [portfolio]
+      parameters:
+        - name: portfolio_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: position_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Position deleted
+
+  /portfolios/{portfolio_id}/transactions:
+    get:
+      summary: List transactions
+      tags: [portfolio]
+      parameters:
+        - name: portfolio_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: List of transactions
+
+  /portfolios/{portfolio_id}/buy:
+    post:
+      summary: Execute buy order
+      tags: [portfolio]
+      parameters:
+        - name: portfolio_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stock_id:
+                  type: integer
+                quantity:
+                  type: integer
+                price:
+                  type: number
+      responses:
+        '200':
+          description: Buy order executed
+
+  /portfolios/{portfolio_id}/sell:
+    post:
+      summary: Execute sell order
+      tags: [portfolio]
+      parameters:
+        - name: portfolio_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stock_id:
+                  type: integer
+                quantity:
+                  type: integer
+                price:
+                  type: number
+      responses:
+        '200':
+          description: Sell order executed
+
+  /portfolios/{portfolio_id}/deposit:
+    post:
+      summary: Deposit cash
+      tags: [portfolio]
+      parameters:
+        - name: portfolio_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+      responses:
+        '200':
+          description: Deposit successful
+
+  /portfolios/{portfolio_id}/withdraw:
+    post:
+      summary: Withdraw cash
+      tags: [portfolio]
+      parameters:
+        - name: portfolio_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+      responses:
+        '200':
+          description: Withdrawal successful
+
+  # Signals
+  /signals:
+    get:
+      summary: List signals
+      tags: [signals]
+      parameters:
+        - name: symbol
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: signal_type
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of signals
+    post:
+      summary: Create signal manually
+      tags: [signals]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stock_id:
+                  type: integer
+                signal_type:
+                  type: string
+                entry_price:
+                  type: number
+                stop_loss:
+                  type: number
+                take_profit_1:
+                  type: number
+                take_profit_2:
+                  type: number
+                take_profit_3:
+                  type: number
+                reasoning:
+                  type: string
+      responses:
+        '200':
+          description: Signal created
+
+  /signals/active:
+    get:
+      summary: Get active signals
+      tags: [signals]
+      parameters:
+        - name: symbol
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of active signals
+
+  /signals/stats:
+    get:
+      summary: Get signal statistics
+      tags: [signals]
+      responses:
+        '200':
+          description: Signal statistics
+
+  /signals/{signal_id}:
+    get:
+      summary: Get signal by ID
+      tags: [signals]
+      parameters:
+        - name: signal_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Signal data
+
+  /signals/generate:
+    post:
+      summary: Generate signal from OHLCV data
+      tags: [signals]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                symbol:
+                  type: string
+                high:
+                  type: array
+                  items:
+                    type: number
+                low:
+                  type: array
+                  items:
+                    type: number
+                close:
+                  type: array
+                  items:
+                    type: number
+                volume:
+                  type: array
+                  items:
+                    type: integer
+                strategy_id:
+                  type: integer
+      responses:
+        '200':
+          description: Signal generated
+
+  /signals/{signal_id}:
+    patch:
+      summary: Update signal
+      tags: [signals]
+      parameters:
+        - name: signal_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                stop_loss:
+                  type: number
+                take_profit_1:
+                  type: number
+                take_profit_2:
+                  type: number
+                take_profit_3:
+                  type: number
+      responses:
+        '200':
+          description: Signal updated
+
+  /signals/{signal_id}/trigger:
+    post:
+      summary: Trigger signal
+      tags: [signals]
+      parameters:
+        - name: signal_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Signal triggered
+
+  /signals/{signal_id}/expire:
+    post:
+      summary: Expire signal
+      tags: [signals]
+      parameters:
+        - name: signal_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Signal expired
+
+  /signals/{signal_id}/cancel:
+    post:
+      summary: Cancel signal
+      tags: [signals]
+      parameters:
+        - name: signal_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Signal cancelled
+
+  /signals/history/range:
+    get:
+      summary: Get signals by date range
+      tags: [signals]
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: signal_type
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Signals in date range
+
+  # Notifications
+  /notifications:
+    get:
+      summary: Get user notifications
+      tags: [notifications]
+      parameters:
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: unread_only
+          in: query
+          schema:
+            type: boolean
+            default: false
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of notifications
+
+  /notifications/unread-count:
+    get:
+      summary: Get unread count
+      tags: [notifications]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Unread count
+
+  /notifications/mark-read:
+    post:
+      summary: Mark notifications as read
+      tags: [notifications]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notification_ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Notifications marked
+
+  /notifications/mark-all-read:
+    post:
+      summary: Mark all as read
+      tags: [notifications]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All marked as read
+
+  /notifications/{notification_id}:
+    delete:
+      summary: Delete notification
+      tags: [notifications]
+      parameters:
+        - name: notification_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Notification deleted
+
+  # Devices
+  /devices:
+    get:
+      summary: Get user devices
+      tags: [notifications]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of devices
+    post:
+      summary: Register device
+      tags: [notifications]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                platform:
+                  type: string
+                push_token:
+                  type: string
+                name:
+                  type: string
+                push_token_expires_at:
+                  type: string
+      responses:
+        '200':
+          description: Device registered
+
+  /devices/{device_id}:
+    delete:
+      summary: Unregister device
+      tags: [notifications]
+      parameters:
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Device unregistered
+
+  # WebSocket
+  /ws/notifications:
+    get:
+      summary: WebSocket for notifications
+      tags: [websocket]
+      responses:
+        '101':
+          description: Switching protocols
+
+  /ws:
+    get:
+      summary: General WebSocket endpoint
+      tags: [websocket]
+      responses:
+        '101':
+          description: Switching protocols
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+            username:
+              type: string
+            email:
+              type: string
+        access_token:
+          type: string
+        refresh_token:
+          type: string

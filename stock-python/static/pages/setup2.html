@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>Setup - Stock Py</title>
+  <link href="../dist/css/tabler.css" rel="stylesheet" />
+  <link href="../dist/css/tabler-flags.css" rel="stylesheet" />
+  <style>
+    @import url("https://rsms.me/inter/inter.css");
+    body { background: #f8f9fa; }
+    .step-indicator { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
+    .step-dot { width: 10px; height: 10px; border-radius: 50%; background: #e9ecef; }
+    .step-dot.active { background: #066fd1; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="container container-tight py-4">
+      <div class="text-center mb-4">
+        <h1 class="mb-1">📈 Stock Py</h1>
+        <p class="text-muted">Let's set up your portfolio</p>
+      </div>
+
+      <div class="step-indicator">
+        <div class="step-dot active"></div>
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+      </div>
+
+      <div class="card card-md">
+        <div class="card-body">
+          <h2 class="h4 mb-4">Step 2: Holdings</h2>
+          <p class="text-muted mb-3">Enter your current positions</p>
+          
+          <form id="setupForm" method="post" action="/api/setup">
+            <input type="hidden" name="step" value="2" />
+            
+            <div class="mb-3">
+              <label class="form-label">Holdings</label>
+              <textarea name="holdings" class="form-control" rows="4"
+                        placeholder="AAPL: 10 shares @ $150&#10;MSFT: 5 shares @ $380"></textarea>
+              <small class="text-muted">Format: SYMBOL: shares @ price</small>
+            </div>
+
+            <div class="d-flex gap-2">
+              <a href="setup.html" class="btn btn-secondary">Back</a>
+              <button type="submit" class="btn btn-primary flex-grow-1">Next Step</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('setupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const holdingsText = formData.get('holdings');
+      
+      // Parse holdings: "AAPL: 10 @ 150, MSFT: 5 @ 380"
+      const holdings = [];
+      holdingsText.split('\n').forEach(line => {
+        const match = line.match(/^(\w+):\s*(\d+)\s*@\s*\$?([\d.]+)/i);
+        if (match) {
+          holdings.push({ symbol: match[1].toUpperCase(), shares: parseInt(match[2]), price: parseFloat(match[3]) });
+        }
+      });
+      
+      try {
+        const res = await fetch('/api/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ step: 2, holdings })
+        });
+        if (res.ok) {
+          window.location.href = 'setup3.html';
+        }
+      } catch (err) {
+        alert('Error saving holdings.');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,318 @@
+/* Stripe Design System - CSS Variables & Tokens */
+
+/* ============================================
+   COLOR TOKENS
+   ============================================ */
+
+:root {
+  /* Primary Brand */
+  --stripe-purple: #533afd;
+  --stripe-purple-hover: #4434d4;
+  --stripe-purple-deep: #2e2b8c;
+  --stripe-purple-light: #b9b9f9;
+  --stripe-purple-mid: #665efd;
+  --stripe-soft-purple-border: #d6d9fc;
+
+  /* Neutral - Navy */
+  --deep-navy: #061b31;
+  --dark-slate: #273951;
+  --body-text: #64748d;
+
+  /* Dark Brand */
+  --brand-dark: #1c1e54;
+  --dark-navy: #0d253d;
+
+  /* Accent Colors */
+  --ruby: #ea2261;
+  --magenta: #f96bee;
+  --magenta-light: #ffd7ef;
+
+  /* Surface & Border */
+  --white: #ffffff;
+  --border-default: #e5edf5;
+  --border-purple: #b9b9f9;
+  --border-magenta: #ffd7ef;
+  --border-dashed: #362baa;
+
+  /* Status Colors */
+  --success-green: #15be53;
+  --success-text: #108c3d;
+  --lemon: #9b6829;
+
+  /* Shadow Colors */
+  --shadow-blue: rgba(50, 50, 93, 0.25);
+  --shadow-dark-blue: rgba(3, 3, 39, 0.25);
+  --shadow-black: rgba(0, 0, 0, 0.1);
+  --shadow-ambient: rgba(23, 23, 23, 0.08);
+  --shadow-soft: rgba(23, 23, 23, 0.06);
+
+  /* Links */
+  --link-color: #533afd;
+  --link-info: #2874ad;
+}
+
+/* ============================================
+   TYPOGRAPHY TOKENS
+   ============================================ */
+
+:root {
+  /* Font Families */
+  --font-primary: 'Söhne', 'SF Pro Display', -apple-system, sans-serif;
+  --font-mono: 'SourceCodePro', 'SFMono-Regular', monospace;
+
+  /* Display Sizes */
+  --text-display-hero: 3.5rem;    /* 56px */
+  --text-display-large: 3rem;      /* 48px */
+  --text-section: 2rem;            /* 32px */
+  --text-subheading-large: 1.63rem; /* 26px */
+  --text-subheading: 1.38rem;      /* 22px */
+  --text-body-large: 1.13rem;      /* 18px */
+  --text-body: 1rem;               /* 16px */
+  --text-button: 1rem;             /* 16px */
+  --text-button-sm: 0.875rem;      /* 14px */
+  --text-link: 0.875rem;           /* 14px */
+  --text-caption: 0.81rem;         /* 13px */
+  --text-caption-sm: 0.75rem;      /* 12px */
+  --text-micro: 0.63rem;           /* 10px */
+  --text-nano: 0.5rem;             /* 8px */
+
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* Line Heights */
+  --leading-tight: 1.00;
+  --leading-snug: 1.10;
+  --leading-normal: 1.15;
+  --leading-relaxed: 1.40;
+  --leading-loose: 2.00;
+
+  /* Letter Spacing */
+  --tracking-hero: -1.4px;
+  --tracking-display: -0.96px;
+  --tracking-section: -0.64px;
+  --tracking-subhead-lg: -0.26px;
+  --tracking-subhead: -0.22px;
+  --tracking-caption: -0.36px;
+}
+
+/* ============================================
+   SPACING TOKENS
+   ============================================ */
+
+:root {
+  --space-1: 1px;
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-11: 11px;
+  --space-12: 12px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-18: 18px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+}
+
+/* ============================================
+   BORDER RADIUS TOKENS
+   ============================================ */
+
+:root {
+  --radius-micro: 1px;
+  --radius-sm: 4px;
+  --radius-md: 5px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-bottom: 0 0 6px 6px;
+}
+
+/* ============================================
+   SHADOW TOKENS
+   ============================================ */
+
+:root {
+  /* Ambient - Subtle lift */
+  --shadow-ambient: 0 3px 6px rgba(23, 23, 23, 0.06);
+
+  /* Standard - Card lift */
+  --shadow-standard: 0 15px 35px rgba(23, 23, 23, 0.08);
+
+  /* Elevated - Featured cards, dropdowns */
+  --shadow-elevated: 
+    0 30px 45px -30px rgba(50, 50, 93, 0.25),
+    0 18px 36px -18px rgba(0, 0, 0, 0.1);
+
+  /* Deep - Modals, floating panels */
+  --shadow-deep: 
+    0 14px 21px -14px rgba(3, 3, 39, 0.25),
+    0 8px 17px -8px rgba(0, 0, 0, 0.1);
+
+  /* Focus Ring */
+  --shadow-focus: 0 0 0 2px var(--stripe-purple);
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Typography */
+.font-primary {
+  font-family: var(--font-primary);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Font Feature Settings */
+.font-ss01 {
+  font-feature-settings: "ss01" on;
+}
+
+.font-tnum {
+  font-feature-settings: "tnum" on;
+}
+
+/* Colors - Text */
+.text-heading {
+  color: var(--deep-navy);
+}
+
+.text-body {
+  color: var(--body-text);
+}
+
+.text-label {
+  color: var(--dark-slate);
+}
+
+.text-link {
+  color: var(--stripe-purple);
+}
+
+.text-white {
+  color: var(--white);
+}
+
+/* Colors - Background */
+.bg-white {
+  background-color: var(--white);
+}
+
+.bg-purple {
+  background-color: var(--stripe-purple);
+}
+
+.bg-brand-dark {
+  background-color: var(--brand-dark);
+}
+
+.bg-magenta-light {
+  background-color: var(--magenta-light);
+}
+
+.bg-success-light {
+  background-color: rgba(21, 190, 83, 0.2);
+}
+
+/* Colors - Border */
+.border-default {
+  border: 1px solid var(--border-default);
+}
+
+.border-purple {
+  border: 1px solid var(--border-purple);
+}
+
+.border-magenta {
+  border: 1px solid var(--border-magenta);
+}
+
+.border-dashed {
+  border: 1px dashed var(--border-dashed);
+}
+
+/* Font Weights */
+.font-light {
+  font-weight: var(--font-weight-light);
+}
+
+.font-regular {
+  font-weight: var(--font-weight-regular);
+}
+
+/* Display Typography */
+.text-hero {
+  font-size: var(--text-display-hero);
+  font-weight: var(--font-weight-light);
+  line-height: 1.03;
+  letter-spacing: var(--tracking-hero);
+}
+
+.text-display {
+  font-size: var(--text-display-large);
+  font-weight: var(--font-weight-light);
+  line-height: 1.15;
+  letter-spacing: var(--tracking-display);
+}
+
+.text-section {
+  font-size: var(--text-section);
+  font-weight: var(--font-weight-light);
+  line-height: 1.10;
+  letter-spacing: var(--tracking-section);
+}
+
+/* Shadows */
+.shadow-ambient {
+  box-shadow: var(--shadow-ambient);
+}
+
+.shadow-standard {
+  box-shadow: var(--shadow-standard);
+}
+
+.shadow-elevated {
+  box-shadow: var(--shadow-elevated);
+}
+
+.shadow-deep {
+  box-shadow: var(--shadow-deep);
+}
+
+/* Border Radius */
+.rounded-sm {
+  border-radius: var(--radius-sm);
+}
+
+.rounded-md {
+  border-radius: var(--radius-md);
+}
+
+.rounded-lg {
+  border-radius: var(--radius-lg);
+}
+
+.rounded-xl {
+  border-radius: var(--radius-xl);
+}
+
+/* Focus States */
+.focus-ring:focus {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Gradients */
+.gradient-ruby-magenta {
+  background: linear-gradient(135deg, var(--ruby), var(--magenta));
+}

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stripe Design System - Component Examples</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            stripe: {
+              purple: { DEFAULT: '#533afd', hover: '#4434d4', deep: '#2e2b8c', light: '#b9b9f9', mid: '#665efd' },
+              navy: { deep: '#061b31', dark: '#0d253d' },
+              brand: { dark: '#1c1e54' },
+              accent: { ruby: '#ea2261', magenta: '#f96bee', 'magenta-light': '#ffd7ef' },
+              text: { heading: '#061b31', label: '#273951', body: '#64748d' },
+              border: { DEFAULT: '#e5edf5', purple: '#b9b9f9', 'soft-purple': '#d6d9fc', magenta: '#ffd7ef', dashed: '#362baa' },
+              success: { DEFAULT: '#15be53', text: '#108c3d', light: 'rgba(21, 190, 83, 0.2)' },
+              link: '#2874ad',
+            },
+          },
+          fontFamily: {
+            primary: ['Söhne', 'SF Pro Display', '-apple-system', 'sans-serif'],
+            mono: ['SourceCodePro', 'SFMono-Regular', 'monospace'],
+          },
+          fontSize: {
+            'hero': ['3.5rem', { lineHeight: '1.03', letterSpacing: '-1.4px' }],
+            'display': ['3rem', { lineHeight: '1.15', letterSpacing: '-0.96px' }],
+            'section': ['2rem', { lineHeight: '1.10', letterSpacing: '-0.64px' }],
+            'subhead-lg': ['1.625rem', { lineHeight: '1.12', letterSpacing: '-0.26px' }],
+            'subhead': ['1.375rem', { lineHeight: '1.10', letterSpacing: '-0.22px' }],
+            'body-lg': ['1.125rem', { lineHeight: '1.40' }],
+          },
+          fontWeight: { light: '300', regular: '400' },
+          boxShadow: {
+            'ambient': '0 3px 6px rgba(23, 23, 23, 0.06)',
+            'standard': '0 15px 35px rgba(23, 23, 23, 0.08)',
+            'elevated': '0 30px 45px -30px rgba(50, 50, 93, 0.25), 0 18px 36px -18px rgba(0, 0, 0, 0.1)',
+            'deep': '0 14px 21px -14px rgba(3, 3, 39, 0.25), 0 8px 17px -8px rgba(0, 0, 0, 0.1)',
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    body { font-family: 'Söhne', 'SF Pro Display', -apple-system, sans-serif; }
+    .font-ss01 { font-feature-settings: "ss01" on; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen py-16 px-8">
+  
+  <div class="max-w-5xl mx-auto space-y-16">
+    
+    <!-- ============================================
+         1. BUTTON COMPONENTS
+    ============================================ -->
+    <section class="bg-white rounded-lg p-8 shadow-standard">
+      <h2 class="text-section font-light text-stripe-navy-deep font-ss01 mb-8">Buttons</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <!-- Primary Button -->
+        <div class="space-y-2">
+          <p class="text-caption text-stripe-text-body">Primary</p>
+          <button class="bg-stripe-purple text-white px-4 py-2 rounded-sm font-regular text-button font-ss01 hover:bg-stripe-purple-hover transition-colors">
+            Start now
+          </button>
+        </div>
+
+        <!-- Ghost Button -->
+        <div class="space-y-2">
+          <p class="text-caption text-stripe-text-body">Ghost</p>
+          <button class="bg-transparent text-stripe-purple px-4 py-2 rounded-sm font-regular text-button font-ss01 border border-stripe-border-purple hover:bg-stripe-purple-light/10 transition-colors">
+            Learn more
+          </button>
+        </div>
+
+        <!-- Info/Transparent -->
+        <div class="space-y-2">
+          <p class="text-caption text-stripe-text-body">Info</p>
+          <button class="bg-transparent text-stripe-link px-4 py-2 rounded-sm font-regular text-button font-ss01 border border-stripe-link/20 hover:bg-stripe-link/5 transition-colors">
+            Documentation
+          </button>
+        </div>
+
+        <!-- Neutral Ghost -->
+        <div class="space-y-2">
+          <p class="text-caption text-stripe-text-body">Disabled</p>
+          <button class="bg-transparent text-gray-400 px-4 py-2 rounded-sm font-regular text-button font-ss01 border border-stripe-border-default cursor-not-allowed opacity-50">
+            Coming soon
+          </button>
+        </div>
+      </div>
+
+      <!-- Button Sizes -->
+      <div class="mt-8 pt-8 border-t border-stripe-border">
+        <h3 class="text-subhead font-light text-stripe-navy-deep font-ss01 mb-6">Sizes</h3>
+        <div class="flex items-center gap-6">
+          <button class="bg-stripe-purple text-white px-3 py-1.5 rounded-sm font-regular text-button-sm font-ss01 hover:bg-stripe-purple-hover transition-colors">
+            Small
+          </button>
+          <button class="bg-stripe-purple text-white px-4 py-2 rounded-sm font-regular text-button font-ss01 hover:bg-stripe-purple-hover transition-colors">
+            Default
+          </button>
+          <button class="bg-stripe-purple text-white px-6 py-3 rounded-sm font-regular text-body-lg font-ss01 hover:bg-stripe-purple-hover transition-colors">
+            Large
+          </button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============================================
+         2. CARD COMPONENTS
+    ============================================ -->
+    <section class="bg-white rounded-lg p-8 shadow-standard">
+      <h2 class="text-section font-light text-stripe-navy-deep font-ss01 mb-8">Cards</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Standard Card -->
+        <div class="bg-white border border-stripe-border rounded-md p-6 shadow-ambient hover:shadow-elevated transition-shadow">
+          <h4 class="text-subhead font-light text-stripe-navy-deep font-ss01 mb-3">Standard Card</h4>
+          <p class="text-body font-light text-stripe-text-body font-ss01">
+            A clean card with subtle shadow. Use for feature highlights and content groupings.
+          </p>
+        </div>
+
+        <!-- Elevated Card -->
+        <div class="bg-white border border-stripe-border rounded-lg p-6 shadow-elevated">
+          <h4 class="text-subhead font-light text-stripe-navy-deep font-ss01 mb-3">Elevated Card</h4>
+          <p class="text-body font-light text-stripe-text-body font-ss01">
+            Featured content with the signature blue-tinted shadow. Stand out from the page.
+          </p>
+        </div>
+
+        <!-- Dark Card -->
+        <div class="bg-stripe-brand-dark border border-white/10 rounded-lg p-6">
+          <h4 class="text-subhead font-light text-white font-ss01 mb-3">Dark Card</h4>
+          <p class="text-body font-light text-white/70 font-ss01">
+            Immersive brand sections. Use for high-contrast moments and brand emphasis.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Card with Image -->
+      <div class="mt-8 pt-8 border-t border-stripe-border">
+        <h3 class="text-subhead font-light text-stripe-navy-deep font-ss01 mb-6">Card with Image</h3>
+        <div class="bg-white border border-stripe-border rounded-lg overflow-hidden shadow-elevated max-w-md">
+          <div class="h-32 bg-gradient-to-br from-stripe-purple to-stripe-accent-magenta"></div>
+          <div class="p-6">
+            <h4 class="text-subhead font-light text-stripe-navy-deep font-ss01 mb-2">Dashboard Preview</h4>
+            <p class="text-body font-light text-stripe-text-body font-ss01">
+              Beautiful analytics interfaces with precise data visualization.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============================================
+         3. FORM COMPONENTS
+    ============================================ -->
+    <section class="bg-white rounded-lg p-8 shadow-standard">
+      <h2 class="text-section font-light text-stripe-navy-deep font-ss01 mb-8">Forms</h2>
+      
+      <div class="max-w-lg space-y-6">
+        
+        <!-- Text Input -->
+        <div class="space-y-2">
+          <label class="block text-button font-regular text-stripe-text-label font-ss01">Email address</label>
+          <input 
+            type="email" 
+            placeholder="you@example.com"
+            class="w-full px-3 py-2 rounded-sm border border-stripe-border text-stripe-navy-deep placeholder-stripe-text-body font-ss01 focus:outline-none focus:border-stripe-purple focus:ring-2 focus:ring-stripe-purple-light/30 transition-all"
+          >
+          <p class="text-caption text-stripe-text-body font-ss01">We'll send you a verification link.</p>
+        </div>
+
+        <!-- Select -->
+        <div class="space-y-2">
+          <label class="block text-button font-regular text-stripe-text-label font-ss01">Country</label>
+          <select class="w-full px-3 py-2 rounded-sm border border-stripe-border text-stripe-navy-deep bg-white font-ss01 focus:outline-none focus:border-stripe-purple focus:ring-2 focus:ring-stripe-purple-light/30 transition-all appearance-none cursor-pointer">
+            <option>United States</option>
+            <option>Canada</option>
+            <option>United Kingdom</option>
+          </select>
+        </div>
+
+        <!-- Checkbox -->
+        <div class="flex items-center gap-3">
+          <input type="checkbox" id="terms" class="w-4 h-4 rounded-sm border-stripe-border text-stripe-purple focus:ring-stripe-purple-light/30">
+          <label for="terms" class="text-body font-light text-stripe-text-body font-ss01">
+            I agree to the <span class="text-stripe-purple underline">Terms of Service</span>
+          </label>
+        </div>
+
+        <!-- Toggle Switch -->
+        <div class="flex items-center justify-between">
+          <label class="text-body font-light text-stripe-text-body font-ss01">Enable notifications</label>
+          <button class="relative w-11 h-6 bg-stripe-border rounded-full transition-colors">
+            <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-ambient transition-transform"></span>
+          </button>
+        </div>
+
+        <!-- Form States -->
+        <div class="pt-6 border-t border-stripe-border grid grid-cols-2 gap-6">
+          <div class="space-y-2">
+            <p class="text-caption text-stripe-text-body">Focus State</p>
+            <input 
+              type="text" 
+              value="Focused input"
+              class="w-full px-3 py-2 rounded-sm border-2 border-stripe-purple text-stripe-navy-deep font-ss01 focus:outline-none"
+            >
+          </div>
+          <div class="space-y-2">
+            <p class="text-caption text-stripe-text-body">Error State</p>
+            <input 
+              type="text" 
+              value="Invalid"
+              class="w-full px-3 py-2 rounded-sm border border-stripe-accent-ruby text-stripe-navy-deep font-ss01 focus:outline-none"
+            >
+            <p class="text-caption text-stripe-accent-ruby font-ss01">This field is required</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ============================================
+         4. PRICING TABLE
+    ============================================ -->
+    <section class="bg-white rounded-lg p-8 shadow-standard">
+      <h2 class="text-section font-light text-stripe-navy-deep font-ss01 mb-8">Pricing Tables</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Basic Plan -->
+        <div class="border border-stripe-border rounded-lg p-6 hover:shadow-elevated transition-shadow">
+          <div class="mb-6">
+            <h4 class="text-subhead-lg font-light text-stripe-navy-deep font-ss01">Basic</h4>
+            <p class="text-caption text-stripe-text-body font-ss01 mt-1">For small teams</p>
+          </div>
+          <div class="mb-6">
+            <span class="text-display font-light text-stripe-navy-deep font-ss01">$0</span>
+            <span class="text-body font-light text-stripe-text-body font-ss01">/month</span>
+          </div>
+          <ul class="space-y-3 mb-6">
+            <li class="text-body font-light text-stripe-text-body font-ss01 flex items-center gap-2">
+              <span class="text-stripe-success text-sm">✓</span> 100 payments/month
+            </li>
+            <li class="text-body font-light text-stripe-text-body font-ss01 flex items-center gap-2">
+              <span class="text-stripe-success text-sm">✓</span> Basic analytics
+            </li>
+            <li class="text-body font-light text-stripe-text-body font-ss01 flex items-center gap-2">
+              <span class="text-stripe-success text-sm">✓</span> Email support
+            </li>
+          </ul>
+          <button class="w-full bg-stripe-purple text-white px-4 py-2 rounded-sm font-regular text-button font-ss01 hover:bg-stripe-purple-hover transition-colors">
+            Get started
+          </button>
+        </div>
+
+        <!-- Pro Plan (Featured) -->
+        <div class="border-2 border-stripe-purple rounded-lg p-6 shadow-elevated relative">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+            <span class="bg-stripe-purple text-white text-caption-sm px-3 py-1 rounded-full font-regular">Popular</span>
+          </div>
+          <div class="mb-6">
+            <h4 class="text-subhead-lg font-light text-stripe-navy-deep font-ss01">Pro</h4>
+            <p class="text-caption text-stripe-text-body font-ss01 mt-1">For growing businesses</p>
+          </div>
+          <div class="mb-6">
+            <span class="text-display font-light text-stripe-navy-deep font-ss01">$29</span>
+            <span class="text-body font-light text-stripe-text-body font-ss01">/month</span>
+          </div>
+          <ul class="space-y-3 mb-6">
+            <li class="text-body font-light text-stripe-text-body font-ss01 flex items-center gap-2">
+              <span class="text-stripe-success text-sm">✓</span> Unlimited payments
+            </li>
+            <li class="text-body font-light text-stripe-text-body font-ss01 flex items-center gap-2">
+              <span class="text-stripe-success text-sm">✓</span> Advanced analytics
+            </li>
+            <li class="text-body font-light text-stripe-text-body font-ss01 flex items-center gap-2">
+              <span class="text-stripe-success text-sm">✓</span> Priority support
+            </li>
+            <li class="text-body font-light text-stripe-text-body font-ss01 flex items-center gap-2">
+              <span class="text-stripe-success text-sm">✓</span> Custom integrations
+            </li>
+          </ul>
+          <button class="w-full bg-stripe-purple text-white px-4 py-2 rounded-sm font-regular text-button font-ss01 hover:bg-stripe-purple-hover transition-colors">
+            Get started
+          </button>
+        </div>
+
+        <!-- Enterprise Plan -->
+        <div class="border border-stripe-border rounded-lg p-6 hover:shadow-elevated transition-shadow">
+          <div class="mb-6">
+            <h4 class="text-subhead-lg font-light text-stripe-navy-deep font-ss01">Enterprise</h4>
+            <p class="text-caption text-stripe-text-body font-ss01 mt-1">For large organizations</p>
+          </div>
+          <div class="mb-6">
+            <span class="text-display font-light text-stripe-navy-deep font-ss01">Custom</span>
+          </div>
+          <ul class="space-y-3 mb-6">
+            <li class="text-body font-light text-stripe-text-body font-ss01 flex items-center gap-2">
+              <span class="text-stripe-success text-sm">✓</span> Everything in Pro
+            </li>
+            <li class="text-body font-light text-stripe-text-body font-ss01 flex items-center gap-2">
+              <span class="text-stripe-success text-sm">✓</span> Dedicated account manager
+            </li>
+            <li class="text-body font-light text-stripe-text-body font-ss01 flex items-center gap-2">
+              <span class="text-stripe-success text-sm">✓</span> SLA guarantee
+            </li>
+            <li class="text-body font-light text-stripe-text-body font-ss01 flex items-center gap-2">
+              <span class="text-stripe-success text-sm">✓</span> Custom contracts
+            </li>
+          </ul>
+          <button class="w-full bg-transparent text-stripe-purple px-4 py-2 rounded-sm font-regular text-button font-ss01 border border-stripe-border-purple hover:bg-stripe-purple-light/10 transition-colors">
+            Contact sales
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ============================================
+         5. BADGES & TAGS
+    ============================================ -->
+    <section class="bg-white rounded-lg p-8 shadow-standard">
+      <h2 class="text-section font-light text-stripe-navy-deep font-ss01 mb-8">Badges & Tags</h2>
+      
+      <div class="flex flex-wrap gap-4 items-center">
+        <!-- Default Badge -->
+        <span class="bg-white border border-stripe-border text-stripe-navy-deep px-2 py-0 rounded-sm text-caption font-regular">
+          Default
+        </span>
+
+        <!-- Success Badge -->
+        <span class="bg-stripe-success-light border border-stripe-success/40 text-stripe-success-text px-2 py-0.5 rounded-sm text-micro font-light">
+          Success
+        </span>
+
+        <!-- Warning Badge -->
+        <span class="bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-sm text-micro font-light">
+          Pending
+        </span>
+
+        <!-- Error Badge -->
+        <span class="bg-red-50 border border-red-200 text-red-600 px-2 py-0.5 rounded-sm text-micro font-light">
+          Failed
+        </span>
+
+        <!-- Magenta Tag -->
+        <span class="bg-stripe-accent-magenta-light border border-stripe-accent-magenta/30 text-stripe-accent-magenta px-2 py-0 rounded-sm text-caption font-regular">
+          Featured
+        </span>
+      </div>
+    </section>
+
+
+    <!-- ============================================
+         6. NAVIGATION
+    ============================================ -->
+    <section class="bg-white rounded-lg p-8 shadow-standard">
+      <h2 class="text-section font-light text-stripe-navy-deep font-ss01 mb-8">Navigation</h2>
+      
+      <div class="border border-stripe-border rounded-lg overflow-hidden">
+        <!-- Top Nav -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-stripe-border bg-white/80 backdrop-blur-sm">
+          <div class="flex items-center gap-8">
+            <span class="text-subhead font-light text-stripe-navy-deep font-ss01">Stripe</span>
+            <nav class="hidden md:flex gap-6">
+              <a href="#" class="text-link font-regular text-stripe-text-label font-ss01 hover:text-stripe-navy-deep">Products</a>
+              <a href="#" class="text-link font-regular text-stripe-text-label font-ss01 hover:text-stripe-navy-deep">Solutions</a>
+              <a href="#" class="text-link font-regular text-stripe-text-label font-ss01 hover:text-stripe-navy-deep">Pricing</a>
+              <a href="#" class="text-link font-regular text-stripe-text-label font-ss01 hover:text-stripe-navy-deep">Docs</a>
+            </nav>
+          </div>
+          <div class="flex items-center gap-4">
+            <a href="#" class="text-link font-regular text-stripe-text-label font-ss01 hidden md:block">Sign in</a>
+            <button class="bg-stripe-purple text-white px-4 py-2 rounded-sm font-regular text-button font-ss01 hover:bg-stripe-purple-hover transition-colors">
+              Start now
+            </button>
+          </div>
+        </div>
+        
+        <!-- Hero Section (Demo) -->
+        <div class="px-8 py-16 text-center">
+          <h1 class="text-display font-light text-stripe-navy-deep font-ss01 mb-4">Payments infrastructure</h1>
+          <p class="text-body-lg font-light text-stripe-text-body font-ss01 max-w-lg mx-auto">
+            The economic engine for the internet. Millions of companies of all sizes use Stripe.
+          </p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============================================
+         7. CODE BLOCK
+    ============================================ -->
+    <section class="bg-white rounded-lg p-8 shadow-standard">
+      <h2 class="text-section font-light text-stripe-navy-deep font-ss01 mb-8">Code Block</h2>
+      
+      <div class="bg-stripe-brand-dark rounded-lg p-6 shadow-elevated overflow-x-auto">
+        <pre class="font-mono text-caption-sm leading-loose text-white"><code><span class="text-purple-300">const</span> stripe = <span class="text-stripe-accent-magenta">require</span>(<span class="text-green-300">'stripe'</span>)(<span class="text-yellow-300">'sk_test_...'</span>);
+
+<span class="text-gray-400">// Create a payment intent</span>
+<span class="text-purple-300">const</span> paymentIntent = <span class="text-purple-300">await</span> stripe.paymentIntents.<span class="text-blue-300">create</span>({
+  <span class="text-yellow-300">amount</span>: <span class="text-green-300">2000</span>,
+  <span class="text-yellow-300">currency</span>: <span class="text-green-300">'usd'</span>,
+  <span class="text-yellow-300">payment_method_types</span>: [<span class="text-green-300">'card'</span>],
+});</code></pre>
+      </div>
+    </section>
+
+  </div>
+
+</body>
+</html>

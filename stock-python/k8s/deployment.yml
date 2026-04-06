@@ -1,0 +1,281 @@
+---
+# Public API Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: public-api
+  labels:
+    app: stock-python
+    component: api
+    tier: public
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: stock-python
+      component: public-api
+  template:
+    metadata:
+      labels:
+        app: stock-python
+        component: public-api
+    spec:
+      containers:
+        - name: public-api
+          image: stock-python:latest
+          command: ["uvicorn", "apps.public_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: stock-python-config
+            - secretRef:
+                name: stock-python-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+# Admin API Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-api
+  labels:
+    app: stock-python
+    component: api
+    tier: admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stock-python
+      component: admin-api
+  template:
+    metadata:
+      labels:
+        app: stock-python
+        component: admin-api
+    spec:
+      containers:
+        - name: admin-api
+          image: stock-python:latest
+          command: ["uvicorn", "apps.admin_api.main:app", "--host", "0.0.0.0", "--port", "8001"]
+          ports:
+            - containerPort: 8001
+          envFrom:
+            - configMapRef:
+                name: stock-python-config
+            - secretRef:
+                name: stock-python-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+# Celery Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  labels:
+    app: stock-python
+    component: worker
+    task: celery
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: stock-python
+      component: celery-worker
+  template:
+    metadata:
+      labels:
+        app: stock-python
+        component: celery-worker
+    spec:
+      containers:
+        - name: celery-worker
+          image: stock-python:latest
+          command: ["celery", "-A", "apps.workers.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
+          envFrom:
+            - configMapRef:
+                name: stock-python-config
+            - secretRef:
+                name: stock-python-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+---
+# Scanner Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scanner-worker
+  labels:
+    app: stock-python
+    component: worker
+    task: scanner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stock-python
+      component: scanner-worker
+  template:
+    metadata:
+      labels:
+        app: stock-python
+        component: scanner-worker
+    spec:
+      containers:
+        - name: scanner-worker
+          image: stock-python:latest
+          command: ["celery", "-A", "apps.workers.celery_app", "worker", "--loglevel=info", "--concurrency=1", "-Q", "scanner"]
+          envFrom:
+            - configMapRef:
+                name: stock-python-config
+            - secretRef:
+                name: stock-python-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+---
+# Notification Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-worker
+  labels:
+    app: stock-python
+    component: worker
+    task: notification
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stock-python
+      component: notification-worker
+  template:
+    metadata:
+      labels:
+        app: stock-python
+        component: notification-worker
+    spec:
+      containers:
+        - name: notification-worker
+          image: stock-python:latest
+          command: ["celery", "-A", "apps.workers.celery_app", "worker", "--loglevel=info", "--concurrency=2", "-Q", "notification"]
+          envFrom:
+            - configMapRef:
+                name: stock-python-config
+            - secretRef:
+                name: stock-python-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+# Email Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email-worker
+  labels:
+    app: stock-python
+    component: worker
+    task: email
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stock-python
+      component: email-worker
+  template:
+    metadata:
+      labels:
+        app: stock-python
+        component: email-worker
+    spec:
+      containers:
+        - name: email-worker
+          image: stock-python:latest
+          command: ["celery", "-A", "apps.workers.celery_app", "worker", "--loglevel=info", "--concurrency=2", "-Q", "email"]
+          envFrom:
+            - configMapRef:
+                name: stock-python-config
+            - secretRef:
+                name: stock-python-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+# Celery Beat Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-beat
+  labels:
+    app: stock-python
+    component: scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stock-python
+      component: celery-beat
+  template:
+    metadata:
+      labels:
+        app: stock-python
+        component: celery-beat
+    spec:
+      containers:
+        - name: celery-beat
+          image: stock-python:latest
+          command: ["celery", "-A", "apps.workers.celery_app", "beat", "--loglevel=info"]
+          envFrom:
+            - configMapRef:
+                name: stock-python-config
+            - secretRef:
+                name: stock-python-secrets
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"

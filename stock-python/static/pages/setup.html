@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>Setup - Stock Py</title>
+  <link href="../dist/css/tabler.css" rel="stylesheet" />
+  <link href="../dist/css/tabler-flags.css" rel="stylesheet" />
+  <style>
+    @import url("https://rsms.me/inter/inter.css");
+    body { background: #f8f9fa; }
+    .step-indicator { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
+    .step-dot { width: 10px; height: 10px; border-radius: 50%; background: #e9ecef; }
+    .step-dot.active { background: #066fd1; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="container container-tight py-4">
+      <div class="text-center mb-4">
+        <h1 class="mb-1">📈 Stock Py</h1>
+        <p class="text-muted">Let's set up your portfolio</p>
+      </div>
+
+      <div class="step-indicator">
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+      </div>
+
+      <div class="card card-md">
+        <div class="card-body">
+          <h2 class="h4 mb-4">Step 1: Watchlist</h2>
+          <p class="text-muted mb-3">Enter symbols you want to track</p>
+          
+          <form id="setupForm" method="post" action="/api/setup">
+            <input type="hidden" name="step" value="1" />
+            
+            <div class="mb-3">
+              <label class="form-label">Watchlist Symbols</label>
+              <input type="text" name="watchlist" class="form-control" 
+                     placeholder="AAPL, MSFT, GOOGL, NVDA, TSLA" 
+                     value="" />
+              <small class="text-muted">Comma-separated ticker symbols</small>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">Next Step</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="text-center mt-3">
+        <span class="text-muted">Already set up?</span>
+        <a href="login.html"> Login</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('setupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const watchlist = formData.get('watchlist');
+      
+      try {
+        const res = await fetch('/api/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ step: 1, watchlist: watchlist.split(',').map(s => s.trim().toUpperCase()).filter(s => s) })
+        });
+        if (res.ok) {
+          window.location.href = 'setup2.html';
+        } else {
+          alert('Failed to save. Please try again.');
+        }
+      } catch (err) {
+        alert('Error saving watchlist.');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Squirrel Adventure</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #87CEEB; 
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        canvas { display: block; }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-shadow: 2px 2px 4px #000;
+        }
+        #score { font-size: 32px; font-weight: bold; }
+        #instructions { font-size: 14px; margin-top: 10px; }
+        
+        /* Mobile controls */
+        #dpad {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            display: grid;
+            grid-template-columns: 60px 60px 60px;
+            gap: 5px;
+            z-index: 100;
+        }
+        .btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            user-select: none;
+        }
+        .btn:active { background: rgba(255,255,255,0.6); }
+        #left { grid-column: 1; }
+        #right { grid-column: 3; }
+        #jumpBtn {
+            position: absolute;
+            bottom: 50px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            background: rgba(255,100,100,0.5);
+            border-radius: 50%;
+            border: 3px solid rgba(255,100,100,0.8);
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        @media (min-width: 769px) {
+            #dpad, #jumpBtn { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div id="score">Score: 0</div>
+        <div id="instructions">A/D or Arrows to move • Space to jump</div>
+    </div>
+    
+    <div id="dpad">
+        <div class="btn" id="left">←</div>
+        <div class="btn" id="right">→</div>
+    </div>
+    <div id="jumpBtn">JUMP</div>
+    
+    <canvas id="game"></canvas>
+    
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        
+        // Responsive canvas
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        
+        // Game state
+        let score = 0;
+        let gameTime = 0;
+        
+        // Player (squirrel)
+        const player = {
+            x: 100,
+            y: 300,
+            width: 50,
+            height: 40,
+            vx: 0,
+            vy: 0,
+            speed: 5,
+            jumpPower: -15,
+            onGround: false,
+            facing: 1, // 1 = right, -1 = left
+            frame: 0
+        };
+        
+        // Physics
+        const gravity = 0.8;
+        
+        // Platforms
+        const platforms = [
+            { x: 0, y: 500, w: 3000, h: 100 }, // Ground
+            { x: 200, y: 400, w: 150, h: 20 },
+            { x: 450, y: 320, w: 120, h: 20 },
+            { x: 650, y: 250, w: 150, h: 20 },
+            { x: 900, y: 350, w: 100, h: 20 },
+            { x: 1100, y: 280, w: 120, h: 20 },
+            { x: 1350, y: 200, w: 150, h: 20 },
+            { x: 1600, y: 320, w: 100, h: 20 },
+            { x: 1800, y: 250, w: 130, h: 20 },
+            { x: 2050, y: 180, w: 200, h: 20 },
+        ];
+        
+        // Camera
+        let cameraX = 0;
+        
+        // Collectibles
+        const acorns = [
+            { x: 260, y: 360, collected: false },
+            { x: 500, y: 280, collected: false },
+            { x: 700, y: 210, collected: false },
+            { x: 930, y: 310, collected: false },
+            { x: 1140, y: 240, collected: false },
+            { x: 1400, y: 160, collected: false },
+            { x: 1630, y: 280, collected: false },
+            { x: 1850, y: 210, collected: false },
+            { x: 2120, y: 140, collected: false },
+        ];
+        
+        // Enemies
+        const enemies = [
+            { x: 300, y: 470, w: 30, h: 30, vx: 2, range: 150, startX: 300 },
+            { x: 700, y: 220, w: 30, h: 30, vx: 2, range: 100, startX: 700 },
+            { x: 1200, y: 250, w: 30, h: 30, vx: 2.5, range: 80, startX: 1200 },
+            { x: 1700, y: 290, w: 30, h: 30, vx: 2, range: 100, startX: 1700 },
+            { x: 2100, y: 150, w: 30, h: 30, vx: 3, range: 120, startX: 2100 },
+        ];
+        
+        // Keys
+        const keys = { left: false, right: false, jump: false };
+        
+        // Input handlers
+        document.addEventListener('keydown', e => {
+            if (e.key === 'a' || e.key === 'ArrowLeft') keys.left = true;
+            if (e.key === 'd' || e.key === 'ArrowRight') keys.right = true;
+            if (e.key === ' ' || e.key === 'ArrowUp') {
+                keys.jump = true;
+                e.preventDefault();
+            }
+        });
+        
+        document.addEventListener('keyup', e => {
+            if (e.key === 'a' || e.key === 'ArrowLeft') keys.left = false;
+            if (e.key === 'd' || e.key === 'ArrowRight') keys.right = false;
+            if (e.key === ' ' || e.key === 'ArrowUp') keys.jump = false;
+        });
+        
+        // Mobile controls
+        document.getElementById('left').addEventListener('touchstart', () => keys.left = true);
+        document.getElementById('left').addEventListener('touchend', () => keys.left = false);
+        document.getElementById('right').addEventListener('touchstart', () => keys.right = true);
+        document.getElementById('right').addEventListener('touchend', () => keys.right = false);
+        document.getElementById('jumpBtn').addEventListener('touchstart', () => keys.jump = true);
+        document.getElementById('jumpBtn').addEventListener('touchend', () => keys.jump = false);
+        
+        // Draw functions
+        function drawSquirrel(x, y, facing, frame) {
+            ctx.save();
+            ctx.translate(x + player.width/2, y + player.height/2);
+            ctx.scale(facing, 1);
+            ctx.translate(-player.width/2, -player.height/2);
+            
+            // Body (oval)
+            ctx.fillStyle = '#8B4513';
+            ctx.beginPath();
+            ctx.ellipse(25, 25, 20, 15, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Head
+            ctx.beginPath();
+            ctx.arc(38, 15, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Eye
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(42, 12, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(43, 12, 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Nose
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(48, 16, 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Ear
+            ctx.fillStyle = '#8B4513';
+            ctx.beginPath();
+            ctx.moveTo(35, 5);
+            ctx.lineTo(38, -2);
+            ctx.lineTo(41, 5);
+            ctx.fill();
+            
+            // Tail (fluffy)
+            ctx.fillStyle = '#A0522D';
+            ctx.beginPath();
+            ctx.ellipse(5, 20, 12, 8, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Belly
+            ctx.fillStyle = '#DEB887';
+            ctx.beginPath();
+            ctx.ellipse(25, 28, 12, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Legs
+            const legOffset = Math.sin(frame * 0.3) * 3;
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(15, 35, 6, 8 + (player.onGround ? legOffset : 0));
+            ctx.fillRect(30, 35, 6, 8 + (player.onGround ? -legOffset : 0));
+            
+            ctx.restore();
+        }
+        
+        function drawPlatform(p) {
+            // Main platform
+            ctx.fillStyle = '#654321';
+            ctx.fillRect(p.x - cameraX, p.y, p.w, p.h);
+            
+            // Grass on top
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(p.x - cameraX, p.y, p.w, 8);
+            
+            // Detail
+            ctx.fillStyle = '#2E8B57';
+            for (let i = 0; i < p.w; i += 20) {
+                ctx.fillRect(p.x - cameraX + i, p.y, 10, 4);
+            }
+        }
+        
+        function drawAcorn(a) {
+            if (a.collected) return;
+            
+            const x = a.x - cameraX;
+            const y = a.y;
+            
+            // Nut
+            ctx.fillStyle = '#8B4513';
+            ctx.beginPath();
+            ctx.ellipse(x + 10, y + 15, 8, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Cap
+            ctx.fillStyle = '#A0522D';
+            ctx.beginPath();
+            ctx.arc(x + 10, y + 8, 9, Math.PI, 0);
+            ctx.fill();
+            
+            // Stem
+            ctx.fillStyle = '#A0522D';
+            ctx.fillRect(x + 8, y + 1, 4, 6);
+            
+            // Shine
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(x + 7, y + 12, 3, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function drawEnemy(e) {
+            const x = e.x - cameraX;
+            
+            // Body (caterpillar/worm)
+            ctx.fillStyle = '#32CD32';
+            for (let i = 0; i < 4; i++) {
+                ctx.beginPath();
+                ctx.arc(x + i * 8, e.y + 15 - Math.sin(gameTime * 0.1 + i) * 3, 10 - i, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Head
+            ctx.fillStyle = '#228B22';
+            ctx.beginPath();
+            ctx.arc(x + 35, e.y + 12, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Eyes
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(x + 38, e.y + 8, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(x + 39, e.y + 8, 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Antennae
+            ctx.strokeStyle = '#228B22';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x + 32, e.y);
+            ctx.lineTo(x + 28, e.y - 8);
+            ctx.moveTo(x + 38, e.y);
+            ctx.lineTo(x + 42, e.y - 8);
+            ctx.stroke();
+        }
+        
+        function drawBackground() {
+            // Sky gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#E0F7FA');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Distant clouds
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            const clouds = [
+                { x: 100, y: 80, s: 1 },
+                { x: 400, y: 50, s: 0.8 },
+                { x: 700, y: 100, s: 1.2 },
+                { x: 1000, y: 60, s: 0.9 },
+                { x: 1400, y: 90, s: 1.1 },
+                { x: 1800, y: 70, s: 1 },
+            ];
+            clouds.forEach(c => {
+                const cx = (c.x - cameraX * 0.3) % (canvas.width + 200) - 100;
+                ctx.beginPath();
+                ctx.arc(cx, c.y, 30 * c.s, 0, Math.PI * 2);
+                ctx.arc(cx + 25 * c.s, c.y - 10 * c.s, 25 * c.s, 0, Math.PI * 2);
+                ctx.arc(cx + 50 * c.s, c.y, 30 * c.s, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Hills in background
+            ctx.fillStyle = '#90EE90';
+            ctx.beginPath();
+            ctx.moveTo(0, 450);
+            for (let i = 0; i <= canvas.width; i += 50) {
+                const hx = i - (cameraX * 0.2) % 200;
+                ctx.lineTo(hx, 400 - Math.sin(hx * 0.01) * 50);
+            }
+            ctx.lineTo(canvas.width, 500);
+            ctx.lineTo(0, 500);
+            ctx.fill();
+        }
+        
+        function checkCollision() {
+            // Platform collision
+            player.onGround = false;
+            platforms.forEach(p => {
+                if (player.x + player.width > p.x && 
+                    player.x < p.x + p.w &&
+                    player.y + player.height > p.y &&
+                    player.y + player.height < p.y + p.h + 20 &&
+                    player.vy >= 0) {
+                    player.y = p.y - player.height;
+                    player.vy = 0;
+                    player.onGround = true;
+                }
+            });
+            
+            // Acorn collection
+            acorns.forEach(a => {
+                if (!a.collected &&
+                    player.x + player.width > a.x &&
+                    player.x < a.x + 20 &&
+                    player.y + player.height > a.y &&
+                    player.y < a.y + 25) {
+                    a.collected = true;
+                    score += 10;
+                    document.getElementById('score').textContent = 'Score: ' + score;
+                }
+            });
+            
+            // Enemy collision
+            enemies.forEach(e => {
+                if (player.x + player.width > e.x &&
+                    player.x < e.x + e.w &&
+                    player.y + player.height > e.y &&
+                    player.y < e.y + e.h) {
+                    // Check if jumping on top
+                    if (player.vy > 0 && player.y + player.height < e.y + 15) {
+                        // Kill enemy
+                        e.y = 1000;
+                        score += 20;
+                        player.vy = -10; // Bounce
+                        document.getElementById('score').textContent = 'Score: ' + score;
+                    } else {
+                        // Hit by enemy - respawn
+                        player.x = 100;
+                        player.y = 300;
+                        player.vx = 0;
+                        player.vy = 0;
+                        cameraX = 0;
+                    }
+                }
+            });
+            
+            // Fall off map
+            if (player.y > canvas.height) {
+                player.x = 100;
+                player.y = 300;
+                player.vx = 0;
+                player.vy = 0;
+                cameraX = 0;
+            }
+        }
+        
+        function update() {
+            gameTime++;
+            
+            // Player movement
+            if (keys.left) {
+                player.vx = -player.speed;
+                player.facing = -1;
+            } else if (keys.right) {
+                player.vx = player.speed;
+                player.facing = 1;
+            } else {
+                player.vx = 0;
+            }
+            
+            // Jump
+            if (keys.jump && player.onGround) {
+                player.vy = player.jumpPower;
+                player.onGround = false;
+            }
+            
+            // Apply gravity
+            player.vy += gravity;
+            
+            // Move player
+            player.x += player.vx;
+            player.y += player.vy;
+            
+            // Update camera
+            const targetCamX = player.x - canvas.width / 3;
+            cameraX += (targetCamX - cameraX) * 0.1;
+            cameraX = Math.max(0, cameraX);
+            
+            // Animate player
+            if (player.vx !== 0) player.frame++;
+            
+            // Update enemies
+            enemies.forEach(e => {
+                e.x += e.vx;
+                if (e.x > e.startX + e.range || e.x < e.startX - e.range) {
+                    e.vx *= -1;
+                }
+            });
+            
+            checkCollision();
+        }
+        
+        function draw() {
+            drawBackground();
+            
+            // Draw platforms
+            platforms.forEach(drawPlatform);
+            
+            // Draw acorns
+            acorns.forEach(drawAcorn);
+            
+            // Draw enemies
+            enemies.forEach(drawEnemy);
+            
+            // Draw player
+            drawSquirrel(player.x - cameraX, player.y, player.facing, player.frame);
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Start game
+        gameLoop();
+    </script>
+</body>
+</html>

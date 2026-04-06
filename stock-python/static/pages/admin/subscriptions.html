@@ -1,0 +1,164 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Subscriptions - Admin{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+  <h1 class="page-title">Subscriptions</h1>
+  <button class="btn btn-primary" onclick="refreshSubs()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+    Refresh
+  </button>
+</div>
+
+<div class="row mb-3">
+  <div class="col-md-3">
+    <div class="card stat-card">
+      <div class="card-body text-center">
+        <div class="text-muted small">Total</div>
+        <div class="h1 mb-0" id="statTotal">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card">
+      <div class="card-body text-center">
+        <div class="text-muted small">Active</div>
+        <div class="h1 mb-0 text-success" id="statActive">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card">
+      <div class="card-body text-center">
+        <div class="text-muted small">Trial</div>
+        <div class="h1 mb-0 text-info" id="statTrial">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card">
+      <div class="card-body text-center">
+        <div class="text-muted small">Expired</div>
+        <div class="h1 mb-0 text-danger" id="statExpired">-</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <input type="text" class="form-control" id="searchInput" placeholder="Search by email or user..." onkeyup="filterTable()">
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" id="tierFilter" onchange="filterTable()">
+          <option value="">All Plans</option>
+          <option value="free">Free</option>
+          <option value="basic">Basic</option>
+          <option value="pro">Pro</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" id="statusFilter" onchange="filterTable()">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="trialing">Trialing</option>
+          <option value="canceled">Canceled</option>
+          <option value="expired">Expired</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table card-table table-vcenter">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>User</th>
+          <th>Plan</th>
+          <th>Status</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+          <th>Auto-Renew</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="subsTableBody">
+        <tr><td colspan="8" class="text-center text-muted py-4">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let subsData = [];
+
+async function loadSubs() {
+  try {
+    const resp = await fetch('/api/v1/admin/subscriptions');
+    const data = await resp.json();
+    subsData = data.subscriptions || data || [];
+    updateStats();
+    renderSubs();
+  } catch (e) {
+    document.getElementById('subsTableBody').innerHTML = '<tr><td colspan="8" class="text-danger py-4">Failed to load subscriptions</td></tr>';
+  }
+}
+
+function updateStats() {
+  const total = subsData.length;
+  const active = subsData.filter(s => s.status === 'active').length;
+  const trial = subsData.filter(s => s.status === 'trialing').length;
+  const expired = subsData.filter(s => s.status === 'canceled' || s.status === 'expired').length;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statActive').textContent = active;
+  document.getElementById('statTrial').textContent = trial;
+  document.getElementById('statExpired').textContent = expired;
+}
+
+function renderSubs(data = subsData) {
+  const tbody = document.getElementById('subsTableBody');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-muted py-4">No subscriptions found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(s => `
+    <tr>
+      <td><code>${s.id || ''}</code></td>
+      <td>${s.email || s.user_email || ''}</td>
+      <td><span class="badge bg-${s.plan === 'pro' ? 'info' : s.plan === 'enterprise' ? 'warning' : s.plan === 'basic' ? 'success' : 'secondary'}">${s.plan || 'free'}</span></td>
+      <td><span class="badge bg-${s.status === 'active' ? 'success' : s.status === 'trialing' ? 'info' : s.status === 'expired' ? 'danger' : 'secondary'}">${s.status || 'unknown'}</span></td>
+      <td>${s.start_date ? new Date(s.start_date).toLocaleDateString() : '-'}</td>
+      <td>${s.end_date ? new Date(s.end_date).toLocaleDateString() : '-'}</td>
+      <td>${s.auto_renew ? '<span class="text-success">Yes</span>' : '<span class="text-muted">No</span>'}</td>
+      <td><button class="btn btn-sm btn-outline-secondary" onclick="editSub('${s.id}')">Edit</button></td>
+    </tr>
+  `).join('');
+}
+
+function filterTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const tier = document.getElementById('tierFilter').value;
+  const status = document.getElementById('statusFilter').value;
+  
+  const filtered = subsData.filter(s => {
+    const matchSearch = !search || (s.email || '').toLowerCase().includes(search) || (s.user_email || '').toLowerCase().includes(search);
+    const matchTier = !tier || s.plan === tier;
+    const matchStatus = !status || s.status === status;
+    return matchSearch && matchTier && matchStatus;
+  });
+  renderSubs(filtered);
+}
+
+function refreshSubs() { loadSubs(); }
+function editSub(id) { alert('Edit subscription: ' + id); }
+
+loadSubs();
+</script>
+{% endblock %}

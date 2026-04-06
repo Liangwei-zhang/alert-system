@@ -66,7 +66,7 @@ class Settings(BaseSettings):
         )
 
     project_name: str = Field(
-        default="Stock API",
+        default="StockPy API",
         validation_alias=AliasChoices("PROJECT_NAME"),
     )
     environment: str = Field(
@@ -99,7 +99,7 @@ class Settings(BaseSettings):
     )
 
     database_url: str = Field(
-        default="postgresql+asyncpg://user:password@localhost:5432/stock",
+        default="postgresql+asyncpg://user:password@localhost:5432/stock_py",
         validation_alias=AliasChoices("DATABASE_URL"),
     )
     database_pool_mode: str = Field(
@@ -363,6 +363,10 @@ class Settings(BaseSettings):
     event_relay_poll_seconds: float = Field(
         default=1.0,
         validation_alias=AliasChoices("EVENT_RELAY_POLL_SECONDS"),
+    )
+    event_outbox_max_attempts: int = Field(
+        default=3,
+        validation_alias=AliasChoices("EVENT_OUTBOX_MAX_ATTEMPTS"),
     )
     retention_worker_poll_seconds: float = Field(
         default=3600.0,

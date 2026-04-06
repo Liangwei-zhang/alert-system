@@ -1,6 +1,12 @@
-# stock-py 當前後端架構
+# stock-py 當前系統架構
 
-> 狀態（2026-04-04）：本文描述當前 Python 3.13 倉庫已落地的後端、worker 與目錄對應。容量藍圖與尚未完成的 target state 請看 `docs/python-migration/resume.md`。
+> 狀態（2026-04-06）：本文描述 `stock-py` 作為獨立主系統時，當前已落地的 API、worker、資料平面與運維邊界。`docs/python-migration/*` 僅保留為歷史遷移拆分參考，不再作為現行產品邊界定義。
+
+## 0. 系統邊界
+
+- `stock-py` 是後續獨立運行的主系統與部署單位，預設使用獨立資料庫、事件主題、analytics database 與 object storage bucket。
+- `public_api`、`admin_api`、scheduler / workers 與 `ops/*` 的 load、cutover、backup、K8s 工具鏈共同構成目前的 authoritative backend / ops baseline。
+- subscriber / admin / platform 三端 UI 已屬於 `stock-py` 產品邊界，現由 `apps/public_api/routers/ui.py` 直接輸出純 HTML 路由 `/app`、`/platform`、`/admin`。
 
 ## 1. 對外服務面
 
@@ -93,7 +99,7 @@ stock-py/
 ├── alembic/                 # schema migrations
 ├── tests/                   # unit + contract + e2e + load + targeted integration tests
 ├── ops/                     # runbooks + load/cutover report templates
-└── docs/                    # architecture + migration handbooks
+└── docs/                    # architecture + historical migration handbooks
 ```
 
 ## 3. 文件對應
@@ -107,6 +113,7 @@ stock-py/
 - apps/public_api/routers/search.py → symbol search
 - apps/public_api/routers/notifications.py → notification center
 - apps/public_api/routers/trades.py → trade info / confirm / ignore / adjust
+- apps/public_api/routers/ui.py + apps/public_api/ui_shell.py → Python-served HTML shells for subscriber / platform / admin surfaces
 - apps/public_api/routers/signal_ingest.py → internal signal ingest
 - apps/public_api/routers/tradingagents_submit.py + tradingagents_webhook.py → TradingAgents internal submit / terminal webhook
 
@@ -148,7 +155,9 @@ stock-py/
 ## 4. 當前實作說明
 
 - `public_api` 同時承接原先 subscriber 與 platform 需要的後端能力，不再按舊 `app/platform/subscriber` 目錄拆分。
+- `/app`、`/platform`、`/admin` 現在由 Python 直接輸出 HTML shell；若流量經過 nginx，三端頁面可以同 host 直連 public/admin API，否則可透過 query string 覆寫 base URL。
 - `admin_api` 目前除了 analytics 與 TradingAgents 視圖，已補上 anomalies、backtests、scanner、signal stats、operators、distribution manual-message、receipts / emails / outbox / trades claim/expire task console、runtime component list/detail 與 stats / health / metrics，以及 users / audit / acceptance 管理查詢面。
 - analytics 層目前可本地運行，但仍是文件型 facade，不是生產級 ClickHouse/Kafka 部署。
+- 倉庫目前已具備獨立 backend / worker / ops 邊界，也已把三端 UI 收回到 Python 服務本身；目前剩餘前端工作重點是功能覆蓋深度，而不是 workspace 歸屬。
 - 倉庫目前已落地 `tests/unit/*`、`tests/contract/*`、`tests/e2e/*`、`tests/load/*`，以及 `tests/integration/account/*`、`tests/integration/admin/*`、`tests/integration/analytics/*`、`tests/integration/notifications/*`、`tests/integration/trades/*`、`tests/integration/tradingagents/*` 的 targeted integration coverage。
 - `ops/runbooks/qa-cutover-checklist.md` 與 `ops/reports/load/*`、`ops/reports/cutover/*` 模板可直接用於 staging baseline 與 canary / rollback 留痕。

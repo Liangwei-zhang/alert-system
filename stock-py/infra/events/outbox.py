@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import argparse
+import asyncio
+import json
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable
@@ -8,6 +11,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infra.db.models.events import EventOutboxModel
+
+DEAD_LETTER_STATUS = "dead_letter"
 
 
 @dataclass(slots=True)
@@ -185,6 +190,18 @@ class EventOutboxRepository:
         await self.session.flush()
         return record
 
+    async def mark_dead_letter(
+        self,
+        record: EventOutboxModel,
+        *,
+        error_message: str,
+    ) -> EventOutboxModel:
+        record.status = DEAD_LETTER_STATUS
+        record.attempt_count = int(record.attempt_count or 0) + 1
+        record.last_error = error_message
+        await self.session.flush()
+        return record
+
     async def requeue(
         self,
         record: EventOutboxModel,
@@ -229,6 +246,49 @@ class EventOutboxRepository:
         )
         await self.session.flush()
         return len(record_ids)
+
+    async def list_dead_letter(
+        self,
+        *,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[EventOutboxModel]:
+        result = await self.session.execute(
+            select(EventOutboxModel)
+            .where(EventOutboxModel.status == DEAD_LETTER_STATUS)
+            .order_by(EventOutboxModel.created_at.asc(), EventOutboxModel.id.asc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return list(result.scalars().all())
+
+    async def replay_dead_letter(
+        self,
+        *,
+        limit: int = 100,
+        record_ids: Iterable[str] | None = None,
+    ) -> list[EventOutboxModel]:
+        normalized_ids = [
+            str(record_id).strip() for record_id in (record_ids or []) if str(record_id).strip()
+        ]
+        statement = (
+            select(EventOutboxModel)
+            .where(EventOutboxModel.status == DEAD_LETTER_STATUS)
+            .order_by(EventOutboxModel.created_at.asc(), EventOutboxModel.id.asc())
+            .with_for_update(skip_locked=True)
+        )
+        if normalized_ids:
+            statement = statement.where(EventOutboxModel.id.in_(normalized_ids))
+        else:
+            statement = statement.limit(limit)
+
+        result = await self.session.execute(statement)
+        records = list(result.scalars().all())
+        for record in records:
+            record.status = "pending"
+            record.last_error = None
+        await self.session.flush()
+        return records
 
     async def _load_audit_events(self, *, status: str | None = None) -> list[EventOutboxModel]:
         statement = select(EventOutboxModel).where(EventOutboxModel.topic == "ops.audit.logged")
@@ -283,3 +343,73 @@ def event_from_record(record: EventOutboxModel) -> OutboxEvent:
 def pop_pending_events(session: AsyncSession) -> list[OutboxEvent]:
     del session
     return []
+
+
+async def _run_cli(args: argparse.Namespace) -> int:
+    from infra.db.session import get_session_factory
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        repository = EventOutboxRepository(session)
+
+        if args.subcommand == "stats":
+            payload = {
+                "pending": await repository.count_runtime_records(status="pending"),
+                "published": await repository.count_runtime_records(status="published"),
+                "dead_letter": await repository.count_runtime_records(status=DEAD_LETTER_STATUS),
+                "retried_pending": await repository.count_runtime_records(
+                    status="pending",
+                    retried_only=True,
+                ),
+            }
+            if args.format == "json":
+                print(json.dumps(payload, indent=2, sort_keys=True))
+            else:
+                for key, value in payload.items():
+                    print(f"{key}={value}")
+            return 0
+
+        record_ids = None
+        if args.ids:
+            record_ids = [item.strip() for item in args.ids.split(",") if item.strip()]
+        records = await repository.replay_dead_letter(limit=args.limit, record_ids=record_ids)
+        await session.commit()
+        payload = {
+            "replayed": len(records),
+            "record_ids": [str(record.id) for record in records],
+        }
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Inspect and replay event outbox dead-letter records."
+    )
+    subparsers = parser.add_subparsers(dest="subcommand", required=True)
+
+    stats_parser = subparsers.add_parser("stats", help="Print event outbox runtime counters.")
+    stats_parser.add_argument("--format", choices=("json", "env"), default="json")
+
+    replay_parser = subparsers.add_parser(
+        "replay-dead-letter",
+        help="Move dead-lettered records back to pending for replay.",
+    )
+    replay_parser.add_argument("--limit", type=int, default=100)
+    replay_parser.add_argument(
+        "--ids",
+        default="",
+        help="Comma-separated event_outbox ids to replay. When omitted, replays the oldest dead-letter records up to --limit.",
+    )
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    return asyncio.run(_run_cli(args))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

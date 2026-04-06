@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -45,8 +46,18 @@ def build_database_url(settings: Settings) -> str:
 
     parsed = urlparse(database_url)
     query_params = dict(parse_qsl(parsed.query, keep_blank_values=True))
-    query_params.setdefault("prepared_statement_cache_size", "0")
+    query_params["prepared_statement_cache_size"] = "0"
+    query_params.pop("statement_cache_size", None)
     return urlunparse(parsed._replace(query=urlencode(query_params)))
+
+
+def build_connect_args(settings: Settings) -> dict[str, object]:
+    if settings.database_pool_mode != "pgbouncer":
+        return {}
+    return {
+        "statement_cache_size": 0,
+        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4()}__",
+    }
 
 
 def build_engine(settings: Settings | None = None) -> AsyncEngine:
@@ -62,9 +73,11 @@ def build_engine(settings: Settings | None = None) -> AsyncEngine:
     }
 
     database_url = build_database_url(app_settings)
+    connect_args = build_connect_args(app_settings)
 
     if app_settings.database_pool_mode == "pgbouncer":
         engine_kwargs["poolclass"] = NullPool
+        engine_kwargs["connect_args"] = connect_args
     elif not database_url.startswith("sqlite"):
         engine_kwargs["pool_size"] = 20
         engine_kwargs["max_overflow"] = 40

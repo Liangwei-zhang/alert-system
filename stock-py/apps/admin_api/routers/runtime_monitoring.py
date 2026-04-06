@@ -327,6 +327,23 @@ async def _collect_platform_operational_metrics() -> list[RuntimeMetricPointResp
     ]
 
 
+async def collect_runtime_metrics_payload(
+    *,
+    component_kind: str | None,
+    db: AsyncSession,
+) -> RuntimeMetricsResponse:
+    components = await list_runtime_components(component_kind=component_kind)
+    operational_metrics = await _collect_runtime_operational_metrics(
+        component_kind=component_kind,
+        db=db,
+    )
+    platform_metrics = await _collect_platform_operational_metrics()
+    return _build_runtime_metrics_payload(
+        components,
+        operational_metrics=[*operational_metrics, *platform_metrics],
+    )
+
+
 async def _collect_runtime_alerts() -> list[RuntimeAlertResponse]:
     service = PlatformRuntimeMetricsService()
     return [
@@ -405,15 +422,9 @@ async def get_runtime_metrics(
     ),
     db: AsyncSession = Depends(get_db_session),
 ) -> RuntimeMetricsResponse:
-    components = await list_runtime_components(component_kind=component_kind)
-    operational_metrics = await _collect_runtime_operational_metrics(
+    return await collect_runtime_metrics_payload(
         component_kind=component_kind,
         db=db,
-    )
-    platform_metrics = await _collect_platform_operational_metrics()
-    return _build_runtime_metrics_payload(
-        components,
-        operational_metrics=[*operational_metrics, *platform_metrics],
     )
 
 

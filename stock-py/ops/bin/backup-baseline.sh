@@ -6,10 +6,13 @@ COMPOSE_FILE="$ROOT_DIR/ops/docker-compose.yml"
 SECRET_DIR="${OPS_SECRET_DIR:-$ROOT_DIR/ops/secrets/dev}"
 BACKUP_RUN_ID="${BACKUP_RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
 BACKUP_DIR="${BACKUP_DIR:-$ROOT_DIR/.local/backups/$BACKUP_RUN_ID}"
+POSTGRES_DB_NAME="${POSTGRES_DB_NAME:-stock_py}"
+POSTGRES_USER_NAME="${POSTGRES_USER_NAME:-stock_py}"
+POSTGRES_DUMP_NAME="${POSTGRES_DUMP_NAME:-stock_py.dump}"
 
 mkdir -p "$BACKUP_DIR/postgres" "$BACKUP_DIR/minio"
 
-docker compose -f "$COMPOSE_FILE" exec -T postgres pg_dump -U stock -d stock -Fc > "$BACKUP_DIR/postgres/stock.dump"
+docker compose -f "$COMPOSE_FILE" exec -T postgres pg_dump -U "$POSTGRES_USER_NAME" -d "$POSTGRES_DB_NAME" -Fc > "$BACKUP_DIR/postgres/$POSTGRES_DUMP_NAME"
 
 OPS_SECRET_DIR="$SECRET_DIR" OPS_BACKUP_DIR="$BACKUP_DIR/minio" docker compose -f "$COMPOSE_FILE" --profile ops run --rm mc /bin/sh -ec '
 MINIO_USER=$(cat /run/secrets/minio_root_user)

@@ -8,9 +8,9 @@ from infra.observability.external_operation_metrics import ExternalOperationSnap
 class PlatformRuntimeMetricsServiceTest(unittest.IsolatedAsyncioTestCase):
     async def test_collect_metric_points_emits_platform_capacity_and_failure_metrics(self) -> None:
         settings = Settings(
-            database_url="postgresql+asyncpg://stock:stock@pgbouncer:6432/stock",
+            database_url="postgresql+asyncpg://stock_py:stock_py@pgbouncer:6432/stock_py",
             database_pool_mode="pgbouncer",
-            pgbouncer_admin_url="postgresql://stock:stock@pgbouncer:6432/pgbouncer",
+            pgbouncer_admin_url="postgresql://stock_py:stock_py@pgbouncer:6432/pgbouncer",
             analytics_backend="clickhouse",
             object_storage_backend="s3",
             runtime_metrics_window_minutes=15,
@@ -30,10 +30,10 @@ class PlatformRuntimeMetricsServiceTest(unittest.IsolatedAsyncioTestCase):
             }
 
         async def pgbouncer_stats_provider(admin_dsn: str) -> dict[str, object]:
-            self.assertEqual(admin_dsn, "postgresql://stock:stock@pgbouncer:6432/pgbouncer")
+            self.assertEqual(admin_dsn, "postgresql://stock_py:stock_py@pgbouncer:6432/pgbouncer")
             return {
                 "available": True,
-                "database": "stock",
+                "database": "stock_py",
                 "cl_active": 9,
                 "cl_waiting": 2,
                 "sv_active": 4,
@@ -41,7 +41,7 @@ class PlatformRuntimeMetricsServiceTest(unittest.IsolatedAsyncioTestCase):
             }
 
         async def clickhouse_ping_provider() -> dict[str, object]:
-            return {"backend": "clickhouse", "database": "stock"}
+            return {"backend": "clickhouse", "database": "stock_py"}
 
         async def object_storage_ping_provider() -> dict[str, object]:
             return {"backend": "s3", "bucket": "stock-py"}
@@ -99,7 +99,7 @@ class PlatformRuntimeMetricsServiceTest(unittest.IsolatedAsyncioTestCase):
             27.0,
         )
         self.assertEqual(
-            metric_index[("pgbouncer_clients_waiting", (("database", "stock"),))],
+            metric_index[("pgbouncer_clients_waiting", (("database", "stock_py"),))],
             2.0,
         )
         self.assertEqual(metric_index[("clickhouse_available", ())], 1.0)
@@ -125,9 +125,9 @@ class PlatformRuntimeMetricsServiceTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_collect_alerts_surfaces_capacity_and_error_conditions(self) -> None:
         settings = Settings(
-            database_url="postgresql+asyncpg://stock:stock@pgbouncer:6432/stock",
+            database_url="postgresql+asyncpg://stock_py:stock_py@pgbouncer:6432/stock_py",
             database_pool_mode="pgbouncer",
-            pgbouncer_admin_url="postgresql://stock:stock@pgbouncer:6432/pgbouncer",
+            pgbouncer_admin_url="postgresql://stock_py:stock_py@pgbouncer:6432/pgbouncer",
             analytics_backend="clickhouse",
             object_storage_backend="s3",
             runtime_alert_broker_lag_threshold=100,
@@ -153,7 +153,7 @@ class PlatformRuntimeMetricsServiceTest(unittest.IsolatedAsyncioTestCase):
         async def pgbouncer_stats_provider(_admin_dsn: str) -> dict[str, object]:
             return {
                 "available": True,
-                "database": "stock",
+                "database": "stock_py",
                 "cl_active": 12,
                 "cl_waiting": 7,
                 "sv_active": 5,

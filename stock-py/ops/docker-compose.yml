@@ -3,7 +3,7 @@ name: stock-py
 x-app-environment: &app-environment
   ENVIRONMENT: production
   DEBUG: "false"
-  PROJECT_NAME: Stock API
+  PROJECT_NAME: StockPy API
   DATABASE_URL_FILE: /run/secrets/app_database_url
   DATABASE_POOL_MODE: pgbouncer
   PGBOUNCER_ADMIN_URL_FILE: /run/secrets/pgbouncer_admin_url
@@ -12,6 +12,7 @@ x-app-environment: &app-environment
   EVENT_BROKER_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
   EVENT_BROKER_KAFKA_TOPIC: ${KAFKA_TOPIC_NAME:-stock-py.events}
   EVENT_BROKER_KAFKA_AUTO_OFFSET_RESET: earliest
+  EVENT_OUTBOX_MAX_ATTEMPTS: ${EVENT_OUTBOX_MAX_ATTEMPTS:-3}
   OBJECT_STORAGE_BACKEND: s3
   OBJECT_STORAGE_BUCKET: stock-py
   OBJECT_STORAGE_PREFIX: runtime
@@ -23,12 +24,13 @@ x-app-environment: &app-environment
   ANALYTICS_BACKEND: clickhouse
   CLICKHOUSE_HOST: clickhouse
   CLICKHOUSE_PORT: "8123"
-  CLICKHOUSE_DATABASE: stock
-  CLICKHOUSE_USERNAME: ${CLICKHOUSE_USERNAME:-stock}
-  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-stock-clickhouse}
+  CLICKHOUSE_DATABASE: stock_py
+  CLICKHOUSE_USERNAME: ${CLICKHOUSE_USERNAME:-stock_py}
+  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-stockpy-clickhouse}
   CLICKHOUSE_TABLE_TTL_DAYS: ${CLICKHOUSE_TABLE_TTL_DAYS:-180}
   SECRET_KEY_FILE: /run/secrets/app_secret_key
   TRADE_LINK_SECRET_FILE: /run/secrets/trade_link_secret
+  INTERNAL_SIDECAR_SECRET: ${INTERNAL_SIDECAR_SECRET:-stock-py-internal-monitoring}
   RUNTIME_METRICS_WINDOW_MINUTES: ${RUNTIME_METRICS_WINDOW_MINUTES:-15}
   RUNTIME_ALERT_BROKER_LAG_THRESHOLD: ${RUNTIME_ALERT_BROKER_LAG_THRESHOLD:-200}
   RUNTIME_ALERT_PGBOUNCER_WAITING_CLIENTS_THRESHOLD: ${RUNTIME_ALERT_PGBOUNCER_WAITING_CLIENTS_THRESHOLD:-10}
@@ -90,15 +92,15 @@ services:
     restart: unless-stopped
     stop_grace_period: 60s
     environment:
-      POSTGRES_DB: stock
-      POSTGRES_USER: stock
+      POSTGRES_DB: stock_py
+      POSTGRES_USER: stock_py
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
     secrets:
       - postgres_password
     ports:
       - "${POSTGRES_HOST_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U stock -d stock"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U stock_py -d stock_py"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -148,10 +150,10 @@ services:
     environment:
       PGBOUNCER_DB_HOST: postgres
       PGBOUNCER_DB_PORT: "5432"
-      PGBOUNCER_DB_NAME: stock
-      PGBOUNCER_DB_USER: stock
+      PGBOUNCER_DB_NAME: stock_py
+      PGBOUNCER_DB_USER: stock_py
       PGBOUNCER_DB_PASSWORD_FILE: /run/secrets/postgres_password
-      PGBOUNCER_ADMIN_USERS: stock
+      PGBOUNCER_ADMIN_USERS: stock_py
     secrets:
       - postgres_password
     depends_on:
@@ -160,7 +162,7 @@ services:
     ports:
       - "${PGBOUNCER_HOST_PORT:-6432}:6432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U stock -d stock"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U stock_py -d stock_py"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -216,9 +218,9 @@ services:
     restart: unless-stopped
     stop_grace_period: 30s
     environment:
-      CLICKHOUSE_DB: stock
-      CLICKHOUSE_USER: ${CLICKHOUSE_USERNAME:-stock}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-stock-clickhouse}
+      CLICKHOUSE_DB: stock_py
+      CLICKHOUSE_USER: ${CLICKHOUSE_USERNAME:-stock_py}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-stockpy-clickhouse}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     ports:
       - "${CLICKHOUSE_HTTP_HOST_PORT:-8123}:8123"

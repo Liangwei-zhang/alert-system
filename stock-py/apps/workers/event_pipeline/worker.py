@@ -28,6 +28,7 @@ class EventOutboxRelayWorker:
     ) -> None:
         settings = get_settings()
         self.batch_size = batch_size or settings.event_broker_batch_size
+        self.max_attempts = max(int(settings.event_outbox_max_attempts), 1)
         self.broker = broker or get_event_broker()
         self.repository_factory = repository_factory
         self.session_factory = session_factory
@@ -47,7 +48,7 @@ class EventOutboxRelayWorker:
 
     async def run_once(self) -> dict[str, int]:
         session = await self.open_session()
-        stats = {"claimed": 0, "published": 0, "failed": 0}
+        stats = {"claimed": 0, "published": 0, "failed": 0, "dead_lettered": 0}
         try:
             repository = self.build_repository(session)
             records = await repository.claim_pending(limit=self.batch_size)
@@ -56,10 +57,19 @@ class EventOutboxRelayWorker:
                 try:
                     broker_message_id = await self.broker.publish(event_from_record(record))
                 except Exception as exc:
-                    await repository.requeue(record, error_message=str(exc))
+                    next_attempt = int(getattr(record, "attempt_count", 0) or 0) + 1
+                    if next_attempt >= self.max_attempts:
+                        await repository.mark_dead_letter(record, error_message=str(exc))
+                        stats["dead_lettered"] += 1
+                    else:
+                        await repository.requeue(record, error_message=str(exc))
                     stats["failed"] += 1
                     logger.exception(
-                        "Failed publishing event_outbox id=%s topic=%s", record.id, record.topic
+                        "Failed publishing event_outbox id=%s topic=%s attempt=%s/%s",
+                        record.id,
+                        record.topic,
+                        next_attempt,
+                        self.max_attempts,
                     )
                     continue
                 await repository.mark_published(record, broker_message_id=broker_message_id)

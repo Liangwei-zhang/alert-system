@@ -89,6 +89,10 @@ class RuntimeOperationalMetricsService:
                 self.event_outbox_repository.count_runtime_records(status="published"),
             ),
             (
+                ("event_outbox_records_total", "status", "dead_letter"),
+                self.event_outbox_repository.count_runtime_records(status="dead_letter"),
+            ),
+            (
                 "event_outbox_retried_total",
                 self.event_outbox_repository.count_runtime_records(
                     status="pending",

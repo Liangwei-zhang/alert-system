@@ -1,0 +1,8 @@
+{
+  "kustomize_path": "/home/nico/.openclaw/workspace-main/stock-py/ops/k8s/overlays/production",
+  "render_image": "bitnami/kubectl@sha256:f6dd048d1c14d89ede9636cd6bee0ff0238579c33ea1e51b2fb1a1cfd62ea246",
+  "validation_image": "ghcr.io/yannh/kubeconform@sha256:85dbef6b4b312b99133decc9c6fc9495e9fc5f92293d4ff3b7e1b30f5611823c",
+  "rendered_manifest": "/home/nico/.openclaw/workspace-main/stock-py/ops/reports/k8s/production-overlay-validation/rendered.yaml",
+  "validation_log": "/home/nico/.openclaw/workspace-main/stock-py/ops/reports/k8s/production-overlay-validation/validation.txt",
+  "resource_kinds": "/home/nico/.openclaw/workspace-main/stock-py/ops/reports/k8s/production-overlay-validation/resource-kinds.txt"
+}

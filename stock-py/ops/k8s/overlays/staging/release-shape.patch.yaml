@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stock-py-runtime
+data:
+  ENVIRONMENT: staging
+  REDIS_URL: redis://redis.staging.platform.svc.cluster.local:6379/0
+  EVENT_BROKER_KAFKA_BOOTSTRAP_SERVERS: kafka.staging.platform.svc.cluster.local:9092
+  CLICKHOUSE_HOST: clickhouse.staging.platform.svc.cluster.local
+  OBJECT_STORAGE_ENDPOINT_URL: https://s3.staging.example.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: public-api
+spec:
+  replicas: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-api
+spec:
+  replicas: 1
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: public-api
+spec:
+  minReplicas: 1
+  maxReplicas: 3
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: admin-api
+spec:
+  minReplicas: 1
+  maxReplicas: 2
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stock-py
+spec:
+  rules:
+    - host: stock-py-staging.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: public-api
+                port:
+                  number: 8000
+          - path: /v1/admin
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-api
+                port:
+                  number: 8001

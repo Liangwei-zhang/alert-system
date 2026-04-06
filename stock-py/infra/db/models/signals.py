@@ -3,12 +3,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlalchemy import Boolean, DateTime
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import Float, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from infra.db.models.base import Base
+from infra.db.models.base import Base, sql_enum
 
 
 def utcnow() -> datetime:
@@ -43,9 +41,12 @@ class SignalModel(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     stock_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     symbol: Mapped[str] = mapped_column(String(20), index=True)
-    signal_type: Mapped[SignalType] = mapped_column(SQLEnum(SignalType), index=True)
+    signal_type: Mapped[SignalType] = mapped_column(
+        sql_enum(SignalType, name="signaltype"),
+        index=True,
+    )
     status: Mapped[SignalStatus] = mapped_column(
-        SQLEnum(SignalStatus),
+        sql_enum(SignalStatus, name="signalstatus"),
         default=SignalStatus.PENDING,
         server_default=SignalStatus.PENDING.value,
         index=True,
@@ -62,7 +63,7 @@ class SignalModel(Base):
     chooch_validated: Mapped[bool] = mapped_column(Boolean, default=False)
     fvg_validated: Mapped[bool] = mapped_column(Boolean, default=False)
     validation_status: Mapped[SignalValidation] = mapped_column(
-        SQLEnum(SignalValidation),
+        sql_enum(SignalValidation, name="signalvalidation"),
         default=SignalValidation.SFP,
         server_default=SignalValidation.SFP.value,
     )

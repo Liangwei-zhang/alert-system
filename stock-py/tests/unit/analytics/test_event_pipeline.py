@@ -26,13 +26,21 @@ class FakeBroker:
 
 
 class FakeRecord:
-    def __init__(self, record_id: str, topic: str, payload: dict) -> None:
+    def __init__(
+        self,
+        record_id: str,
+        topic: str,
+        payload: dict,
+        *,
+        attempt_count: int = 0,
+    ) -> None:
         self.id = record_id
         self.topic = topic
         self.event_key = None
         self.payload = payload
         self.headers = {}
         self.occurred_at = datetime.now(UTC)
+        self.attempt_count = attempt_count
 
 
 class FakeOutboxRepository:
@@ -40,6 +48,7 @@ class FakeOutboxRepository:
         self.records = list(records)
         self.published = []
         self.requeued = []
+        self.dead_lettered = []
 
     async def claim_pending(self, limit: int = 100):
         del limit
@@ -50,6 +59,9 @@ class FakeOutboxRepository:
 
     async def requeue(self, record, *, error_message: str):
         self.requeued.append((record.id, error_message))
+
+    async def mark_dead_letter(self, record, *, error_message: str):
+        self.dead_lettered.append((record.id, error_message))
 
 
 class FakeSession:
@@ -71,10 +83,17 @@ class FakeBrokerMessage:
 
 
 class StubEventOutboxRelayWorker(EventOutboxRelayWorker):
-    def __init__(self, *, repository: FakeOutboxRepository, broker: FakeBroker) -> None:
+    def __init__(
+        self,
+        *,
+        repository: FakeOutboxRepository,
+        broker: FakeBroker,
+        max_attempts: int = 3,
+    ) -> None:
         super().__init__(broker=broker)
         self.repository = repository
         self.session = FakeSession()
+        self.max_attempts = max_attempts
 
     async def open_session(self):
         return self.session
@@ -97,13 +116,45 @@ class EventPipelineWorkerTest(unittest.IsolatedAsyncioTestCase):
 
         result = await worker.run_once()
 
-        self.assertEqual(result, {"claimed": 2, "published": 2, "failed": 0})
+        self.assertEqual(result, {"claimed": 2, "published": 2, "failed": 0, "dead_lettered": 0})
         self.assertEqual(
             [event.topic for event in broker.published],
             ["signal.generated", "notification.requested"],
         )
         self.assertEqual(repository.published, [("evt-1", "msg-1"), ("evt-2", "msg-2")])
         self.assertEqual(repository.requeued, [])
+        self.assertEqual(repository.dead_lettered, [])
+        self.assertTrue(worker.session.committed)
+        self.assertTrue(worker.session.closed)
+
+    async def test_outbox_relay_worker_dead_letters_records_after_last_attempt(self) -> None:
+        repository = FakeOutboxRepository(
+            [
+                FakeRecord(
+                    "evt-1",
+                    "signal.generated",
+                    {"symbol": "AAPL"},
+                    attempt_count=2,
+                )
+            ]
+        )
+
+        class FailingBroker(FakeBroker):
+            async def publish(self, event: OutboxEvent) -> str:
+                del event
+                raise RuntimeError("broker unavailable")
+
+        worker = StubEventOutboxRelayWorker(
+            repository=repository,
+            broker=FailingBroker(),
+            max_attempts=3,
+        )
+
+        result = await worker.run_once()
+
+        self.assertEqual(result, {"claimed": 1, "published": 0, "failed": 1, "dead_lettered": 1})
+        self.assertEqual(repository.requeued, [])
+        self.assertEqual(repository.dead_lettered, [("evt-1", "broker unavailable")])
         self.assertTrue(worker.session.committed)
         self.assertTrue(worker.session.closed)
 

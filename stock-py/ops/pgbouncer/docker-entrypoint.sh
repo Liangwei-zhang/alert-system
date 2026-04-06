@@ -3,9 +3,9 @@ set -eu
 
 : "${PGBOUNCER_DB_HOST:=postgres}"
 : "${PGBOUNCER_DB_PORT:=5432}"
-: "${PGBOUNCER_DB_NAME:=stock}"
-: "${PGBOUNCER_DB_USER:=stock}"
-: "${PGBOUNCER_ADMIN_USERS:=stock}"
+: "${PGBOUNCER_DB_NAME:=stock_py}"
+: "${PGBOUNCER_DB_USER:=stock_py}"
+: "${PGBOUNCER_ADMIN_USERS:=stock_py}"
 
 if [ -n "${PGBOUNCER_DB_PASSWORD_FILE:-}" ]; then
   export PGBOUNCER_DB_PASSWORD="$(cat "$PGBOUNCER_DB_PASSWORD_FILE")"

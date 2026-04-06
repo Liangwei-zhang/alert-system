@@ -25,6 +25,33 @@
         ]
       }
     },
+    "/api/monitoring/metrics": {
+      "get": {
+        "operationId": "get_monitoring_metrics_api_monitoring_metrics_get",
+        "summary": "Get Monitoring Metrics",
+        "tags": [
+          "monitoring"
+        ]
+      }
+    },
+    "/api/monitoring/reset": {
+      "post": {
+        "operationId": "reset_monitoring_metrics_api_monitoring_reset_post",
+        "summary": "Reset Monitoring Metrics",
+        "tags": [
+          "monitoring"
+        ]
+      }
+    },
+    "/api/monitoring/stats": {
+      "get": {
+        "operationId": "get_monitoring_stats_api_monitoring_stats_get",
+        "summary": "Get Monitoring Stats",
+        "tags": [
+          "monitoring"
+        ]
+      }
+    },
     "/api/telegram": {
       "post": {
         "operationId": "relay_telegram_message_api_telegram_post",
@@ -409,6 +436,6 @@
       }
     }
   },
-  "title": "Stock API Public API",
+  "title": "StockPy API Public API",
   "version": "1.0.0"
 }

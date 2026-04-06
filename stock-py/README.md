@@ -1,6 +1,12 @@
 # stock-py
 
-股票訂閱與預警系統 - Python 重構版
+股票訂閱與預警系統 - 獨立 Python 主系統
+
+## 系統定位
+
+- `stock-py` 是後續獨立運行的主系統，資料、部署與運維邊界以本倉庫為準。
+- 預設基線使用獨立 PostgreSQL / Redis / ClickHouse / object storage 命名，不再沿用舊 `stock` 的默認資料庫識別。
+- subscriber / admin / platform 三端 UI 屬於 `stock-py` 正式產品範圍，現在由 Python 直接提供 `/app`、`/platform`、`/admin` 三個純 HTML 入口，不再依賴舊 `stock` 倉庫或 Node build pipeline。
 
 ## 三端架構
 
@@ -47,6 +53,7 @@
 - **API**: `apps/public_api/main.py`、`apps/admin_api/main.py`
 - **排程**: `apps/scheduler/main.py`
 - **Workers**: `apps/workers/*`
+- **HTML UI routes**: `apps/public_api/routers/ui.py`（`/app`、`/platform`、`/admin` 三端純 HTML 入口）
 
 ## 安裝
 
@@ -76,7 +83,32 @@ make migrate
 make format
 make test
 make run-public-api
+make run-admin-api
 ```
+
+## 純 HTML UI 路由
+
+`stock-py` 現在直接由 Python 提供三端 HTML shell，不需要 `npm install` 或前端編譯步驟。
+
+```bash
+make run-public-api
+make run-admin-api
+```
+
+如果你是走 compose / nginx，直接開同一個 host：
+
+- `/app`：subscriber 登入、資產、通知、watchlist / portfolio intake
+- `/platform`：symbol search、trade lookup、研究台入口
+- `/admin`：analytics、acceptance、runtime 指標與告警
+
+如果你直接開 public API 而不是經過 nginx，也可以在 query string 預先指定 API base URL：
+
+```bash
+http://localhost:8000/app?admin_api_base_url=http://localhost:8001
+http://localhost:8000/admin?admin_api_base_url=http://localhost:8001
+```
+
+`/admin` 目前仍需要手動貼上 admin bearer token，因為後端還沒有獨立的 admin login route。
 
 ## QA 驗證
 
@@ -109,10 +141,17 @@ LOAD_TEST_REFRESH_TOKEN=... \
 LOAD_TEST_TRADE_ID=trade-123 \
 LOAD_TEST_TRADE_TOKEN=token-123 \
 make load-baseline
+
+# baseline 完成後補抓 health / metrics evidence bundle
+LOAD_TEST_HOST=https://staging.example.com \
+LOAD_PUBLIC_METRICS_TOKEN=internal-monitoring-bearer \
+make load-report-capture
 ```
 
 `make load-baseline` 會先檢查必要環境變量，缺少 baseline 參數時直接失敗，不會默默跳過主要 scenario。
 `make load-report-init` 會先在 `ops/reports/load/<UTC timestamp>/baseline-summary.md` 建立預填 metadata 的 summary stub；如果該次 run 已有人手工補充內容，這個命令不會覆蓋既有檔案。
+`make load-bootstrap-fixtures` 會在本地 compose stack 上自動建立 disposable user session、admin runtime token 與 trade fixture，並把結果寫到 `ops/reports/load/<UTC timestamp>/fixtures.env`；`make ops-compose-load-baseline` 已經會自動串這一步。
+如果 metrics scrape 走受保護的 `/api/monitoring/metrics`，`make load-report-capture` 也需要帶 `LOAD_PUBLIC_METRICS_TOKEN`；`make ops-compose-load-baseline` 會自動替本地 compose baseline 注入對應的 monitoring secret。
 
 建立 cutover rehearsal 記錄可以用：
 
@@ -131,6 +170,24 @@ make cutover-openapi-diff
 
 這會建立 `ops/reports/cutover/<UTC timestamp>/canary-rollback-rehearsal.md`，並順手建立 `screenshots/` 與 `logs/` 目錄。
 `make cutover-openapi-diff` 會在同一個 cutover 目錄下建立 `openapi/`，寫出目前的 public/admin manifest，以及 `openapi-diff.md` 摘要；如果你手邊有上一版 release artifact，也可以把 `OPENAPI_BASELINE_DIR` 指向那個目錄，而不是使用 repo 內的 contract snapshot。
+
+如果要把 public health、admin runtime metrics / alerts 一起沉澱到同一份 cutover evidence bundle，可以再跑：
+
+```bash
+STACK_PUBLIC_HEALTH_URL=https://staging.example.com/health \
+ADMIN_RUNTIME_URL=https://admin.example.com \
+ADMIN_RUNTIME_TOKEN=... \
+make cutover-evidence-capture
+```
+
+如果要把 admin runtime metrics 進一步轉成一份可審核的 threshold 建議 env，可以再跑：
+
+```bash
+CUTOVER_REPORT_DIR=ops/reports/cutover/<UTC timestamp> \
+make cutover-threshold-calibrate
+```
+
+`make ops-compose-cutover-rehearsal` 現在會自動完成 fixture/bootstrap、OpenAPI diff、evidence capture、threshold 建議輸出，以及 K8s baseline 的離線 render/schema validation。
 
 GitHub Actions 現在會在 Python 3.13 上先跑 `make lint`，再跑 `make qa-ci`。
 
@@ -155,9 +212,12 @@ LOAD_REPORT_PREFIX=ops/reports/load/staging-smoke/baseline make load-baseline
 
 ## 已遷移的新架構切面
 
+- `apps/public_api/routers/ui.py` + `apps/public_api/ui_shell.py`: 由 FastAPI 直接輸出 `/app`、`/platform`、`/admin` 純 HTML 介面，透過瀏覽器直連 public/admin API
 - `apps/scheduler/main.py`: APScheduler 任務註冊中心，負責 heartbeat、event relay/dispatch、TradingAgents polling、market-data、scanner、retention、push/email dispatch、receipt escalation、backtest、cold storage 等週期任務
 - `apps/public_api/routers/sidecars.py`: 補上 `/api/yahoo/{symbol}`、`/api/binance/{symbol}`、`/alerts`、`/api/telegram` sidecar surface，並以 internal sidecar secret 保護內部代理 / relay / bridge 路由
+- `apps/public_api/routers/monitoring.py`: 補上 legacy `/api/monitoring/stats`、`/api/monitoring/metrics`、`/api/monitoring/reset` 兼容路由，支援 bearer 或 internal sidecar secret 鑑權
 - `apps/workers/event_pipeline/worker.py`: 將 transaction 內持久化的 `event_outbox` relay 到可切換的 Redis Streams / Kafka broker，並由 dispatcher worker 觸發既有 subscriber 鏈路
+- `infra/events/outbox.py`: 補上 dead-letter / replay repository 與 CLI，支援 `python -m infra.events.outbox stats`、`python -m infra.events.outbox replay-dead-letter`
 - `apps/admin_api/routers/analytics.py`: 管理端 analytics read-model API，提供 overview、distribution、strategy health、TradingAgents 指標
 - `apps/workers/analytics_sink/worker.py`: analytics sink subscriber 實作，透過 event-pipeline dispatcher 觸發下沉到 analytics storage
 - `apps/workers/cold_storage/worker.py`: 將過舊 analytics partition 匯出到 object storage
@@ -199,6 +259,9 @@ docker compose -f ops/docker-compose.yml up -d --build
 - ClickHouse table TTL 與 MinIO archive lifecycle
 - batch job 與 always-on service 分層
 - 基於真實 data plane 的 load / cutover / backup / restore 腳本入口
+- 本地 fixture bootstrap、runtime threshold calibration、K8s manifest 離線 render/schema validation 工具鏈
+- `ops/ecosystem.config.js` 與 `ops/postgresql.conf.tuning` 這類 VM 補充文件
+- `ops/k8s/base/` 下可評審且已附 batch CronJob 拓撲與離線 validation 的 K8s / HPA / Prometheus / Grafana baseline
 
 常用入口：
 
@@ -212,6 +275,8 @@ make ops-restore-baseline BACKUP_DIR=.local/backups/<UTC timestamp>
 目前 compose 也為 Redis 補上了明確的容量策略，預設採 `volatile-ttl` 而不是 `allkeys-lru`，因為這個倉庫會把 Redis 同時用在快取、runtime registry、分散式 lock 與 broker 配套協調鍵；全域 LRU 會對事件與協調鍵帶來不必要的風險。
 
 Admin runtime 監控除了 component health 之外，現在也會輸出 broker lag、PgBouncer waiting clients、Redis 記憶體水位、ClickHouse 寫入失敗率、object storage archive 失敗率，並提供 `/v1/admin/runtime/alerts` 作為告警出口。
+
+Public API 也補回了 legacy `/api/monitoring/*` 相容面，並且 `GET /metrics?format=prometheus` / `GET /api/monitoring/metrics` 都可以輸出 Prometheus text format。
 
 詳細說明見 `ops/README.md`。
 
@@ -228,7 +293,7 @@ stock-py/
 ├── infra/                   # 基礎設施層: db、events、security、analytics
 ├── alembic/                 # DB migration
 ├── tests/                   # unit / contract / e2e / load
-└── docs/                    # 設計與遷移文檔
+└── docs/                    # 設計與歷史遷移文檔
 ```
 
 ## License

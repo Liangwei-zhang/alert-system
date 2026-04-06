@@ -3,12 +3,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlalchemy import DateTime
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import Float, Integer, String, Text, func
+from sqlalchemy import DateTime, Float, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from infra.db.models.base import Base
+from infra.db.models.base import Base, sql_enum
 
 
 def utcnow() -> datetime:
@@ -31,7 +29,7 @@ class BacktestRunModel(Base):
     timeframe: Mapped[str] = mapped_column(String(16), default="1d", index=True)
     window_days: Mapped[int] = mapped_column(Integer, default=0, index=True)
     status: Mapped[BacktestRunStatus] = mapped_column(
-        SQLEnum(BacktestRunStatus),
+        sql_enum(BacktestRunStatus, name="backtestrunstatus"),
         default=BacktestRunStatus.PENDING,
         server_default=BacktestRunStatus.PENDING.value,
         index=True,

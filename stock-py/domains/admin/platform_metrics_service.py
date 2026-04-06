@@ -67,6 +67,9 @@ class PlatformRuntimeMetricsService:
             operation_snapshot_provider or get_external_operation_snapshot
         )
 
+    def _resolve_primary_database_name(self) -> str:
+        return urlparse(build_database_url(self.settings)).path.lstrip("/") or "stock_py"
+
     async def collect_metric_points(self) -> list[RuntimeOperationalMetricPoint]:
         snapshots = await self._collect_snapshots()
         metrics: list[RuntimeOperationalMetricPoint] = []
@@ -456,7 +459,11 @@ class PlatformRuntimeMetricsService:
                 else await self._default_pgbouncer_stats_provider(admin_dsn)
             )
         except Exception as exc:
-            return {"available": False, "error": _format_error(exc), "database": "stock"}
+            return {
+                "available": False,
+                "error": _format_error(exc),
+                "database": self._resolve_primary_database_name(),
+            }
 
     async def _load_clickhouse_snapshot(self) -> dict[str, object] | None:
         if self.settings.analytics_backend != "clickhouse":
@@ -581,7 +588,7 @@ class PlatformRuntimeMetricsService:
         finally:
             await connection.close()
 
-        database_name = urlparse(build_database_url(self.settings)).path.lstrip("/") or "stock"
+        database_name = self._resolve_primary_database_name()
         snapshot = {
             "available": True,
             "database": database_name,

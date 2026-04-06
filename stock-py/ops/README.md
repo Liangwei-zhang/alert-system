@@ -6,9 +6,9 @@
 
 - 近期生產目標：`docker compose + VM` 單機部署基線
 - 當前不把 Kubernetes 當作近期默認交付面
-- K8s 方向保留在 `ops/k8s/README.md`，等高可用、滾動發布、集中式日誌與資源配額要求真正成為主需求時再切換
+- K8s 方向已補到 repo 內可評審 baseline，包含 batch CronJob 與離線 render/schema validation；是否切成主交付面仍取決於真實 HA / rollout 需求
 
-這個決策是為了先把 secrets、healthcheck、啟動順序、備份恢復、運維指標與 cutover rehearsal 做扎實，避免在 K8s 和 VM 之間來回重做。
+這個決策是為了先把 secrets、healthcheck、啟動順序、備份恢復、運維指標、DLQ/replay 與 cutover rehearsal 做扎實，再決定是否把 K8s 提升為默認交付面。
 
 ## 啟動方式
 
@@ -60,6 +60,7 @@ OPS_SECRET_DIR=./secrets/production docker compose -f ops/docker-compose.yml up 
 ## 連線與容量策略
 
 - app 容器的 `DATABASE_URL_FILE` 預設指向走 `pgbouncer:6432` 的 DSN，並帶上 `prepared_statement_cache_size=0`，避免 asyncpg 在 transaction pooling 下的 prepared statement 問題
+- app 容器同時會為 asyncpg 打開 `statement_cache_size=0` 與 unique `prepared_statement_name_func`，避免 transaction pooling 下的 prepared statement 名稱衝突
 - app 端同時設 `DATABASE_POOL_MODE=pgbouncer`，`infra/db/session.py` 會切到 `NullPool`，避免 PgBouncer 前面再疊一層大型應用內連線池
 - Redis 保留 AOF，但加入明確的記憶體上限與淘汰策略
 - Redis 淘汰策略預設不是 `allkeys-lru`，而是 `volatile-ttl`，因為這個倉庫同時把 Redis 用在 Streams、runtime registry、lock 與快取；不應該讓事件流或協調鍵被全域 LRU 淘汰
@@ -87,6 +88,7 @@ admin runtime route 現在除了 component health 之外，還會輸出：
 告警出口：
 
 - `GET /v1/admin/runtime/alerts`
+- `GET /metrics?format=prometheus`（admin API）現在也會導出同一批 runtime/platform gauges，供 PrometheusRule 與 K8s ServiceMonitor 直接使用
 
 ## 備份與恢復
 
@@ -116,6 +118,24 @@ make ops-compose-cutover-rehearsal
 
 這兩個入口會把 compose `ps` / logs 與既有 load / cutover 報告工具鏈串起來。
 
+`ops/bin/compose-load-baseline.sh` 現在除了 Locust 原始報表外，還會先自動 bootstrap disposable session / trade fixture，並寫入 `ops/reports/load/<UTC timestamp>/fixtures.env`、`fixtures.json` 與 `evidence/load-evidence-summary.json`。
+compose baseline 也會自動設定本地 `INTERNAL_SIDECAR_SECRET`，並把同一個 token 傳給 public monitoring metrics scrape，避免 evidence capture 被 `/api/monitoring/metrics` 鑑權擋下。
+`ops/bin/compose-cutover-rehearsal.sh` 會自動 bootstrap admin runtime token、抓 public health 與 admin runtime metrics / alerts、寫入 `ops/reports/cutover/<UTC timestamp>/evidence/cutover-validation.json`，再輸出 `runtime-alert-thresholds.env` / `.json`、`k8s/overlays/<environment>/summary.json` 與 `k8s/validation/summary.json`。
+
+若要單獨重跑 K8s handoff 資產，可以直接執行：
+
+```bash
+make cutover-k8s-overlay CUTOVER_ENVIRONMENT=staging CUTOVER_REPORT_DIR=ops/reports/cutover/<UTC timestamp>
+make ops-k8s-validate K8S_KUSTOMIZE_PATH=ops/reports/cutover/<UTC timestamp>/k8s/overlays/staging K8S_VALIDATION_DIR=ops/reports/cutover/<UTC timestamp>/k8s/validation
+```
+
+事件数据面现在也补上了 dead-letter / replay 入口：
+
+```bash
+python -m infra.events.outbox stats
+python -m infra.events.outbox replay-dead-letter --limit 50
+```
+
 ## 常見命令
 
 ```bash
@@ -131,3 +151,8 @@ docker compose -f ops/docker-compose.yml down -v
 - `ops/runbooks/qa-cutover-checklist.md`
 - `ops/TARGET_TOPOLOGY.md`
 - `ops/k8s/README.md`
+
+另外，repo 現在也補上兩份舊式 VM baseline helper：
+
+- `ops/ecosystem.config.js`
+- `ops/postgresql.conf.tuning`

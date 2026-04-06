@@ -3,12 +3,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlalchemy import JSON, Boolean, DateTime
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import ForeignKey, func
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from infra.db.models.base import Base
+from infra.db.models.base import Base, sql_enum
 
 
 def utcnow() -> datetime:
@@ -29,7 +27,7 @@ class AdminOperatorModel(Base):
         primary_key=True,
     )
     role: Mapped[AdminOperatorRole] = mapped_column(
-        SQLEnum(AdminOperatorRole, name="admin_operator_role"),
+        sql_enum(AdminOperatorRole, name="admin_operator_role"),
         nullable=False,
         default=AdminOperatorRole.OPERATOR,
         server_default=AdminOperatorRole.OPERATOR.value,

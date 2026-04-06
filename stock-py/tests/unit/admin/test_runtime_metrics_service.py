@@ -55,6 +55,8 @@ class FakeEventOutboxRepository:
             return 6
         if status == "published":
             return 19
+        if status == "dead_letter":
+            return 1
         return 0
 
 
@@ -101,6 +103,10 @@ class RuntimeOperationalMetricsServiceTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             metric_index[("notification_receipts_total", (("state", "overdue"),))],
             3.0,
+        )
+        self.assertEqual(
+            metric_index[("event_outbox_records_total", (("status", "dead_letter"),))],
+            1.0,
         )
         self.assertEqual(metric_index[("event_outbox_retried_total", ())], 2.0)
         self.assertEqual(metric_index[("trade_claim_latency_samples_total", ())], 4.0)

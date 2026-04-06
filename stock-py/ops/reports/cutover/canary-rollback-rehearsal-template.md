@@ -15,6 +15,10 @@
 - Feature flags changed:
 - Migration revision at start:
 - Rollback target version:
+- Generated K8s overlay path:
+- `kubectl diff -k` command used:
+- `kubectl apply -k` command used:
+- Rollback command used:
 
 ## Validation Timeline
 
@@ -39,12 +43,18 @@
 | Notifications P95 | | | |
 | Trades P95 | | | |
 | Worker queue depth | | | |
+| Broker lag | | | |
+| PgBouncer waiting clients | | | |
+| Redis memory utilization | | | |
+| ClickHouse write failure rate | | | |
+| Object storage archive failure rate | | | |
 
 ## Parity Findings
 
 - Shadow read mismatches:
 - Dual-write mismatches:
 - Analytics / outbox backlog observations:
+- Reviewed runtime threshold patch:
 
 ## Rollback Drill
 

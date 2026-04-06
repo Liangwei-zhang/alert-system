@@ -1,0 +1,212 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: public-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: public-api
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: admin-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: admin-api
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: public-api
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: public-api
+  endpoints:
+    - port: http
+      path: /api/monitoring/metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      bearerTokenSecret:
+        name: stock-py-monitoring-secret
+        key: publicMonitoringBearer
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: admin-api
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: admin-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      params:
+        format:
+          - prometheus
+      bearerTokenSecret:
+        name: stock-py-monitoring-secret
+        key: adminMetricsBearer
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: stock-py-runtime
+spec:
+  groups:
+    - name: stock-py.api
+      rules:
+        - alert: StockPyPublicApiHighErrorRate
+          expr: rate(stock_signal_public_http_request_errors_total[5m]) / clamp_min(rate(stock_signal_public_http_requests_total[5m]), 1) > 0.05
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Public API error rate is above 5%
+        - alert: StockPyPublicApiHighLatency
+          expr: stock_signal_public_http_request_duration_ms_p95 > 750
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Public API p95 latency is above 750 ms
+        - alert: StockPyAdminApiHighErrorRate
+          expr: rate(stock_signal_admin_admin_http_request_errors_total[5m]) / clamp_min(rate(stock_signal_admin_admin_http_requests_total[5m]), 1) > 0.05
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Admin API error rate is above 5%
+        - alert: StockPyBrokerLagHigh
+          expr: max(stock_signal_admin_event_broker_consumer_lag_total) > 200
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Broker consumer lag is above 200
+        - alert: StockPyPgBouncerWaitingHigh
+          expr: max(stock_signal_admin_pgbouncer_clients_waiting) > 10
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: PgBouncer waiting clients are above 10
+        - alert: StockPyRedisMemoryHigh
+          expr: max(stock_signal_admin_redis_memory_utilization_percent) > 85
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Redis memory utilization is above 85%
+        - alert: StockPyClickHouseWriteFailureRateHigh
+          expr: max(stock_signal_admin_clickhouse_write_failure_rate_percent) > 5
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: ClickHouse write failure rate is above 5%
+        - alert: StockPyObjectStorageArchiveFailureRateHigh
+          expr: max(stock_signal_admin_object_storage_archive_failure_rate_percent) > 5
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: Object storage archive failure rate is above 5%
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-stock-py-runtime
+  labels:
+    grafana_dashboard: "1"
+data:
+  stock-py-runtime.json: |
+    {
+      "title": "stock-py Runtime",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Public API Request Rate",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(stock_signal_public_http_requests_total[5m]))",
+              "legendFormat": "requests/s"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Public API Error Rate",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(stock_signal_public_http_request_errors_total[5m])) / clamp_min(sum(rate(stock_signal_public_http_requests_total[5m])), 1)",
+              "legendFormat": "error rate"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Public API P95 Latency",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "targets": [
+            {
+              "expr": "stock_signal_public_http_request_duration_ms_p95",
+              "legendFormat": "p95 ms"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Admin API Request Rate",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "targets": [
+            {
+              "expr": "sum(rate(stock_signal_admin_admin_http_requests_total[5m]))",
+              "legendFormat": "requests/s"
+            }
+          ]
+        }
+      ]
+    }

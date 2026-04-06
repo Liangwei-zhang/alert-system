@@ -3,12 +3,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlalchemy import DateTime
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import ForeignKey, Index, Integer, Numeric, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from infra.db.models.base import Base
+from infra.db.models.base import Base, sql_enum
 
 
 def utcnow() -> datetime:
@@ -41,7 +39,9 @@ class TradeLogModel(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     symbol: Mapped[str] = mapped_column(String(10), index=True)
-    action: Mapped[TradeAction] = mapped_column(SQLEnum(TradeAction), index=True)
+    action: Mapped[TradeAction] = mapped_column(
+        sql_enum(TradeAction, name="tradeaction"), index=True
+    )
     suggested_shares: Mapped[float] = mapped_column(Numeric(15, 4))
     suggested_price: Mapped[float] = mapped_column(Numeric(12, 4))
     suggested_amount: Mapped[float] = mapped_column(Numeric(15, 2))
@@ -49,7 +49,7 @@ class TradeLogModel(Base):
     actual_price: Mapped[float | None] = mapped_column(Numeric(12, 4), nullable=True)
     actual_amount: Mapped[float | None] = mapped_column(Numeric(15, 2), nullable=True)
     status: Mapped[TradeStatus] = mapped_column(
-        SQLEnum(TradeStatus),
+        sql_enum(TradeStatus, name="tradestatus"),
         default=TradeStatus.PENDING,
         server_default=TradeStatus.PENDING.value,
         index=True,

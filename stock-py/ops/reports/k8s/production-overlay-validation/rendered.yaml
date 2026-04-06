@@ -1,0 +1,1005 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: stock-py
+---
+apiVersion: v1
+data:
+  stock-py-runtime.json: |-
+    {
+      "title": "stock-py Runtime",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Public API Request Rate",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(stock_signal_public_http_requests_total[5m]))",
+              "legendFormat": "requests/s"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Public API Error Rate",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(stock_signal_public_http_request_errors_total[5m])) / clamp_min(sum(rate(stock_signal_public_http_requests_total[5m])), 1)",
+              "legendFormat": "error rate"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Public API P95 Latency",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "targets": [
+            {
+              "expr": "stock_signal_public_http_request_duration_ms_p95",
+              "legendFormat": "p95 ms"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Admin API Request Rate",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "targets": [
+            {
+              "expr": "sum(rate(stock_signal_admin_admin_http_requests_total[5m]))",
+              "legendFormat": "requests/s"
+            }
+          ]
+        }
+      ]
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+    grafana_dashboard: "1"
+  name: grafana-dashboard-stock-py-runtime
+  namespace: stock-py
+---
+apiVersion: v1
+data:
+  ADMIN_API_PORT: "8001"
+  ANALYTICS_BACKEND: clickhouse
+  CLICKHOUSE_DATABASE: stock
+  CLICKHOUSE_HOST: clickhouse.production.platform.svc.cluster.local
+  CLICKHOUSE_PORT: "8123"
+  DATABASE_POOL_MODE: pgbouncer
+  DEBUG: "false"
+  ENVIRONMENT: production
+  EVENT_BROKER_BACKEND: kafka
+  EVENT_BROKER_KAFKA_AUTO_OFFSET_RESET: earliest
+  EVENT_BROKER_KAFKA_BOOTSTRAP_SERVERS: kafka.production.platform.svc.cluster.local:9092
+  EVENT_BROKER_KAFKA_TOPIC: stock-py.events
+  EVENT_OUTBOX_MAX_ATTEMPTS: "3"
+  LOG_LEVEL: INFO
+  OBJECT_STORAGE_BACKEND: s3
+  OBJECT_STORAGE_BUCKET: stock-py
+  OBJECT_STORAGE_ENDPOINT_URL: https://s3.example.com
+  OBJECT_STORAGE_FORCE_PATH_STYLE: "false"
+  OBJECT_STORAGE_REGION: us-east-1
+  PROJECT_NAME: Stock API
+  PUBLIC_API_PORT: "8000"
+  REDIS_URL: redis://redis.production.platform.svc.cluster.local:6379/0
+  RUNTIME_ALERT_BROKER_LAG_THRESHOLD: "200"
+  RUNTIME_ALERT_CLICKHOUSE_WRITE_FAILURE_RATE_THRESHOLD: "5"
+  RUNTIME_ALERT_OBJECT_STORAGE_ARCHIVE_FAILURE_RATE_THRESHOLD: "5"
+  RUNTIME_ALERT_PGBOUNCER_WAITING_CLIENTS_THRESHOLD: "10"
+  RUNTIME_ALERT_REDIS_MEMORY_PERCENT_THRESHOLD: "85"
+  RUNTIME_METRICS_WINDOW_MINUTES: "15"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: stock-py-runtime
+  namespace: stock-py
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: admin-api
+  namespace: stock-py
+spec:
+  ports:
+  - name: http
+    port: 8001
+    targetPort: http
+  selector:
+    app.kubernetes.io/component: admin-api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: public-api
+  namespace: stock-py
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+  selector:
+    app.kubernetes.io/component: public-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: admin-api
+  namespace: stock-py
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: admin-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: admin-api
+    spec:
+      containers:
+      - command:
+        - python
+        - -m
+        - uvicorn
+        - apps.admin_api.main:app
+        - --host
+        - 0.0.0.0
+        - --port
+        - "8001"
+        envFrom:
+        - configMapRef:
+            name: stock-py-runtime
+        - secretRef:
+            name: stock-py-app-secrets
+        image: ghcr.io/openclaw/stock-py:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: http
+          initialDelaySeconds: 20
+          periodSeconds: 20
+        name: admin-api
+        ports:
+        - containerPort: 8001
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        resources:
+          limits:
+            cpu: "1"
+            memory: 768Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: event-pipeline
+  namespace: stock-py
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: event-pipeline
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: event-pipeline
+    spec:
+      containers:
+      - command:
+        - python
+        - -m
+        - apps.workers.event_pipeline.worker
+        env:
+        - name: RUNTIME_COMPONENT_KIND
+          value: worker
+        - name: RUNTIME_COMPONENT_NAME
+          value: event-pipeline
+        - name: RUNTIME_HEALTHCHECK_MAX_AGE_SECONDS
+          value: "90"
+        envFrom:
+        - configMapRef:
+            name: stock-py-runtime
+        - secretRef:
+            name: stock-py-app-secrets
+        image: ghcr.io/openclaw/stock-py:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -m
+            - infra.observability.runtime_probe
+            - --kind
+            - worker
+            - --name
+            - event-pipeline
+            - --max-age-seconds
+            - "90"
+        name: event-pipeline
+        readinessProbe:
+          exec:
+            command:
+            - python
+            - -m
+            - infra.observability.runtime_probe
+            - --kind
+            - worker
+            - --name
+            - event-pipeline
+            - --max-age-seconds
+            - "90"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 192Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: public-api
+  namespace: stock-py
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: public-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: public-api
+    spec:
+      containers:
+      - command:
+        - python
+        - -m
+        - uvicorn
+        - apps.public_api.main:app
+        - --host
+        - 0.0.0.0
+        - --port
+        - "8000"
+        envFrom:
+        - configMapRef:
+            name: stock-py-runtime
+        - secretRef:
+            name: stock-py-app-secrets
+        image: ghcr.io/openclaw/stock-py:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: http
+          initialDelaySeconds: 20
+          periodSeconds: 20
+        name: public-api
+        ports:
+        - containerPort: 8000
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        resources:
+          limits:
+            cpu: "1"
+            memory: 768Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: retention
+  namespace: stock-py
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: retention
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: retention
+    spec:
+      containers:
+      - command:
+        - python
+        - -m
+        - apps.workers.retention.worker
+        env:
+        - name: RUNTIME_COMPONENT_KIND
+          value: worker
+        - name: RUNTIME_COMPONENT_NAME
+          value: retention
+        - name: RUNTIME_HEALTHCHECK_MAX_AGE_SECONDS
+          value: "7200"
+        envFrom:
+        - configMapRef:
+            name: stock-py-runtime
+        - secretRef:
+            name: stock-py-app-secrets
+        image: ghcr.io/openclaw/stock-py:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -m
+            - infra.observability.runtime_probe
+            - --kind
+            - worker
+            - --name
+            - retention
+            - --max-age-seconds
+            - "7200"
+        name: retention
+        readinessProbe:
+          exec:
+            command:
+            - python
+            - -m
+            - infra.observability.runtime_probe
+            - --kind
+            - worker
+            - --name
+            - retention
+            - --max-age-seconds
+            - "7200"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 192Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: scheduler
+  namespace: stock-py
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: scheduler
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: scheduler
+    spec:
+      containers:
+      - command:
+        - python
+        - -m
+        - apps.scheduler.main
+        env:
+        - name: RUNTIME_COMPONENT_KIND
+          value: scheduler
+        - name: RUNTIME_COMPONENT_NAME
+          value: scheduler
+        - name: RUNTIME_HEALTHCHECK_MAX_AGE_SECONDS
+          value: "120"
+        envFrom:
+        - configMapRef:
+            name: stock-py-runtime
+        - secretRef:
+            name: stock-py-app-secrets
+        image: ghcr.io/openclaw/stock-py:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -m
+            - infra.observability.runtime_probe
+            - --kind
+            - scheduler
+            - --name
+            - scheduler
+            - --max-age-seconds
+            - "120"
+        name: scheduler
+        readinessProbe:
+          exec:
+            command:
+            - python
+            - -m
+            - infra.observability.runtime_probe
+            - --kind
+            - scheduler
+            - --name
+            - scheduler
+            - --max-age-seconds
+            - "120"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 192Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: tradingagents-bridge
+  namespace: stock-py
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: tradingagents-bridge
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: tradingagents-bridge
+    spec:
+      containers:
+      - command:
+        - python
+        - -m
+        - apps.workers.tradingagents_bridge.worker
+        env:
+        - name: RUNTIME_COMPONENT_KIND
+          value: worker
+        - name: RUNTIME_COMPONENT_NAME
+          value: tradingagents-bridge
+        - name: RUNTIME_HEALTHCHECK_MAX_AGE_SECONDS
+          value: "90"
+        envFrom:
+        - configMapRef:
+            name: stock-py-runtime
+        - secretRef:
+            name: stock-py-app-secrets
+        image: ghcr.io/openclaw/stock-py:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -m
+            - infra.observability.runtime_probe
+            - --kind
+            - worker
+            - --name
+            - tradingagents-bridge
+            - --max-age-seconds
+            - "90"
+        name: tradingagents-bridge
+        readinessProbe:
+          exec:
+            command:
+            - python
+            - -m
+            - infra.observability.runtime_probe
+            - --kind
+            - worker
+            - --name
+            - tradingagents-bridge
+            - --max-age-seconds
+            - "90"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 192Mi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: backtest-refresh
+  namespace: stock-py
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: backtest-refresh
+        spec:
+          containers:
+          - command:
+            - python
+            - -m
+            - apps.workers.backtest.worker
+            env:
+            - name: RUNTIME_COMPONENT_KIND
+              value: worker
+            - name: RUNTIME_COMPONENT_NAME
+              value: backtest-refresh
+            envFrom:
+            - configMapRef:
+                name: stock-py-runtime
+            - secretRef:
+                name: stock-py-app-secrets
+            image: ghcr.io/openclaw/stock-py:latest
+            imagePullPolicy: IfNotPresent
+            name: backtest-refresh
+          restartPolicy: OnFailure
+      ttlSecondsAfterFinished: 86400
+  schedule: 45 2 * * *
+  successfulJobsHistoryLimit: 2
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: cold-storage-archive
+  namespace: stock-py
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: cold-storage-archive
+        spec:
+          containers:
+          - command:
+            - python
+            - -m
+            - apps.workers.cold_storage.worker
+            env:
+            - name: RUNTIME_COMPONENT_KIND
+              value: worker
+            - name: RUNTIME_COMPONENT_NAME
+              value: cold-storage-archive
+            envFrom:
+            - configMapRef:
+                name: stock-py-runtime
+            - secretRef:
+                name: stock-py-app-secrets
+            image: ghcr.io/openclaw/stock-py:latest
+            imagePullPolicy: IfNotPresent
+            name: cold-storage-archive
+          restartPolicy: OnFailure
+      ttlSecondsAfterFinished: 86400
+  schedule: 30 2 * * *
+  successfulJobsHistoryLimit: 2
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: market-data-refresh
+  namespace: stock-py
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: market-data-refresh
+        spec:
+          containers:
+          - command:
+            - python
+            - -m
+            - apps.workers.market_data.worker
+            env:
+            - name: RUNTIME_COMPONENT_KIND
+              value: worker
+            - name: RUNTIME_COMPONENT_NAME
+              value: market-data-refresh
+            envFrom:
+            - configMapRef:
+                name: stock-py-runtime
+            - secretRef:
+                name: stock-py-app-secrets
+            image: ghcr.io/openclaw/stock-py:latest
+            imagePullPolicy: IfNotPresent
+            name: market-data-refresh
+          restartPolicy: OnFailure
+      ttlSecondsAfterFinished: 3600
+  schedule: 5 * * * 1-5
+  successfulJobsHistoryLimit: 2
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: receipt-escalation
+  namespace: stock-py
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: receipt-escalation
+        spec:
+          containers:
+          - command:
+            - python
+            - -m
+            - apps.workers.receipt_escalation.worker
+            env:
+            - name: RUNTIME_COMPONENT_KIND
+              value: worker
+            - name: RUNTIME_COMPONENT_NAME
+              value: receipt-escalation
+            envFrom:
+            - configMapRef:
+                name: stock-py-runtime
+            - secretRef:
+                name: stock-py-app-secrets
+            image: ghcr.io/openclaw/stock-py:latest
+            imagePullPolicy: IfNotPresent
+            name: receipt-escalation
+          restartPolicy: OnFailure
+      ttlSecondsAfterFinished: 1800
+  schedule: '*/15 * * * *'
+  successfulJobsHistoryLimit: 2
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: scanner-batch
+  namespace: stock-py
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: scanner-batch
+        spec:
+          containers:
+          - command:
+            - python
+            - -m
+            - apps.workers.scanner.worker
+            env:
+            - name: RUNTIME_COMPONENT_KIND
+              value: worker
+            - name: RUNTIME_COMPONENT_NAME
+              value: scanner-batch
+            envFrom:
+            - configMapRef:
+                name: stock-py-runtime
+            - secretRef:
+                name: stock-py-app-secrets
+            image: ghcr.io/openclaw/stock-py:latest
+            imagePullPolicy: IfNotPresent
+            name: scanner-batch
+          restartPolicy: OnFailure
+      ttlSecondsAfterFinished: 3600
+  schedule: 10 * * * 1-5
+  successfulJobsHistoryLimit: 2
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: admin-api
+  namespace: stock-py
+spec:
+  maxReplicas: 6
+  metrics:
+  - resource:
+      name: cpu
+      target:
+        averageUtilization: 70
+        type: Utilization
+    type: Resource
+  - resource:
+      name: memory
+      target:
+        averageUtilization: 80
+        type: Utilization
+    type: Resource
+  minReplicas: 2
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: admin-api
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: public-api
+  namespace: stock-py
+spec:
+  maxReplicas: 10
+  metrics:
+  - resource:
+      name: cpu
+      target:
+        averageUtilization: 70
+        type: Utilization
+    type: Resource
+  - resource:
+      name: memory
+      target:
+        averageUtilization: 80
+        type: Utilization
+    type: Resource
+  minReplicas: 3
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: public-api
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: migrate
+  namespace: stock-py
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: migrate
+    spec:
+      containers:
+      - command:
+        - python
+        - -m
+        - alembic
+        - upgrade
+        - head
+        envFrom:
+        - configMapRef:
+            name: stock-py-runtime
+        - secretRef:
+            name: stock-py-app-secrets
+        image: ghcr.io/openclaw/stock-py:latest
+        imagePullPolicy: IfNotPresent
+        name: migrate
+      restartPolicy: OnFailure
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: stock-py-runtime
+  namespace: stock-py
+spec:
+  groups:
+  - name: stock-py.api
+    rules:
+    - alert: StockPyPublicApiHighErrorRate
+      annotations:
+        summary: Public API error rate is above 5%
+      expr: rate(stock_signal_public_http_request_errors_total[5m]) / clamp_min(rate(stock_signal_public_http_requests_total[5m]),
+        1) > 0.05
+      for: 10m
+      labels:
+        severity: warning
+    - alert: StockPyPublicApiHighLatency
+      annotations:
+        summary: Public API p95 latency is above 750 ms
+      expr: stock_signal_public_http_request_duration_ms_p95 > 750
+      for: 10m
+      labels:
+        severity: warning
+    - alert: StockPyAdminApiHighErrorRate
+      annotations:
+        summary: Admin API error rate is above 5%
+      expr: rate(stock_signal_admin_admin_http_request_errors_total[5m]) / clamp_min(rate(stock_signal_admin_admin_http_requests_total[5m]),
+        1) > 0.05
+      for: 10m
+      labels:
+        severity: warning
+    - alert: StockPyBrokerLagHigh
+      annotations:
+        summary: Broker consumer lag is above 200
+      expr: max(stock_signal_admin_event_broker_consumer_lag_total) > 200
+      for: 10m
+      labels:
+        severity: warning
+    - alert: StockPyPgBouncerWaitingHigh
+      annotations:
+        summary: PgBouncer waiting clients are above 10
+      expr: max(stock_signal_admin_pgbouncer_clients_waiting) > 10
+      for: 10m
+      labels:
+        severity: warning
+    - alert: StockPyRedisMemoryHigh
+      annotations:
+        summary: Redis memory utilization is above 85%
+      expr: max(stock_signal_admin_redis_memory_utilization_percent) > 85
+      for: 10m
+      labels:
+        severity: warning
+    - alert: StockPyClickHouseWriteFailureRateHigh
+      annotations:
+        summary: ClickHouse write failure rate is above 5%
+      expr: max(stock_signal_admin_clickhouse_write_failure_rate_percent) > 5
+      for: 15m
+      labels:
+        severity: critical
+    - alert: StockPyObjectStorageArchiveFailureRateHigh
+      annotations:
+        summary: Object storage archive failure rate is above 5%
+      expr: max(stock_signal_admin_object_storage_archive_failure_rate_percent) >
+        5
+      for: 15m
+      labels:
+        severity: critical
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: admin-api
+  namespace: stock-py
+spec:
+  endpoints:
+  - bearerTokenSecret:
+      key: adminMetricsBearer
+      name: stock-py-monitoring-secret
+    interval: 30s
+    params:
+      format:
+      - prometheus
+    path: /metrics
+    port: http
+    scrapeTimeout: 10s
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: admin-api
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: public-api
+  namespace: stock-py
+spec:
+  endpoints:
+  - bearerTokenSecret:
+      key: publicMonitoringBearer
+      name: stock-py-monitoring-secret
+    interval: 30s
+    path: /api/monitoring/metrics
+    port: http
+    scrapeTimeout: 10s
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: public-api
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
+  labels:
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/name: stock-py
+    app.kubernetes.io/part-of: stock-py
+  name: stock-py
+  namespace: stock-py
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: stock-py.example.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: public-api
+            port:
+              number: 8000
+        path: /
+        pathType: Prefix
+      - backend:
+          service:
+            name: admin-api
+            port:
+              number: 8001
+        path: /v1/admin
+        pathType: Prefix

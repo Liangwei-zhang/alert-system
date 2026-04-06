@@ -14,6 +14,8 @@
 - [ ] `OPS_SECRET_DIR` / secret set has been reviewed for DB, Redis, webhook, mail, MinIO, and internal API keys.
 - [ ] Worker, scheduler, public API, and admin API rollout order is documented.
 - [ ] Confirm the target shape is the current compose + VM baseline, not an ad-hoc K8s manifest mix.
+- [ ] If this rehearsal also prepares a K8s handoff bundle, run `make cutover-k8s-overlay ...` or `make ops-compose-cutover-rehearsal` first and review `ops/reports/cutover/<UTC timestamp>/k8s/overlays/<environment>/summary.json`.
+- [ ] Verify the generated overlay namespace, ingress host, monitoring secret name, release image, and runtime threshold patch before any canary apply step.
 - [ ] Feature flags for canary traffic, dual write, and webhook verification are explicitly recorded.
 
 ## 2. Migration Checks
@@ -32,14 +34,19 @@
 
 ## 4. Shadow Read Check
 
+- [ ] Review `ops/reports/cutover/<UTC timestamp>/shadow-read-scenarios.json` and fill the exact primary / shadow URLs plus any auth placeholders before sampling.
+- [ ] Run `make cutover-shadow-read CUTOVER_REPORT_DIR=... SHADOW_READ_DURATION_SECONDS=900 SHADOW_READ_INTERVAL_SECONDS=30` to generate `shadow-read-summary.md` and `evidence/shadow-read-results.json`.
 - [ ] Enable shadow reads for account dashboard and profile endpoints.
 - [ ] Enable shadow reads for notification list and push-device queries.
 - [ ] Enable shadow reads for trade info endpoints.
 - [ ] Capture latency and payload parity samples for at least 15 minutes.
 - [ ] Document mismatches before canary percentage is raised.
+- [ ] Remember this command only captures HTTP parity evidence; the actual traffic mirroring / routing switch remains owned by deploy config or platform flags.
 
 ## 5. Dual-Write Verification
 
+- [ ] Review `ops/reports/cutover/<UTC timestamp>/dual-write-scenarios.json` and fill the exact write / readback URLs plus disposable fixture IDs before running the write parity step.
+- [ ] Run `make cutover-dual-write CUTOVER_REPORT_DIR=... DUAL_WRITE_ALLOW_MUTATIONS=true` to generate `dual-write-summary.md` and `evidence/dual-write-results.json`.
 - [ ] Subscription state writes are mirrored and sampled for parity.
 - [ ] Notification receipts and ack state are mirrored and sampled for parity.
 - [ ] Trade confirmations / ignores are mirrored and sampled for parity.
@@ -63,10 +70,12 @@
 - [ ] Freeze new canary expansion.
 - [ ] Disable write-path feature flags and internal job submissions.
 - [ ] Route traffic back to the previous stable deployment.
+- [ ] If using the generated K8s bundle, save the exact `kubectl diff -k` / `kubectl apply -k` / rollback command set alongside the report overlay path.
 - [ ] Revert application deployment and verify health endpoints.
 - [ ] Verify the latest PostgreSQL dump and MinIO mirror backup are readable before proceeding with data restore.
 - [ ] Re-run smoke checks for auth, dashboard, notifications, trades, scanner ingest, and TradingAgents webhook.
 - [ ] Reconcile delayed TradingAgents jobs and notification outbox backlog.
+- [ ] Run `make cutover-rollback-verify CUTOVER_REPORT_DIR=... BACKUP_DIR=.local/backups/<UTC timestamp>` and attach the resulting `rollback-verification.md` evidence.
 - [ ] Run `make cutover-report-init RELEASE_SHA=... QA_OWNER=... BACKEND_OWNER=... ON_CALL_REVIEWER=...` if the rehearsal record bundle has not been created yet.
 - [ ] Save the rehearsal or real rollback notes under `ops/reports/cutover/<UTC timestamp>/` using `canary-rollback-rehearsal-template.md`.
 
@@ -89,6 +98,7 @@
 - [ ] DB connection pool saturation and slow query count
 - [ ] ClickHouse write failure rate
 - [ ] Object storage archive failure rate
+- [ ] PrometheusRule thresholds in the applied overlay still match the reviewed `runtime-alert-thresholds.env`
 
 ### First 24 Hours
 
@@ -96,3 +106,9 @@
 - [ ] Portfolio / watchlist parity spot checks
 - [ ] Backlog growth in outbox, webhook, and scheduled task queues
 - [ ] On-call incident summary and follow-up ticket creation
+
+## 9. Final Signoff
+
+- [ ] Run `make cutover-signoff CUTOVER_REPORT_DIR=... SIGNOFF_LOAD_REPORT_DIR=ops/reports/load/<UTC timestamp> BACKUP_DIR=.local/backups/<UTC timestamp>`.
+- [ ] If no real cluster rollout evidence exists, keep the resulting deployment posture at `handoff_baseline` or `compose_vm_baseline`; do not represent K8s as production cutover complete.
+- [ ] Archive `cutover-signoff-summary.md` together with the reviewed load / cutover bundle.

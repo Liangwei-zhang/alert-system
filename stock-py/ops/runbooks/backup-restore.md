@@ -23,9 +23,9 @@ make ops-backup-baseline
 
 輸出會落在 `.local/backups/<UTC timestamp>/`，其中包含：
 
-- `postgres.sql.gz`
+- `postgres/stock_py.dump`
 - `minio/`
-- `metadata.txt`
+- `compose-ps.txt`
 
 如果要手動指定路徑：
 
@@ -48,6 +48,16 @@ make ops-restore-baseline BACKUP_DIR=.local/backups/<UTC timestamp>
 ```
 
 恢復流程只會恢復 PostgreSQL 與 MinIO。Kafka、ClickHouse、Redis 在恢復後重新啟動並由資料平面回補。
+
+`ops/bin/restore-baseline.sh` 會優先讀取 `postgres/stock_py.dump`，同時兼容歷史備份中的 `postgres/stock.dump`。
+
+完成 restore 與 smoke checks 後，建議立刻補一份 rollback 證據：
+
+```bash
+make cutover-rollback-verify CUTOVER_REPORT_DIR=ops/reports/cutover/<UTC timestamp> BACKUP_DIR=.local/backups/<UTC timestamp>
+```
+
+這會把 backup 可讀性、smoke 檢查結果與 runtime endpoint evidence 寫進 `rollback-verification.md` 與 `evidence/rollback-verification.json`。
 
 ## 恢復步驟
 

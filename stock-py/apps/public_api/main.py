@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from time import perf_counter
+from typing import Literal
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 
 from apps.public_api.routers import (
     account,
     auth,
+    monitoring,
     notifications,
     portfolio,
     search,
@@ -17,6 +20,7 @@ from apps.public_api.routers import (
     trades,
     tradingagents_submit,
     tradingagents_webhook,
+    ui,
     watchlist,
 )
 from infra.cache.redis_client import close_redis
@@ -27,7 +31,7 @@ from infra.core.logging import configure_logging
 from infra.db.session import dispose_engine
 from infra.http.health import router as health_router
 from infra.http.http_client import get_http_client_factory
-from infra.observability.metrics import get_metrics_registry
+from infra.observability.metrics import get_http_request_tracker, get_metrics_registry
 from infra.observability.tracing import configure_tracing
 
 
@@ -45,6 +49,7 @@ async def lifespan(app: FastAPI):
 
 settings = get_settings()
 metrics = get_metrics_registry()
+http_request_tracker = get_http_request_tracker("public-api")
 
 app = FastAPI(
     title=f"{settings.project_name} Public API",
@@ -71,23 +76,41 @@ async def attach_request_context(request: Request, call_next):
     token = set_request_context(context)
     request.state.request_context = context
     start_time = perf_counter()
+    response = None
+    status_code = 500
 
     try:
         response = await call_next(request)
+        status_code = response.status_code
+        return response
     finally:
         duration_ms = (perf_counter() - start_time) * 1000
         metrics.counter("http_requests_total", "Total public API requests").inc()
+        if status_code >= 500:
+            metrics.counter(
+                "http_request_errors_total",
+                "Total public API 5xx responses",
+            ).inc()
         metrics.histogram(
             "http_request_duration_ms",
             "Public API request latency in milliseconds",
         ).observe(duration_ms)
+        route = request.scope.get("route")
+        route_path = getattr(route, "path", request.url.path)
+        http_request_tracker.record(
+            method=request.method,
+            path=route_path,
+            status_code=status_code,
+            duration_ms=duration_ms,
+        )
         reset_request_context(token)
-
-    response.headers["X-Request-ID"] = context.request_id
-    return response
+        if response is not None:
+            response.headers["X-Request-ID"] = context.request_id
 
 
 app.include_router(health_router)
+app.include_router(ui.router)
+app.include_router(monitoring.router)
 app.include_router(auth.router, prefix="/v1")
 app.include_router(account.router, prefix="/v1")
 app.include_router(watchlist.router, prefix="/v1")
@@ -110,6 +133,10 @@ async def root() -> dict[str, str]:
     }
 
 
-@app.get("/metrics")
-async def metrics_endpoint() -> dict:
+@app.get("/metrics", response_model=None)
+async def metrics_endpoint(
+    format: Literal["json", "prometheus"] = Query(default="json"),
+):
+    if format == "prometheus":
+        return PlainTextResponse(metrics.prometheus_text("stock_signal_public"))
     return metrics.snapshot()

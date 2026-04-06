@@ -1,0 +1,169 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: market-data-refresh
+spec:
+  schedule: "5 * * * 1-5"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: market-data-refresh
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: market-data-refresh
+              image: ghcr.io/openclaw/stock-py:latest
+              imagePullPolicy: IfNotPresent
+              command: ["python", "-m", "apps.workers.market_data.worker"]
+              env:
+                - name: RUNTIME_COMPONENT_KIND
+                  value: worker
+                - name: RUNTIME_COMPONENT_NAME
+                  value: market-data-refresh
+              envFrom:
+                - configMapRef:
+                    name: stock-py-runtime
+                - secretRef:
+                    name: stock-py-app-secrets
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scanner-batch
+spec:
+  schedule: "10 * * * 1-5"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: scanner-batch
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: scanner-batch
+              image: ghcr.io/openclaw/stock-py:latest
+              imagePullPolicy: IfNotPresent
+              command: ["python", "-m", "apps.workers.scanner.worker"]
+              env:
+                - name: RUNTIME_COMPONENT_KIND
+                  value: worker
+                - name: RUNTIME_COMPONENT_NAME
+                  value: scanner-batch
+              envFrom:
+                - configMapRef:
+                    name: stock-py-runtime
+                - secretRef:
+                    name: stock-py-app-secrets
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: receipt-escalation
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: receipt-escalation
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: receipt-escalation
+              image: ghcr.io/openclaw/stock-py:latest
+              imagePullPolicy: IfNotPresent
+              command: ["python", "-m", "apps.workers.receipt_escalation.worker"]
+              env:
+                - name: RUNTIME_COMPONENT_KIND
+                  value: worker
+                - name: RUNTIME_COMPONENT_NAME
+                  value: receipt-escalation
+              envFrom:
+                - configMapRef:
+                    name: stock-py-runtime
+                - secretRef:
+                    name: stock-py-app-secrets
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cold-storage-archive
+spec:
+  schedule: "30 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: cold-storage-archive
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: cold-storage-archive
+              image: ghcr.io/openclaw/stock-py:latest
+              imagePullPolicy: IfNotPresent
+              command: ["python", "-m", "apps.workers.cold_storage.worker"]
+              env:
+                - name: RUNTIME_COMPONENT_KIND
+                  value: worker
+                - name: RUNTIME_COMPONENT_NAME
+                  value: cold-storage-archive
+              envFrom:
+                - configMapRef:
+                    name: stock-py-runtime
+                - secretRef:
+                    name: stock-py-app-secrets
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backtest-refresh
+spec:
+  schedule: "45 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: backtest-refresh
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backtest-refresh
+              image: ghcr.io/openclaw/stock-py:latest
+              imagePullPolicy: IfNotPresent
+              command: ["python", "-m", "apps.workers.backtest.worker"]
+              env:
+                - name: RUNTIME_COMPONENT_KIND
+                  value: worker
+                - name: RUNTIME_COMPONENT_NAME
+                  value: backtest-refresh
+              envFrom:
+                - configMapRef:
+                    name: stock-py-runtime
+                - secretRef:
+                    name: stock-py-app-secrets

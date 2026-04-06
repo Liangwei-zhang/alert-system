@@ -1,0 +1,357 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: ghcr.io/openclaw/stock-py:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef:
+                name: stock-py-runtime
+            - secretRef:
+                name: stock-py-app-secrets
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: public-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: public-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: public-api
+    spec:
+      containers:
+        - name: public-api
+          image: ghcr.io/openclaw/stock-py:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            ["python", "-m", "uvicorn", "apps.public_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: stock-py-runtime
+            - secretRef:
+                name: stock-py-app-secrets
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: public-api
+spec:
+  selector:
+    app.kubernetes.io/component: public-api
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: admin-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: admin-api
+    spec:
+      containers:
+        - name: admin-api
+          image: ghcr.io/openclaw/stock-py:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            ["python", "-m", "uvicorn", "apps.admin_api.main:app", "--host", "0.0.0.0", "--port", "8001"]
+          ports:
+            - containerPort: 8001
+              name: http
+          envFrom:
+            - configMapRef:
+                name: stock-py-runtime
+            - secretRef:
+                name: stock-py-app-secrets
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-api
+spec:
+  selector:
+    app.kubernetes.io/component: admin-api
+  ports:
+    - name: http
+      port: 8001
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: scheduler
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: scheduler
+    spec:
+      containers:
+        - name: scheduler
+          image: ghcr.io/openclaw/stock-py:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "apps.scheduler.main"]
+          env:
+            - name: RUNTIME_COMPONENT_KIND
+              value: scheduler
+            - name: RUNTIME_COMPONENT_NAME
+              value: scheduler
+            - name: RUNTIME_HEALTHCHECK_MAX_AGE_SECONDS
+              value: "120"
+          envFrom:
+            - configMapRef:
+                name: stock-py-runtime
+            - secretRef:
+                name: stock-py-app-secrets
+          readinessProbe:
+            exec:
+              command:
+                ["python", "-m", "infra.observability.runtime_probe", "--kind", "scheduler", "--name", "scheduler", "--max-age-seconds", "120"]
+          livenessProbe:
+            exec:
+              command:
+                ["python", "-m", "infra.observability.runtime_probe", "--kind", "scheduler", "--name", "scheduler", "--max-age-seconds", "120"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-pipeline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: event-pipeline
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: event-pipeline
+    spec:
+      containers:
+        - name: event-pipeline
+          image: ghcr.io/openclaw/stock-py:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "apps.workers.event_pipeline.worker"]
+          env:
+            - name: RUNTIME_COMPONENT_KIND
+              value: worker
+            - name: RUNTIME_COMPONENT_NAME
+              value: event-pipeline
+            - name: RUNTIME_HEALTHCHECK_MAX_AGE_SECONDS
+              value: "90"
+          envFrom:
+            - configMapRef:
+                name: stock-py-runtime
+            - secretRef:
+                name: stock-py-app-secrets
+          readinessProbe:
+            exec:
+              command:
+                ["python", "-m", "infra.observability.runtime_probe", "--kind", "worker", "--name", "event-pipeline", "--max-age-seconds", "90"]
+          livenessProbe:
+            exec:
+              command:
+                ["python", "-m", "infra.observability.runtime_probe", "--kind", "worker", "--name", "event-pipeline", "--max-age-seconds", "90"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: retention
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: retention
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: retention
+    spec:
+      containers:
+        - name: retention
+          image: ghcr.io/openclaw/stock-py:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "apps.workers.retention.worker"]
+          env:
+            - name: RUNTIME_COMPONENT_KIND
+              value: worker
+            - name: RUNTIME_COMPONENT_NAME
+              value: retention
+            - name: RUNTIME_HEALTHCHECK_MAX_AGE_SECONDS
+              value: "7200"
+          envFrom:
+            - configMapRef:
+                name: stock-py-runtime
+            - secretRef:
+                name: stock-py-app-secrets
+          readinessProbe:
+            exec:
+              command:
+                ["python", "-m", "infra.observability.runtime_probe", "--kind", "worker", "--name", "retention", "--max-age-seconds", "7200"]
+          livenessProbe:
+            exec:
+              command:
+                ["python", "-m", "infra.observability.runtime_probe", "--kind", "worker", "--name", "retention", "--max-age-seconds", "7200"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tradingagents-bridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: tradingagents-bridge
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: tradingagents-bridge
+    spec:
+      containers:
+        - name: tradingagents-bridge
+          image: ghcr.io/openclaw/stock-py:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "apps.workers.tradingagents_bridge.worker"]
+          env:
+            - name: RUNTIME_COMPONENT_KIND
+              value: worker
+            - name: RUNTIME_COMPONENT_NAME
+              value: tradingagents-bridge
+            - name: RUNTIME_HEALTHCHECK_MAX_AGE_SECONDS
+              value: "90"
+          envFrom:
+            - configMapRef:
+                name: stock-py-runtime
+            - secretRef:
+                name: stock-py-app-secrets
+          readinessProbe:
+            exec:
+              command:
+                ["python", "-m", "infra.observability.runtime_probe", "--kind", "worker", "--name", "tradingagents-bridge", "--max-age-seconds", "90"]
+          livenessProbe:
+            exec:
+              command:
+                ["python", "-m", "infra.observability.runtime_probe", "--kind", "worker", "--name", "tradingagents-bridge", "--max-age-seconds", "90"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stock-py
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: stock-py.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: public-api
+                port:
+                  number: 8000
+          - path: /v1/admin
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-api
+                port:
+                  number: 8001

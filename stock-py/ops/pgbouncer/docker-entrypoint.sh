@@ -17,5 +17,6 @@ cat > /etc/pgbouncer/userlist.txt <<EOF
 "${PGBOUNCER_DB_USER}" "${PGBOUNCER_DB_PASSWORD}"
 EOF
 
+rm -f /tmp/pgbouncer.pid
 envsubst < /etc/pgbouncer/pgbouncer.ini.template > /etc/pgbouncer/pgbouncer.ini
 exec pgbouncer /etc/pgbouncer/pgbouncer.ini

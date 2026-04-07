@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Platform Ops | Stock-Py</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1', // Indigo
+                        surface: '#111827', // Gray 900
+                        background: '#030712' // Gray 950
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+        .metric-card {
+            background-color: var(--tw-colors-surface);
+            border: 1px solid #1f2937;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            transition: all 150ms ease;
+        }
+        .metric-card:hover {
+            border-color: #374151;
+        }
+    </style>
+</head>
+<body class="bg-background text-gray-100 flex h-screen antialiased overflow-hidden">
+    <!-- Slim Sidebar -->
+    <aside class="w-16 md:w-64 border-r border-gray-800 bg-gray-900 flex flex-col transition-all duration-300">
+        <div class="h-16 flex items-center justify-center md:justify-start md:px-6 border-b border-gray-800">
+            <i data-lucide="server" class="w-6 h-6 text-primary md:mr-3"></i>
+            <span class="hidden md:block font-bold truncate">Platform Ops</span>
+        </div>
+        <nav class="flex-1 overflow-y-auto py-4 space-y-2">
+            <a href="#" class="flex items-center justify-center md:justify-start px-0 md:px-4 py-3 text-white bg-gray-800/50 border-r-2 border-primary mx-2 rounded md:rounded-lg">
+                <i data-lucide="activity" class="w-5 h-5 md:mr-3"></i>
+                <span class="hidden md:block font-medium">Metrics</span>
+            </a>
+            <a href="#" class="flex items-center justify-center md:justify-start px-0 md:px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800/50 mx-2 rounded md:rounded-lg transition-colors">
+                <i data-lucide="database" class="w-5 h-5 md:mr-3"></i>
+                <span class="hidden md:block font-medium">Databases</span>
+            </a>
+            <a href="#" class="flex items-center justify-center md:justify-start px-0 md:px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800/50 mx-2 rounded md:rounded-lg transition-colors">
+                <i data-lucide="git-merge" class="w-5 h-5 md:mr-3"></i>
+                <span class="hidden md:block font-medium">Event Pipelines</span>
+            </a>
+            <a href="#" class="flex items-center justify-center md:justify-start px-0 md:px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800/50 mx-2 rounded md:rounded-lg transition-colors">
+                <i data-lucide="layers" class="w-5 h-5 md:mr-3"></i>
+                <span class="hidden md:block font-medium">Workers</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-y-auto">
+        <!-- Top Nav -->
+        <header class="h-16 border-b border-gray-800 bg-gray-900/50 backdrop-blur sticky top-0 z-10 flex items-center justify-between px-6">
+            <h1 class="text-xl font-semibold">Infrastructure Overview</h1>
+            <div class="flex items-center space-x-3">
+                <span class="flex h-3 w-3 relative">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <span class="text-sm font-medium text-emerald-400">All Systems Operational</span>
+            </div>
+        </header>
+
+        <!-- Content Grid -->
+        <div class="p-6 md:p-8 space-y-8 max-w-7xl mx-auto w-full">
+            
+            <!-- Quick Stats Row -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                <div class="metric-card">
+                    <p class="text-sm text-gray-400 font-medium">API Requests / sec</p>
+                    <p class="text-3xl font-bold mt-2 font-mono">2,451</p>
+                </div>
+                <div class="metric-card">
+                    <p class="text-sm text-gray-400 font-medium">P99 Latency</p>
+                    <p class="text-3xl font-bold mt-2 font-mono">42ms</p>
+                </div>
+                <div class="metric-card">
+                    <p class="text-sm text-gray-400 font-medium">Active Websockets</p>
+                    <p class="text-3xl font-bold mt-2 font-mono">14,302</p>
+                </div>
+                <div class="metric-card">
+                    <p class="text-sm text-gray-400 font-medium">Error Rate</p>
+                    <p class="text-3xl font-bold mt-2 font-mono text-emerald-400">0.01%</p>
+                </div>
+            </div>
+
+            <!-- Deep Dive Charts Area -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Workers Topology -->
+                <div class="metric-card h-96 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold">Worker Nodes</h2>
+                        <i data-lucide="hard-drive" class="text-gray-400"></i>
+                    </div>
+                    <div class="flex-1 bg-gray-800/30 rounded border border-gray-800 p-4 overflow-y-auto space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                                <span class="font-medium text-sm">market_data_ingest_1</span>
+                            </div>
+                            <span class="text-xs text-gray-400 font-mono">CPU: 14% | RAM: 2.1GB</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                                <span class="font-medium text-sm">backtest_engine_pool</span>
+                            </div>
+                            <span class="text-xs text-gray-400 font-mono">CPU: 88% | RAM: 14GB</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                <span class="font-medium text-sm">event_pipeline_consumer</span>
+                            </div>
+                            <span class="text-xs text-gray-400 font-mono">Lag: 450 msg</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Database Metrics -->
+                <div class="metric-card h-96 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold">ClickHouse & Cache</h2>
+                        <i data-lucide="database" class="text-gray-400"></i>
+                    </div>
+                    <div class="flex-1 flex flex-col justify-center items-center space-y-6">
+                        <div class="w-full max-w-sm space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-300">ClickHouse Storage</span>
+                                <span class="text-gray-400 font-mono">4.2 TB / 10 TB</span>
+                            </div>
+                            <div class="w-full bg-gray-800 rounded-full h-2">
+                                <div class="bg-primary h-2 rounded-full" style="width: 42%"></div>
+                            </div>
+                        </div>
+                        <div class="w-full max-w-sm space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-300">Redis Cache Hit Rate</span>
+                                <span class="text-emerald-400 font-mono">98.5%</span>
+                            </div>
+                            <div class="w-full bg-gray-800 rounded-full h-2">
+                                <div class="bg-emerald-500 h-2 rounded-full" style="width: 98.5%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -132,6 +132,42 @@
         ]
       }
     },
+    "/v1/admin-auth/logout": {
+      "post": {
+        "operationId": "logout_v1_admin_auth_logout_post",
+        "summary": "Logout",
+        "tags": [
+          "admin-auth"
+        ]
+      }
+    },
+    "/v1/admin-auth/refresh": {
+      "post": {
+        "operationId": "refresh_v1_admin_auth_refresh_post",
+        "summary": "Refresh",
+        "tags": [
+          "admin-auth"
+        ]
+      }
+    },
+    "/v1/admin-auth/send-code": {
+      "post": {
+        "operationId": "send_code_v1_admin_auth_send_code_post",
+        "summary": "Send Code",
+        "tags": [
+          "admin-auth"
+        ]
+      }
+    },
+    "/v1/admin-auth/verify": {
+      "post": {
+        "operationId": "verify_code_v1_admin_auth_verify_post",
+        "summary": "Verify Code",
+        "tags": [
+          "admin-auth"
+        ]
+      }
+    },
     "/v1/auth/logout": {
       "post": {
         "operationId": "logout_v1_auth_logout_post",

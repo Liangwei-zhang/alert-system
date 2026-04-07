@@ -44,6 +44,14 @@ def _render_page(
     )
 
 
+@router.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> FileResponse:
+    return FileResponse(
+        _ADMIN_FRONTEND_DIR / "favicon.ico",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
 @router.get("/app", response_class=HTMLResponse, include_in_schema=False)
 async def subscriber_page(
     public_api_base_url: str | None = Query(default=None),

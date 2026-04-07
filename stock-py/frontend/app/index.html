@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Trading App | Stock-Py</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        success: '#10b981',
+                        danger: '#ef4444',
+                        surface: '#1e293b',
+                        background: '#0f172a'
+                    },
+                    spacing: {
+                        '128': '32rem',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom Styles (UI/UX Pro Max Rules: Smooth Transitions, No outline without focus ring) -->
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .bento-card {
+            background-color: var(--tw-colors-surface);
+            border: 1px solid #334155;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: transform 200ms ease, box-shadow 200ms ease;
+        }
+        .bento-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+        .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+        }
+    </style>
+</head>
+<body class="bg-background text-slate-100 antialiased h-screen flex overflow-hidden">
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 border-r border-slate-800 bg-slate-900 flex flex-col hidden md:flex">
+        <div class="h-16 flex items-center px-6 border-b border-slate-800">
+            <i data-lucide="trending-up" class="w-6 h-6 text-primary mr-3"></i>
+            <span class="text-xl font-bold tracking-tight">StockApp</span>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+            <a href="#" class="touch-target flex items-center px-3 py-2 bg-slate-800 text-white rounded-lg group">
+                <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-primary"></i>
+                <span class="font-medium">Dashboard</span>
+            </a>
+            <a href="#" class="touch-target flex items-center px-3 py-2 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-lg transition-colors">
+                <i data-lucide="briefcase" class="w-5 h-5 mr-3 group-hover:text-slate-300"></i>
+                <span>Portfolio</span>
+            </a>
+            <a href="#" class="touch-target flex items-center px-3 py-2 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-lg transition-colors">
+                <i data-lucide="line-chart" class="w-5 h-5 mr-3"></i>
+                <span>Market Data</span>
+            </a>
+            <a href="#" class="touch-target flex items-center px-3 py-2 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-lg transition-colors">
+                <i data-lucide="zap" class="w-5 h-5 mr-3 text-yellow-500"></i>
+                <span>Signals & AI</span>
+            </a>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <button class="touch-target w-full flex items-center px-3 py-2 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-lg transition-colors">
+                <i data-lucide="settings" class="w-5 h-5 mr-3"></i>
+                <span>Settings</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden relative">
+        <!-- Top Header (Mobile Navbar + User Profile) -->
+        <header class="h-16 border-b border-slate-800 flex items-center justify-between px-4 sm:px-6">
+            <div class="md:hidden flex items-center">
+                <i data-lucide="menu" class="w-6 h-6 text-slate-400"></i>
+            </div>
+            <div class="flex-1"></div>
+            <div class="flex items-center space-x-4">
+                <button class="touch-target text-slate-400 hover:text-white relative">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span class="absolute top-2 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                <div class="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-sm font-bold shadow-lg cursor-pointer">
+                    N
+                </div>
+            </div>
+        </header>
+
+        <!-- Bento Grid Dashboard Dashboard -->
+        <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div class="max-w-7xl mx-auto space-y-6">
+                <!-- Page Title -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-bold">Portfolio Overview</h1>
+                        <p class="text-slate-400 mt-1">Your AI trading agents are active.</p>
+                    </div>
+                    <button class="touch-target inline-flex items-center px-4 py-2 bg-primary hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none focus:ring-offset-2 focus:ring-offset-slate-900 shadow-md">
+                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                        New Agent
+                    </button>
+                </div>
+
+                <!-- Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Balance Card -->
+                    <div class="bento-card col-span-1 lg:col-span-2 flex flex-col justify-between">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm text-slate-400 font-medium">Total Balance</p>
+                                <h2 class="text-4xl font-bold mt-2">$245,890.00</h2>
+                            </div>
+                            <div class="p-2 bg-emerald-500/10 rounded-lg">
+                                <i data-lucide="arrow-up-right" class="w-6 h-6 text-emerald-400"></i>
+                            </div>
+                        </div>
+                        <div class="mt-6 flex items-center text-sm">
+                            <span class="text-emerald-400 font-medium flex items-center"><i data-lucide="trending-up" class="w-4 h-4 mr-1"></i> +2.4%</span>
+                            <span class="text-slate-500 ml-2">Today ($5,840.12)</span>
+                        </div>
+                    </div>
+
+                    <!-- Market Status -->
+                    <div class="bento-card">
+                        <p class="text-sm text-slate-400 font-medium">Market Status (S&P 500)</p>
+                        <h2 class="text-2xl font-bold mt-2">5,123.41</h2>
+                        <div class=" mt-4 h-12 flex items-end space-x-1">
+                            <!-- Simulated mini chart -->
+                            <div class="w-full bg-slate-800 h-2 rounded-t"></div>
+                            <div class="w-full bg-slate-800 h-4 rounded-t"></div>
+                            <div class="w-full bg-primary h-6 rounded-t"></div>
+                            <div class="w-full bg-primary h-8 rounded-t"></div>
+                            <div class="w-full bg-success h-10 rounded-t"></div>
+                        </div>
+                    </div>
+
+                    <!-- AI Agents -->
+                    <div class="bento-card">
+                        <div class="flex justify-between items-start mb-2">
+                            <p class="text-sm text-slate-400 font-medium">Active Agents</p>
+                            <i data-lucide="cpu" class="w-5 h-5 text-purple-400"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold">3</h2>
+                        <div class="mt-4 space-y-2">
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-slate-300">Momentum-Alpha</span>
+                                <span class="text-emerald-400 font-medium">+1.2%</span>
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-slate-300">Mean-Revert-QQQ</span>
+                                <span class="text-slate-500 font-medium">0.0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Watchlist Table (Spans full width) -->
+                    <div class="bento-card col-span-1 md:grid-cols-2 lg:col-span-4 overflow-x-auto">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-lg">Watchlist & Signals</h3>
+                            <button class="text-sm text-primary hover:text-blue-400 font-medium">View All</button>
+                        </div>
+                        <table class="min-w-full text-left text-sm">
+                            <thead>
+                                <tr class="text-slate-400 border-b border-slate-700/50">
+                                    <th class="pb-3 font-medium">Symbol</th>
+                                    <th class="pb-3 font-medium">Price</th>
+                                    <th class="pb-3 font-medium">24h Change</th>
+                                    <th class="pb-3 font-medium">AI Signal</th>
+                                    <th class="pb-3 font-medium text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/50">
+                                <tr>
+                                    <td class="py-4 font-bold">NVDA</td>
+                                    <td class="py-4">$875.28</td>
+                                    <td class="py-4 text-emerald-400">+4.28%</td>
+                                    <td class="py-4"><span class="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider">Strong Buy</span></td>
+                                    <td class="py-4 text-right">
+                                        <button class="touch-target text-slate-400 hover:text-white"><i data-lucide="more-horizontal" class="w-5 h-5 inline"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="py-4 font-bold">MSFT</td>
+                                    <td class="py-4">$412.30</td>
+                                    <td class="py-4 text-emerald-400">+1.15%</td>
+                                    <td class="py-4"><span class="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider">Hold</span></td>
+                                    <td class="py-4 text-right">
+                                        <button class="touch-target text-slate-400 hover:text-white"><i data-lucide="more-horizontal" class="w-5 h-5 inline"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="py-4 font-bold">TSLA</td>
+                                    <td class="py-4">$175.22</td>
+                                    <td class="py-4 text-red-400">-2.40%</td>
+                                    <td class="py-4"><span class="px-2 py-1 rounded bg-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider">Sell</span></td>
+                                    <td class="py-4 text-right">
+                                        <button class="touch-target text-slate-400 hover:text-white"><i data-lucide="more-horizontal" class="w-5 h-5 inline"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

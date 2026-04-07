@@ -27,6 +27,10 @@ class LogoutResponse(BaseModel):
     message: str
 
 
+class LogoutRequest(BaseModel):
+    refresh_token: str | None = None
+
+
 class AuthUserResponse(BaseModel):
     id: int
     email: EmailStr
@@ -41,3 +45,12 @@ class AuthSessionResponse(BaseModel):
     access_token: str
     refresh_token: str
     user: AuthUserResponse
+
+
+class AdminAuthContextResponse(BaseModel):
+    role: str
+    scopes: list[str] = Field(default_factory=list)
+
+
+class AdminAuthSessionResponse(AuthSessionResponse):
+    admin: AdminAuthContextResponse

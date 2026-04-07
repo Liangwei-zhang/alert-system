@@ -1,0 +1,38 @@
+<LONG LINE HIDDEN>
+
+admin-api-1  | {"timestamp": "2026-04-07T21:50:03.309851+00:00", "level": "INFO", "logger": "uvicorn.access", "message": "172.25.0.1:45376 - \"GET /v1/admin/backtests/runs?limit=25 HTTP/1.1\" 500"}
+<LONG LINE HIDDEN>
+
+admin-api-1  | {"timestamp": "2026-04-07T21:50:03.324565+00:00", "level": "INFO", "logger": "uvicorn.access", "message": "172.25.0.1:45378 - \"OPTIONS /v1/admin/acceptance/status HTTP/1.1\" 200"}
+<LONG LINE HIDDEN>
+
+<LONG LINE HIDDEN>
+
+<LONG LINE HIDDEN>
+
+<LONG LINE HIDDEN>
+
+<LONG LINE HIDDEN>
+
+<LONG LINE HIDDEN>
+
+<LONG LINE HIDDEN>
+
+admin-api-1  | {"timestamp": "2026-04-07T21:50:03.371251+00:00", "level": "INFO", "logger": "uvicorn.access", "message": "172.25.0.1:45378 - \"GET /v1/admin/acceptance/status HTTP/1.1\" 500"}
+<LONG LINE HIDDEN>
+
+<LONG LINE HIDDEN>
+
+admin-api-1  | {"timestamp": "2026-04-07T21:50:16.302076+00:00", "level": "INFO", "logger": "uvicorn.access", "message": "127.0.0.1:41058 - \"GET /health/ready HTTP/1.1\" 200"}
+<LONG LINE HIDDEN>
+
+admin-api-1  | {"timestamp": "2026-04-07T21:50:31.430003+00:00", "level": "INFO", "logger": "uvicorn.access", "message": "127.0.0.1:52778 - \"GET /health/ready HTTP/1.1\" 200"}
+<LONG LINE HIDDEN>
+
+admin-api-1  | {"timestamp": "2026-04-07T21:50:49.472590+00:00", "level": "INFO", "logger": "uvicorn.access", "message": "127.0.0.1:33766 - \"GET /health/ready HTTP/1.1\" 200"}
+<LONG LINE HIDDEN>
+
+admin-api-1  | {"timestamp": "2026-04-07T21:51:04.661163+00:00", "level": "INFO", "logger": "uvicorn.access", "message": "127.0.0.1:34482 - \"GET /health/ready HTTP/1.1\" 200"}
+<LONG LINE HIDDEN>
+
+admin-api-1  | {"timestamp": "2026-04-07T21:51:19.776959+00:00", "level": "INFO", "logger": "uvicorn.access", "message": "127.0.0.1:38234 - \"GET /health/ready HTTP/1.1\" 200"}

@@ -981,6 +981,9 @@
     function mountApiConsole() {
         const root = document.getElementById("page-content");
         if (!root || document.getElementById("admin-api-console")) return;
+        
+        // Only mount on the dedicated API page
+        if (document.body.getAttribute("data-page") !== "api") return;
 
         const endpointOptions = ALL_ENDPOINTS
             .slice()
@@ -992,9 +995,7 @@
         panel.innerHTML = `
             <div class="panel__header">
                 <div>
-                    <div class="panel__eyebrow">全量 API 控制台</div>
                     <h3 class="panel__title">执行任意管理端接口</h3>
-                    <p class="panel__copy">该控制台开放当前全部 /v1/admin 路由，支持方法、路径参数、查询参数与请求体 JSON 控制。</p>
                 </div>
                 <div class="panel__toolbar">
                     <span class="endpoint-badge">覆盖：${ALL_ENDPOINTS.length} 个端点</span>

@@ -97,9 +97,9 @@ make run-admin-api
 
 如果你是走 compose / nginx，直接開同一個 host：
 
-- `/app`：subscriber 登入、資產、通知、watchlist / portfolio intake
-- `/platform`：symbol search、trade lookup、研究台入口
-- `/admin`：analytics、acceptance、runtime 指標與告警
+- `/app`：subscriber 郵箱驗證碼登入、本地離線草稿、訂閱股票 / 已持倉股票 / 現金錄入，以及單次 `开始订阅` 同步
+- `/platform`：symbol search、shared watchlist / portfolio 維護、trade lookup 與 app trade execution
+- `/admin`：admin 登入、operators、manual distribution、task center、users、audit、scanner、backtests、analytics、acceptance、runtime 指標與告警
 
 如果你直接開 public API 而不是經過 nginx，也可以在 query string 預先指定 API base URL：
 
@@ -108,7 +108,7 @@ http://localhost:8000/app?admin_api_base_url=http://localhost:8001
 http://localhost:8000/admin?admin_api_base_url=http://localhost:8001
 ```
 
-`/admin` 目前仍需要手動貼上 admin bearer token，因為後端還沒有獨立的 admin login route。
+`/admin` 現在已支持 active admin operator 的郵箱驗證碼登入；若你是在排查代理 / nginx / token 問題，也仍可手動貼上 bearer token 覆蓋當前 admin session。
 
 ## QA 驗證
 

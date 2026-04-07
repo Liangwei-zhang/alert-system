@@ -10,6 +10,7 @@ from fastapi.responses import PlainTextResponse
 
 from apps.public_api.routers import (
     account,
+    admin_auth,
     auth,
     monitoring,
     notifications,
@@ -112,6 +113,7 @@ app.include_router(health_router)
 app.include_router(ui.router)
 app.include_router(monitoring.router)
 app.include_router(auth.router, prefix="/v1")
+app.include_router(admin_auth.router, prefix="/v1")
 app.include_router(account.router, prefix="/v1")
 app.include_router(watchlist.router, prefix="/v1")
 app.include_router(portfolio.router, prefix="/v1")

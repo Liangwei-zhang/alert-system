@@ -56,6 +56,12 @@
                 { label: "Trigger refresh", endpoint: "POST /v1/admin/backtests/runs", icon: "flask-conical" },
                 { label: "Reconcile delayed", endpoint: "POST /v1/admin/tradingagents/reconcile-delayed", icon: "bot" }
             ]
+        },
+        api: {
+            title: "全量 API 控制台",
+            eyebrow: "API Explorer",
+            copy: "执行任意管理端接口",
+            ctas: []
         }
     };
 
@@ -63,22 +69,13 @@
         {
             label: "Command",
             items: [
-                { page: "dashboard", title: "Overview", href: "index.html", icon: "layout-dashboard", hint: "Route matrix and risk board" },
-                { page: "people", title: "People desk", href: "people.html", icon: "users", hint: "Users, plans, operators" },
-                { page: "communications", title: "Delivery ops", href: "communications.html", icon: "send", hint: "Campaigns, receipts, trade tasks" }
-            ]
-        },
-        {
-            label: "Signals",
-            items: [
-                { page: "intelligence", title: "Intelligence", href: "intelligence.html", icon: "activity", hint: "Analytics, scanner, anomalies" },
-                { page: "experiments", title: "Experiments", href: "experiments.html", icon: "flask-conical", hint: "Backtests and AI recovery" }
-            ]
-        },
-        {
-            label: "Governance",
-            items: [
-                { page: "runtime", title: "Runtime & audit", href: "runtime.html", icon: "shield-alert", hint: "Health, alerts, readiness" }
+                { page: "dashboard", title: "Overview", href: "index.html", icon: "layout-dashboard" },
+                { page: "people", title: "People desk", href: "people.html", icon: "users" },
+                { page: "communications", title: "Delivery ops", href: "communications.html", icon: "send" },
+                { page: "intelligence", title: "Intelligence", href: "intelligence.html", icon: "activity" },
+                { page: "experiments", title: "Experiments", href: "experiments.html", icon: "flask-conical" },
+                { page: "runtime", title: "Runtime & audit", href: "runtime.html", icon: "shield-alert" },
+                { page: "api", title: "API Console", href: "api.html", icon: "terminal" }
             ]
         }
     ];
@@ -228,18 +225,19 @@
             </div>
             ${navigation.map((group) => `
                 <section>
-                    <div class="sidebar__group-label">${escapeHtml(group.label)}</div>
                     <div class="nav-list">
-                        ${group.items.map((item) => `
-                            <a class="nav-link ${item.page === state.page ? "is-active" : ""}" href="${item.href}">
-                                <span>${icon(item.icon)}</span>
-                                <span class="nav-link__meta">
+                        ${group.items.map((item) => {
+                            const isActive = item.page === state.page;
+                            return `
+                            <div class="${isActive ? 'nav-item-container is-active' : 'nav-item-container'}">
+                                <a class="nav-link ${isActive ? "is-active" : ""}" href="${item.href}">
+                                    <span>${icon(item.icon)}</span>
                                     <span class="nav-link__label">${escapeHtml(item.title)}</span>
-                                    <span class="nav-link__hint">${escapeHtml(item.hint)}</span>
-                                </span>
-                            </a>
-                            ${item.page === state.page ? `<div id="sidebar-submenu-host" class="sidebar-submenu"><div class="sidebar-submenu__empty">正在加载二级菜单...</div></div>` : ""}
-                        `).join("")}
+                                </a>
+                                ${isActive ? `<div id="sidebar-submenu-host" class="sidebar-submenu"><div class="sidebar-submenu__empty">正在加载二级菜单...</div></div>` : ""}
+                            </div>
+                            `;
+                        }).join("")}
                     </div>
                 </section>
             `).join("")}
@@ -277,7 +275,6 @@
         container.innerHTML = `
             <div class="topbar__cluster">
                 <div>
-                    <div class="sidebar__eyebrow">Admin workspace</div>
                     <h2>${escapeHtml(page.title)}</h2>
                 </div>
             </div>
@@ -287,9 +284,6 @@
                 <button id="topbar-endpoint-search-btn" class="btn btn--ghost btn--compact" type="button">筛选 API</button>
             </div>
             <div class="topbar__actions">
-                <span class="badge badge--build">UI版本 ${escapeHtml(ADMIN_UI_BUILD)}</span>
-                <span class="badge">Demo data mode</span>
-                <button class="btn btn--secondary" data-demo-action="Preview auth flow" data-demo-copy="This frontend is ready to swap demo data for real bearer-token based fetch calls.">Connect live API</button>
             </div>
         `;
     }
@@ -298,9 +292,7 @@
         const page = pages[state.page];
         return `
             <section class="hero">
-                <div class="hero__eyebrow">${escapeHtml(page.eyebrow)}</div>
                 <h1 class="hero__title">${escapeHtml(page.title)}</h1>
-                <p class="hero__copy">${escapeHtml(page.copy)}</p>
                 <div class="hero__meta">
                     ${page.ctas.map((cta) => {
                         const attrs = cta.href
@@ -336,9 +328,7 @@
         return `
             <div class="panel__header">
                 <div>
-                    <div class="panel__eyebrow">${escapeHtml(eyebrow)}</div>
                     <h3 class="panel__title">${escapeHtml(title)}</h3>
-                    <p class="panel__copy">${escapeHtml(copy)}</p>
                 </div>
                 ${toolbarHtml ? `<div class="panel__toolbar">${toolbarHtml}</div>` : ""}
             </div>
@@ -354,7 +344,6 @@
                     </div>
                     <span class="chip chip--brand">${escapeHtml(item.tag)}</span>
                 </div>
-                <div class="route-card__copy">${escapeHtml(item.copy)}</div>
                 <div class="alert-item__meta">
                     <span class="endpoint-badge">${escapeHtml(item.endpoint)}</span>
                 </div>
@@ -488,46 +477,15 @@
     }
 
     function buildSubnavMarkup(modules) {
-        const order = ["综合概览", "监控查询", "执行操作", "读写协同"];
-        const grouped = new Map();
-
-        modules.forEach((item) => {
-            if (!grouped.has(item.functionType)) {
-                grouped.set(item.functionType, []);
-            }
-            grouped.get(item.functionType).push(item);
-        });
-
-        const orderedGroups = [
-            ...order.filter((key) => grouped.has(key)).map((key) => ({ key, items: grouped.get(key) })),
-            ...[...grouped.keys()]
-                .filter((key) => !order.includes(key))
-                .map((key) => ({ key, items: grouped.get(key) })),
-        ];
-
+        if (!modules || modules.length === 0) return "";
         return `
-            <div class="sidebar-submenu__header">
-                <span class="sidebar-submenu__title">二级菜单</span>
-                <span class="sidebar-submenu__hint">模块导航</span>
-            </div>
-            <div class="sidebar-submenu__groups">
-                ${orderedGroups
+            <div class="sidebar-submenu__items">
+                ${modules
                     .map(
-                        (group) => `
-                            <section class="sidebar-submenu__group">
-                                <div class="sidebar-submenu__group-label">${escapeHtml(group.key)}</div>
-                                <div class="sidebar-submenu__items">
-                                    ${group.items
-                                        .map(
-                                            (item) => `
-                                                <button type="button" class="sidebar-submenu__item" data-module-target="${escapeHtml(item.id)}">
-                                                    ${escapeHtml(item.title)}
-                                                </button>
-                                            `
-                                        )
-                                        .join("")}
-                                </div>
-                            </section>
+                        (item) => `
+                            <button type="button" class="sidebar-submenu__item" data-module-target="${escapeHtml(item.id)}">
+                                ${escapeHtml(item.title)}
+                            </button>
                         `
                     )
                     .join("")}

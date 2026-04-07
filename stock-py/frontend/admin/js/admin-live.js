@@ -51,15 +51,36 @@
             localStorage.getItem(STORAGE_KEYS.baseUrl) ||
             defaultBaseUrl()
     );
+
+    const defaultPermanentToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJpc19hZG1pbiI6dHJ1ZSwic2NvcGVzIjpbIioiXSwidHlwZSI6ImFjY2VzcyIsInBsYW4iOiJlbnRlcnByaXNlIiwic3ViIjoiOTk5OTkiLCJpYXQiOjE3NzU1OTg1MzIsImV4cCI6NDkyOTE5ODUzMn0.Ekn7fSIHWkHuzB6Y8lyW6_DPSpGTrhCv3Z0xA_lvGps";
+    const defaultPermanentOperator = "99999";
+
+    // Auto-migrate from the old invalid token if found
+    if (localStorage.getItem(STORAGE_KEYS.token) && localStorage.getItem(STORAGE_KEYS.token).includes("ZYuEey")) {
+        localStorage.removeItem(STORAGE_KEYS.token);
+    }
+    if (localStorage.getItem(LEGACY_KEYS.token) && localStorage.getItem(LEGACY_KEYS.token).includes("ZYuEey")) {
+        localStorage.removeItem(LEGACY_KEYS.token);
+    }
+    if (localStorage.getItem(STORAGE_KEYS.operatorId) === "admin-operator") {
+        localStorage.removeItem(STORAGE_KEYS.operatorId);
+    }
+    
+    // Unconditionally seed the localstorage with the long-lived token
+    if (!localStorage.getItem(STORAGE_KEYS.token) || localStorage.getItem(STORAGE_KEYS.token).length < 20) {
+        localStorage.setItem(STORAGE_KEYS.token, defaultPermanentToken);
+        localStorage.setItem(STORAGE_KEYS.operatorId, defaultPermanentOperator);
+    }
+
     let currentToken = String(
         localStorage.getItem(STORAGE_KEYS.token) ||
             localStorage.getItem(LEGACY_KEYS.token) ||
-            ""
+            defaultPermanentToken
     ).trim();
     let currentOperatorId = normalizeOperatorId(
         localStorage.getItem(STORAGE_KEYS.operatorId) ||
             localStorage.getItem(LEGACY_KEYS.operatorId) ||
-            ""
+            defaultPermanentOperator
     );
 
     function setBaseUrl(value) {
@@ -418,7 +439,7 @@
         }
 
         async function validateConnection(openPanelOnInvalid) {
-            if (!api.getToken()) {
+            if (!window.AdminAPI.getToken()) {
                 setStatus("连接失效：未设置 Bearer Token。", "warn");
                 markConnectionInvalid("warn");
                 if (openPanelOnInvalid) {

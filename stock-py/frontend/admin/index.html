@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理控制台 | Stock-Py</title>
+    <meta name="description" content="Stock-Py 管理端控制台，覆盖 users、operators、tasks、analytics、runtime、backtests 与 audit 的前端展示。">
+    <link rel="stylesheet" href="./css/admin.css">
+</head>
+<body data-page="dashboard">
+    <div class="app-shell">
+        <aside id="sidebar"></aside>
+        <div class="main-shell">
+            <header id="topbar"></header>
+            <div id="mobile-nav"></div>
+            <main id="page-content"></main>
+        </div>
+    </div>
+    <div id="toast-stack" class="toast-stack"></div>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="./js/admin-live.js"></script>
+    <script src="./js/api-maps.js"></script>
+    <script src="./js/admin-data.js"></script>
+    <script src="./js/admin-app.js"></script>
+    <script src="./js/admin-zh.js"></script>
+</body>
+</html>

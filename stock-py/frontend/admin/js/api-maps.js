@@ -8,6 +8,7 @@
         "symbols",
         "strategy_names",
         "channels",
+        "emails",
         "outbox_ids",
         "trade_ids"
     ]);

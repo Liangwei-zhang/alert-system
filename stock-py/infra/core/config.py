@@ -6,24 +6,30 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import AliasChoices, Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+
+
+def resolve_file_backed_env_value(field: Any, field_name: str) -> str | None:
+    aliases = list(getattr(getattr(field, "validation_alias", None), "choices", []))
+    aliases.append(field_name.upper())
+    seen: set[str] = set()
+    for alias in aliases:
+        env_key = str(alias).strip()
+        if not env_key or env_key in seen:
+            continue
+        seen.add(env_key)
+        file_path = os.getenv(f"{env_key}_FILE")
+        if not file_path:
+            continue
+        return Path(file_path).read_text(encoding="utf-8").strip()
+    return None
 
 
 class FileBackedEnvSettingsSource(PydanticBaseSettingsSource):
     def get_field_value(self, field, field_name: str) -> tuple[Any, str, bool]:
-        aliases = list(getattr(getattr(field, "validation_alias", None), "choices", []))
-        aliases.append(field_name.upper())
-        seen: set[str] = set()
-        for alias in aliases:
-            env_key = str(alias).strip()
-            if not env_key or env_key in seen:
-                continue
-            seen.add(env_key)
-            file_path = os.getenv(f"{env_key}_FILE")
-            if not file_path:
-                continue
-            payload = Path(file_path).read_text(encoding="utf-8").strip()
+        payload = resolve_file_backed_env_value(field, field_name)
+        if payload is not None:
             return payload, field_name, False
         return None, field_name, False
 
@@ -59,11 +65,23 @@ class Settings(BaseSettings):
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         return (
             init_settings,
-            FileBackedEnvSettingsSource(settings_cls),
             env_settings,
             dotenv_settings,
             file_secret_settings,
+            FileBackedEnvSettingsSource(settings_cls),
         )
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def prefer_file_backed_env(cls, value: Any, info: ValidationInfo) -> Any:
+        field_name = getattr(info, "field_name", None)
+        if not field_name:
+            return value
+        field = cls.model_fields.get(field_name)
+        if field is None:
+            return value
+        override = resolve_file_backed_env_value(field, field_name)
+        return override if override is not None else value
 
     project_name: str = Field(
         default="StockPy API",

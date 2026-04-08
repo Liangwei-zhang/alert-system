@@ -53,7 +53,8 @@
     );
 
     const defaultPermanentToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJpc19hZG1pbiI6dHJ1ZSwic2NvcGVzIjpbIioiXSwidHlwZSI6ImFjY2VzcyIsInBsYW4iOiJlbnRlcnByaXNlIiwic3ViIjoiOTk5OTkiLCJpYXQiOjE3NzU1OTg1MzIsImV4cCI6NDkyOTE5ODUzMn0.Ekn7fSIHWkHuzB6Y8lyW6_DPSpGTrhCv3Z0xA_lvGps";
-    const defaultPermanentOperator = "99999";
+    const defaultPermanentOperator = "2";
+    const invalidLegacyOperatorIds = new Set(["admin-operator", "99999"]);
 
     // Auto-migrate from the old invalid token if found
     if (localStorage.getItem(STORAGE_KEYS.token) && localStorage.getItem(STORAGE_KEYS.token).includes("ZYuEey")) {
@@ -62,13 +63,18 @@
     if (localStorage.getItem(LEGACY_KEYS.token) && localStorage.getItem(LEGACY_KEYS.token).includes("ZYuEey")) {
         localStorage.removeItem(LEGACY_KEYS.token);
     }
-    if (localStorage.getItem(STORAGE_KEYS.operatorId) === "admin-operator") {
+    if (invalidLegacyOperatorIds.has(normalizeOperatorId(localStorage.getItem(STORAGE_KEYS.operatorId)))) {
         localStorage.removeItem(STORAGE_KEYS.operatorId);
     }
+    if (invalidLegacyOperatorIds.has(normalizeOperatorId(localStorage.getItem(LEGACY_KEYS.operatorId)))) {
+        localStorage.removeItem(LEGACY_KEYS.operatorId);
+    }
     
-    // Unconditionally seed the localstorage with the long-lived token
+    // Seed the local storage with a known-good admin token and active operator id.
     if (!localStorage.getItem(STORAGE_KEYS.token) || localStorage.getItem(STORAGE_KEYS.token).length < 20) {
         localStorage.setItem(STORAGE_KEYS.token, defaultPermanentToken);
+    }
+    if (!normalizeOperatorId(localStorage.getItem(STORAGE_KEYS.operatorId))) {
         localStorage.setItem(STORAGE_KEYS.operatorId, defaultPermanentOperator);
     }
 

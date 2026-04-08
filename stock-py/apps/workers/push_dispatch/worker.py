@@ -5,6 +5,7 @@ import json
 import logging
 from typing import Any
 
+from infra.security.webpush import load_vapid_private_key
 from infra.observability.runtime_monitoring import run_runtime_monitored
 
 logger = logging.getLogger(__name__)
@@ -205,7 +206,7 @@ class PushDispatchWorker:
                         "metadata": payload.get("metadata") or {},
                     }
                 ),
-                vapid_private_key=settings.web_push_private_key,
+                vapid_private_key=load_vapid_private_key(settings.web_push_private_key),
                 vapid_claims={"sub": settings.web_push_subject},
             )
         except WebPushException as exc:

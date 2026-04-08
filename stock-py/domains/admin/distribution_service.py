@@ -46,7 +46,8 @@ class ManualDistributionService:
         *,
         operator_user_id: int,
         context: RequestContext,
-        user_ids: list[int],
+        user_ids: list[int] | None = None,
+        emails: list[str] | None = None,
         title: str,
         body: str,
         channels: list[str],
@@ -55,7 +56,14 @@ class ManualDistributionService:
         ack_deadline_at: datetime | None,
         metadata: dict[str, Any] | None = None,
     ) -> ManualDistributionResult:
-        normalized_user_ids = self._normalize_user_ids(user_ids)
+        all_user_ids = list(user_ids or [])
+        if emails:
+            for email in emails:
+                user = await self.user_repository.get_by_email(email)
+                if user:
+                    all_user_ids.append(user.id)
+                    
+        normalized_user_ids = self._normalize_user_ids(all_user_ids)
         rows = await self.user_repository.list_admin_users_by_ids(normalized_user_ids)
         resolved_user_ids = [int(user.id) for user, _account in rows]
         resolved_lookup = set(resolved_user_ids)

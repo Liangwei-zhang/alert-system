@@ -56,6 +56,12 @@ class PushDeviceResponse(BaseModel):
     created_at: datetime
 
 
+class PushConfigResponse(BaseModel):
+    enabled: bool
+    public_key: str | None = None
+    subject: str | None = None
+
+
 class NotificationCommandResponse(BaseModel):
     message: str
 

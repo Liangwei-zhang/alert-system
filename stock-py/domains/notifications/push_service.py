@@ -11,6 +11,7 @@ from domains.notifications.schemas import (
 from infra.cache.push_devices_cache import schedule_invalidate_push_devices
 from infra.core.config import get_settings
 from infra.core.errors import AppError
+from infra.security.webpush import load_vapid_private_key
 
 
 class PushSubscriptionService:
@@ -96,7 +97,7 @@ class PushSubscriptionService:
                         "tag": f"push-test-{device.device_id}",
                     }
                 ),
-                vapid_private_key=settings.web_push_private_key,
+                vapid_private_key=load_vapid_private_key(settings.web_push_private_key),
                 vapid_claims={"sub": settings.web_push_subject},
             )
         except WebPushException as exc:

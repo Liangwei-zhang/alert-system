@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domains.admin.distribution_service import ManualDistributionService
@@ -19,7 +19,8 @@ _ALLOWED_CHANNELS = {"email", "push"}
 
 
 class ManualDistributionRequest(BaseModel):
-    user_ids: list[int] = Field(min_length=1, max_length=500)
+    user_ids: list[int] | None = Field(default=None, max_length=500)
+    emails: list[str] | None = Field(default=None, max_length=500)
     title: str = Field(min_length=1, max_length=200)
     body: str = Field(min_length=1, max_length=5000)
     channels: list[str] = Field(min_length=1, max_length=10)
@@ -27,6 +28,61 @@ class ManualDistributionRequest(BaseModel):
     ack_required: bool = False
     ack_deadline_at: datetime | None = None
     metadata: dict[str, Any] | None = None
+
+    @staticmethod
+    def _split_list_input(value: Any) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        if isinstance(value, (list, tuple, set)):
+            items: list[str] = []
+            for raw_item in value:
+                if raw_item is None:
+                    continue
+                if isinstance(raw_item, str):
+                    items.extend(item.strip() for item in raw_item.split(",") if item.strip())
+                else:
+                    rendered = str(raw_item).strip()
+                    if rendered:
+                        items.append(rendered)
+            return items
+        rendered = str(value).strip()
+        return [rendered] if rendered else []
+
+    @field_validator("user_ids", mode="before")
+    @classmethod
+    def _normalize_user_ids(cls, value: Any) -> list[int] | None:
+        items = cls._split_list_input(value)
+        if not items:
+            return None
+        return [int(item) for item in items]
+
+    @field_validator("emails", mode="before")
+    @classmethod
+    def _normalize_emails(cls, value: Any) -> list[str] | None:
+        items = [item.lower() for item in cls._split_list_input(value)]
+        return items or None
+
+    @field_validator("channels", mode="before")
+    @classmethod
+    def _normalize_channels(cls, value: Any) -> list[str]:
+        return [item.lower() for item in cls._split_list_input(value)]
+
+    @field_validator("ack_deadline_at", mode="before")
+    @classmethod
+    def _normalize_ack_deadline_at(cls, value: Any) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @model_validator(mode="after")
+    def _validate_recipients(self) -> "ManualDistributionRequest":
+        if not self.user_ids and not self.emails:
+            raise ValueError("Either user_ids or emails must be provided")
+        return self
 
 
 class ManualDistributionResponse(BaseModel):
@@ -103,6 +159,7 @@ async def create_manual_message(
         operator_user_id=operator_user_id,
         context=context,
         user_ids=request.user_ids,
+        emails=request.emails,
         title=request.title,
         body=request.body,
         channels=channels,

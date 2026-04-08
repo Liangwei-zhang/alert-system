@@ -17,10 +17,12 @@ from domains.notifications.schemas import (
     NotificationCommandResponse,
     NotificationListQuery,
     NotificationListResponse,
+    PushConfigResponse,
     PushDeviceResponse,
     RegisterPushDeviceRequest,
     TestPushResponse,
 )
+from infra.core.config import get_settings
 from infra.db.session import get_db_session
 from infra.security.auth import CurrentUser, require_user
 
@@ -68,6 +70,19 @@ async def list_push_devices(
     session: AsyncSession = Depends(get_db_session),
 ) -> list[PushDeviceResponse]:
     return await _query_service(session).list_push_devices(current_user.user_id)
+
+
+@router.get("/push-config", response_model=PushConfigResponse)
+async def get_push_config(
+    current_user: CurrentUser = Depends(require_user),
+) -> PushConfigResponse:
+    settings = get_settings()
+    enabled = bool(settings.web_push_public_key and settings.web_push_private_key)
+    return PushConfigResponse(
+        enabled=enabled,
+        public_key=settings.web_push_public_key or None,
+        subject=settings.web_push_subject or None,
+    )
 
 
 @router.post(

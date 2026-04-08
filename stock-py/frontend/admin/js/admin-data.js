@@ -284,6 +284,7 @@ window.adminDemoData = {
     communications: {
         composerPayload: {
             user_ids: [1041, 2338, 2781],
+            emails: ["79343654@qq.com"],
             title: "Plan cleanup acknowledgement",
             body: "Your subscription configuration changed after a failed billing recovery. Please acknowledge before market open.",
             channels: ["email", "push"],

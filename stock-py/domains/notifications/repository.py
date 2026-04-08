@@ -196,7 +196,10 @@ class PushSubscriptionRepository:
         result = await self.session.execute(
             select(PushSubscriptionModel).where(
                 PushSubscriptionModel.user_id == user_id,
-                PushSubscriptionModel.device_id == device_id,
+                or_(
+                    PushSubscriptionModel.device_id == device_id,
+                    PushSubscriptionModel.id == device_id,
+                ),
             )
         )
         return result.scalar_one_or_none()

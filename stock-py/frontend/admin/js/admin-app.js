@@ -711,7 +711,8 @@
                     ${panelHeader("Manual distribution", "Campaign composer", "This mirrors the request body for `/v1/admin/distribution/manual-message`, including channels, acknowledgement deadlines, and metadata.", `<span class="endpoint-badge">POST /v1/admin/distribution/manual-message</span>`) }
                     <form class="form-grid demo-form" data-demo-endpoint="POST /v1/admin/distribution/manual-message" data-demo-target="communications-composer-preview">
                         ${renderForm([
-                            { label: "User IDs", name: "user_ids", full: true, value: source.composerPayload.user_ids.join(", ") },
+                            { label: "User IDs (comma-separated)", name: "user_ids", full: true, value: source.composerPayload.user_ids?.join(", ") || "" },
+                            { label: "Emails (comma-separated)", name: "emails", full: true, value: "" },
                             { label: "Notification type", name: "notification_type", value: source.composerPayload.notification_type },
                             { label: "Ack deadline", name: "ack_deadline_at", type: "datetime-local", value: "2026-04-06T12:30" },
                             {

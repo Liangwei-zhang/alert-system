@@ -283,7 +283,7 @@ select:focus-visible {
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
-    padding: 1.2rem 1.6rem 1rem;
+    padding: 1.1rem 1.6rem;
     background: linear-gradient(180deg, rgba(252, 248, 241, 0.9), rgba(252, 248, 241, 0.74));
     backdrop-filter: blur(18px);
     border-bottom: 1px solid rgba(20, 37, 62, 0.08);
@@ -296,8 +296,11 @@ select:focus-visible {
 }
 
 .topbar__cluster h2 {
-    font-size: clamp(1.65rem, 1vw, 2.1rem);
-    line-height: 1.15;
+    font-size: clamp(1.4rem, 1vw, 2.1rem);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    margin: 0;
 }
 
 .topbar__search {

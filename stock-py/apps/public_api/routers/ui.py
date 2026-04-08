@@ -12,6 +12,19 @@ router = APIRouter(tags=["ui"])
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _ADMIN_FRONTEND_DIR = _REPO_ROOT / "frontend" / "admin"
+_APP_FRONTEND_DIR = _REPO_ROOT / "frontend" / "app"
+
+
+def _resolve_app_asset(asset_path: str) -> Path:
+    requested = (asset_path or "index.html").lstrip("/")
+    candidate = (_APP_FRONTEND_DIR / requested).resolve()
+    try:
+        candidate.relative_to(_APP_FRONTEND_DIR)
+    except ValueError:
+        raise FileNotFoundError(requested)
+    if not candidate.is_file():
+        raise FileNotFoundError(requested)
+    return candidate
 
 
 def _resolve_admin_asset(asset_path: str) -> Path:
@@ -52,17 +65,43 @@ async def favicon() -> FileResponse:
     )
 
 
-@router.get("/app", response_class=HTMLResponse, include_in_schema=False)
-async def subscriber_page(
+@router.get("/app", include_in_schema=False)
+async def subscriber_page_redirect(
     public_api_base_url: str | None = Query(default=None),
     admin_api_base_url: str | None = Query(default=None),
-) -> HTMLResponse:
-    return _render_page(
-        surface="app",
-        public_api_base_url=public_api_base_url,
-        admin_api_base_url=admin_api_base_url,
+) -> RedirectResponse:
+    query = []
+    if public_api_base_url:
+        query.append(f"public_api_base_url={public_api_base_url}")
+    if admin_api_base_url:
+        query.append(f"admin_api_base_url={admin_api_base_url}")
+    suffix = f"?{'&'.join(query)}" if query else ""
+    return RedirectResponse(url=f"/app/{suffix}", status_code=307)
+
+
+@router.get("/app/", include_in_schema=False)
+async def app_page_index() -> FileResponse:
+    index_path = _resolve_app_asset("index.html")
+    return FileResponse(
+        index_path,
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
     )
 
+
+@router.get("/app/{asset_path:path}", include_in_schema=False)
+async def app_page_assets(asset_path: str) -> FileResponse:
+    try:
+        file_path = _resolve_app_asset(asset_path)
+        return FileResponse(
+            file_path,
+            headers={"Cache-Control": "no-store, no-cache, must-revalidate"}
+        )
+    except FileNotFoundError:
+        # Fallback to index if navigating via single page app routing
+        return FileResponse(
+            _resolve_app_asset("index.html"),
+            headers={"Cache-Control": "no-store, no-cache, must-revalidate"}
+        )
 
 @router.get("/platform", response_class=HTMLResponse, include_in_schema=False)
 async def platform_page(

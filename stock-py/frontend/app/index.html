@@ -4,20 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Alpha 极简智投</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: { 
-                        brand: '#0f172a', // Slate 900
-                        accent: '#2563eb' // Blue 500 for crisp highlights
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Production Tailwind CSS bundle -->
+    <link rel="stylesheet" href="./tailwind.generated.css">
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
@@ -33,8 +21,10 @@
             background: linear-gradient(165deg, var(--app-bg-a) 0%, var(--app-bg-b) 52%, var(--app-bg-c) 100%);
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-        .safe-pb { padding-bottom: env(safe-area-inset-bottom, 24px); }
-        .safe-pt { padding-top: env(safe-area-inset-top, 44px); }
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom, 16px); }
+        .safe-pt { /* padding-top: env(safe-area-inset-top, 44px); */ }
+        .pt-4 { padding-bottom: 1rem; }
+        .pt-6 { padding-top: 1rem; }
         .app-shell {
             background: linear-gradient(180deg, #ffffff 0%, #fbfdff 58%, #fffdfa 100%);
         }
@@ -118,7 +108,7 @@
                 <button @click="login()" 
                         :class="email && code ? 'bg-brand text-white shadow-md' : 'bg-gray-100 text-gray-400 cursor-not-allowed'"
                         class="w-full py-4 rounded-2xl font-bold text-[15px] transition-all active:scale-[0.98]">
-                    安全登录
+                    安全登录并连接后台
                 </button>
             </div>
         </div>
@@ -128,7 +118,7 @@
             
             <header class="px-5 safe-pt pb-4 sticky app-top-offset app-header-soft z-30">
                 <h1 class="text-xl font-extrabold tracking-tight">订阅配置</h1>
-                
+                <p class="mt-1 text-xs text-gray-500" x-text="backendConnected ? '后台已连接，当前录入将同步到服务器。' : '当前离线草稿模式，登录后可一键同步到后台。'"></p>
             </header>
 
             <main class="flex-1 overflow-y-auto no-scrollbar px-5 py-6 pb-32 space-y-8">
@@ -165,7 +155,7 @@
                                 </div>
                                 <div class="flex items-center gap-3">
                                     <div class="text-[10px] px-2 py-0.5 rounded bg-white border border-gray-200 text-gray-500" x-text="marketLabel(item.market)"></div>
-                                    <div class="text-sm text-gray-500"><span x-text="item.shares"></span> 股</div>
+                                    <div class="text-sm text-gray-500"><span x-text="item.shares"></span> 股 / $<span x-text="Number(item.avg_cost || 0).toFixed(2)"></span></div>
                                     <button @click="removeHolding(idx)" class="text-gray-300 hover:text-red-500"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"></path></svg></button>
                                 </div>
                             </div>
@@ -191,6 +181,9 @@
                         </div>
                         <input type="number" x-model="newHoldVol" placeholder="股数" class="w-1/2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm">
                         <button @click="addHolding()" class="shrink-0 w-10 h-10 bg-gray-900 text-white rounded-xl flex items-center justify-center active:scale-95"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"></path></svg></button>
+                    </div>
+                    <div class="mt-2">
+                        <input type="number" x-model="newHoldCost" placeholder="成本价(可选，默认 100)" class="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm">
                     </div>
                     <div class="mt-2 text-[10px] text-gray-400">支持输入代码自动补齐：美股 / 加股 / 数字货币。</div>
                 </section>
@@ -259,9 +252,9 @@
                 </div>
             </header>
 
-            <main class="flex-1 flex flex-col items-center justify-center px-8 relative">
+            <main class="flex-1 overflow-y-auto no-scrollbar px-6 pt-8 pb-28 relative">
                 <!-- Radar Animation -->
-                <div class="relative w-48 h-48 flex items-center justify-center mb-10">
+                <div class="relative w-48 h-48 flex items-center justify-center mb-10 mx-auto">
                     <div class="absolute w-full h-full bg-accent/20 rounded-full animate-ping" style="animation-duration: 3s"></div>
                     <div class="absolute w-3/4 h-3/4 bg-accent/30 rounded-full animate-pulse" style="animation-duration: 2s"></div>
                     <div class="relative w-20 h-20 bg-accent rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(37,99,235,0.6)]">
@@ -269,36 +262,69 @@
                     </div>
                 </div>
 
-                <h2 class="text-2xl font-bold tracking-tight mb-3 text-center">引擎实时监控中</h2>
-                <p class="text-white/60 text-center text-[15px] leading-relaxed">
+                <h2 class="text-2xl font-bold tracking-tight mb-3 text-center">后台已接入，监控运行中</h2>
+                <p class="text-white/60 text-center text-[15px] leading-relaxed max-w-sm mx-auto">
                     您的现金 (<span class="text-white font-medium" x-text="'¥'+cash"></span>)、<span class="text-white font-medium" x-text="holdings.length+'只持仓'"></span> 及 <span class="text-white font-medium" x-text="subscriptions.length+'只订阅'"></span> 已同步云端。
                 </p>
 
                 <div class="bg-white/5 border border-white/10 rounded-2xl w-full mt-10 p-5 backdrop-blur-sm">
                     <div class="flex items-center gap-2 mb-3">
-                        <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                        <span class="text-sm font-semibold text-white/90">系统运行日志 (离线优先缓存)</span>
+                        <div class="w-2 h-2 rounded-full animate-pulse" :class="backendConnected ? 'bg-emerald-400' : 'bg-amber-300'"></div>
+                        <span class="text-sm font-semibold text-white/90">后台连接状态</span>
+                        <span class="ml-auto text-[11px] text-white/60" x-text="backendLoading ? '同步中...' : (backendConnected ? '已连接' : '未连接')"></span>
                     </div>
-                    <div class="space-y-3 text-xs text-white/50 font-mono">
-                        <div class="flex justify-between"><span>[10:42:01] 引擎连接建立</span> <span class="text-emerald-400">已连通</span></div>
-                        <div class="flex justify-between"><span>[10:42:05] 推送持仓与资金快照</span> <span class="text-emerald-400">SUCCESS</span></div>
-                        <div class="flex justify-between"><span>[10:42:12] 等待量化信号与交易建议...</span> <span>...</span></div>
+                    <div class="space-y-2 text-xs text-white/60 font-mono">
+                        <div class="flex justify-between"><span>账号</span> <span x-text="backendSnapshot.profile?.user?.email || (currentUser?.email || '未登录')"></span></div>
+                        <div class="flex justify-between"><span>订阅计划</span> <span x-text="backendSnapshot.profile?.user?.plan || (currentUser?.plan || '--')"></span></div>
+                        <div class="flex justify-between"><span>关注列表</span> <span x-text="(backendSnapshot.watchlist || []).length + ' 项'"></span></div>
+                        <div class="flex justify-between"><span>持仓列表</span> <span x-text="(backendSnapshot.portfolio || []).length + ' 项'"></span></div>
+                        <div class="flex justify-between"><span>通知中心</span> <span x-text="(backendSnapshot.notifications || []).length + ' 条'"></span></div>
+                    </div>
+                    <div class="mt-3 text-[11px] text-rose-200" x-show="backendError" x-text="backendError"></div>
+                    <div class="mt-3 flex gap-2">
+                        <button @click="loadBackendSnapshot()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 border border-white/15 text-white/90 active:bg-white/20">刷新后台数据</button>
                     </div>
                 </div>
+
             </main>
         </div>
 
     </div>
 
-    <script src="/app/js/offline-data.js"></script>
+    <script src="./js/offline-data.js"></script>
     <!-- App Logic -->
     <script>
         function appData() {
+            const STORAGE_KEYS = {
+                apiBase: 'stockpy.app.public-base',
+                accessToken: 'stockpy.app.access-token',
+                refreshToken: 'stockpy.app.refresh-token',
+                user: 'stockpy.app.user'
+            };
+
             return {
                 step: 'login', // 'login', 'construct', 'active'
                 email: '',
                 code: '',
                 toast: '',
+                toastTimer: null,
+                apiBaseUrl: '',
+                accessToken: '',
+                refreshToken: '',
+                currentUser: null,
+                backendConnected: false,
+                backendLoading: false,
+                backendError: '',
+                backendCapabilities: [],
+                backendTotals: { tags: 0, endpoints: 0 },
+                backendSnapshot: {
+                    profile: null,
+                    dashboard: null,
+                    portfolio: [],
+                    watchlist: [],
+                    notifications: []
+                },
+                lastBackendSyncAt: '',
                 offlineUniverse: [],
                 offlineSymbolMap: {},
                 offlineAliasMap: {},
@@ -309,7 +335,7 @@
                 // Core minimal data
                 cash: '1000000',
                 holdings: [
-                    { symbol: 'AAPL', name: 'Apple Inc.', market: 'US', shares: 100 }
+                    { symbol: 'AAPL', name: 'Apple Inc.', market: 'US', shares: 100, avg_cost: 100 }
                 ],
                 subscriptions: [
                     { symbol: 'TSLA', name: 'Tesla, Inc.', market: 'US' },
@@ -320,11 +346,293 @@
                 // Temp inputs
                 newHoldSym: '',
                 newHoldVol: '',
+                newHoldCost: '',
                 newSubSym: '',
 
-                initApp() {
+                async initApp() {
+                    this.initApiBaseUrl();
+                    this.loadSessionFromStorage();
                     this.initOfflineData();
                     this.seedDefaultAssets();
+
+                    if (this.accessToken) {
+                        const connected = await this.loadBackendSnapshot();
+                        if (connected || this.accessToken) {
+                            this.step = 'construct';
+                        }
+                    }
+                },
+
+                normalizeBaseUrl(value) {
+                    return String(value || '').trim().replace(/\/+$/, '');
+                },
+
+                initApiBaseUrl() {
+                    const params = new URLSearchParams(window.location.search);
+                    const queryBase = this.normalizeBaseUrl(params.get('public_api_base_url'));
+                    if (queryBase) {
+                        localStorage.setItem(STORAGE_KEYS.apiBase, queryBase);
+                    }
+                    const storedBase = this.normalizeBaseUrl(localStorage.getItem(STORAGE_KEYS.apiBase));
+                    let defaultBase = window.location.origin;
+                    if (defaultBase === 'null' || defaultBase.startsWith('file://')) {
+                        defaultBase = 'http://127.0.0.1:3000';
+                    }
+                    this.apiBaseUrl = queryBase || storedBase || defaultBase;
+                },
+
+                apiUrl(path) {
+                    return `${this.apiBaseUrl}${path}`;
+                },
+
+                loadSessionFromStorage() {
+                    this.accessToken = localStorage.getItem(STORAGE_KEYS.accessToken) || '';
+                    this.refreshToken = localStorage.getItem(STORAGE_KEYS.refreshToken) || '';
+                    const rawUser = localStorage.getItem(STORAGE_KEYS.user);
+                    this.currentUser = null;
+                    if (rawUser) {
+                        try {
+                            this.currentUser = JSON.parse(rawUser);
+                        } catch {
+                            this.currentUser = null;
+                        }
+                    }
+                },
+
+                persistSession(sessionPayload) {
+                    this.accessToken = sessionPayload?.access_token || '';
+                    this.refreshToken = sessionPayload?.refresh_token || '';
+                    this.currentUser = sessionPayload?.user || null;
+                    if (this.accessToken) {
+                        localStorage.setItem(STORAGE_KEYS.accessToken, this.accessToken);
+                    }
+                    if (this.refreshToken) {
+                        localStorage.setItem(STORAGE_KEYS.refreshToken, this.refreshToken);
+                    }
+                    if (this.currentUser) {
+                        localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(this.currentUser));
+                    }
+                },
+
+                clearSession() {
+                    this.accessToken = '';
+                    this.refreshToken = '';
+                    this.currentUser = null;
+                    this.backendConnected = false;
+                    this.backendLoading = false;
+                    this.backendError = '';
+                    this.backendSnapshot = {
+                        profile: null,
+                        dashboard: null,
+                        portfolio: [],
+                        watchlist: [],
+                        notifications: []
+                    };
+                    this.lastBackendSyncAt = '';
+                    this.step = 'login';
+                    localStorage.removeItem(STORAGE_KEYS.accessToken);
+                    localStorage.removeItem(STORAGE_KEYS.refreshToken);
+                    localStorage.removeItem(STORAGE_KEYS.user);
+                },
+
+                extractErrorMessage(payload, fallback) {
+                    if (payload && typeof payload === 'object') {
+                        let detail = payload.detail ?? payload.message ?? payload.code;
+                        if (!detail && payload.error && typeof payload.error === 'object') {
+                            detail = payload.error.message ?? payload.error.code;
+                        }
+                        if (!detail && payload.error && typeof payload.error === 'string') {
+                            detail = payload.error;
+                        }
+                        if (detail && typeof detail === 'object') {
+                            detail = JSON.stringify(detail);
+                        }
+                        if (detail) {
+                            return String(detail);
+                        }
+                    }
+                    return fallback;
+                },
+
+                async requestApi(method, path, options = {}) {
+                    const { body, auth = true, retry = true } = options;
+                    const headers = new Headers({ Accept: 'application/json' });
+                    if (body !== undefined) {
+                        headers.set('Content-Type', 'application/json');
+                    }
+                    if (auth && this.accessToken) {
+                        headers.set('Authorization', `Bearer ${this.accessToken}`);
+                    }
+
+                    const response = await fetch(this.apiUrl(path), {
+                        method,
+                        headers,
+                        body: body !== undefined ? JSON.stringify(body) : undefined,
+                    });
+
+                    const rawText = await response.text();
+                    let payload = null;
+                    try {
+                        payload = rawText ? JSON.parse(rawText) : null;
+                    } catch {
+                        payload = null;
+                    }
+
+                    if (response.status === 401 && auth && retry && this.refreshToken) {
+                        const refreshed = await this.refreshSession();
+                        if (refreshed) {
+                            return this.requestApi(method, path, { body, auth, retry: false });
+                        }
+                    }
+
+                    if (!response.ok) {
+                        const message = this.extractErrorMessage(payload, rawText || `HTTP ${response.status}`);
+                        throw new Error(message);
+                    }
+                    return payload;
+                },
+
+                async refreshSession() {
+                    if (!this.refreshToken) {
+                        return false;
+                    }
+                    try {
+                        const refreshed = await this.requestApi('POST', '/v1/auth/refresh', {
+                            body: { refresh_token: this.refreshToken },
+                            auth: false,
+                            retry: false,
+                        });
+                        this.persistSession(refreshed);
+                        return Boolean(this.accessToken);
+                    } catch {
+                        this.clearSession();
+                        return false;
+                    }
+                },
+
+                inferMarketFromSymbol(symbol) {
+                    const normalized = this.normalizeSymbol(symbol);
+                    const resolved = this.resolveAsset(normalized);
+                    if (resolved?.market) return resolved.market;
+                    if (normalized.endsWith('.TO')) return 'CAD';
+                    if (normalized.endsWith('USDT') || normalized.endsWith('USDC')) return 'CRYPTO';
+                    return 'US';
+                },
+
+                resolveAssetDisplay(symbol) {
+                    const resolved = this.resolveAsset(symbol);
+                    const normalized = this.normalizeSymbol(symbol);
+                    if (resolved) {
+                        return {
+                            symbol: this.normalizeSymbol(resolved.symbol),
+                            name: resolved.name || normalized,
+                            market: resolved.market || this.inferMarketFromSymbol(normalized),
+                        };
+                    }
+                    return {
+                        symbol: normalized,
+                        name: normalized,
+                        market: this.inferMarketFromSymbol(normalized),
+                    };
+                },
+
+                async loadBackendSnapshot() {
+                    if (!this.accessToken) {
+                        this.backendConnected = false;
+                        return false;
+                    }
+                    this.backendLoading = true;
+                    this.backendError = '';
+
+                    try {
+                        const [profile, dashboard, portfolio, watchlist, notificationPayload] = await Promise.all([
+                            this.requestApi('GET', '/v1/account/profile'),
+                            this.requestApi('GET', '/v1/account/dashboard'),
+                            this.requestApi('GET', '/v1/portfolio'),
+                            this.requestApi('GET', '/v1/watchlist'),
+                            this.requestApi('GET', '/v1/notifications?limit=10'),
+                        ]);
+
+                        this.backendSnapshot = {
+                            profile,
+                            dashboard,
+                            portfolio: Array.isArray(portfolio) ? portfolio : [],
+                            watchlist: Array.isArray(watchlist) ? watchlist : [],
+                            notifications: Array.isArray(notificationPayload?.items) ? notificationPayload.items : [],
+                        };
+                        this.backendConnected = true;
+                        this.lastBackendSyncAt = new Date().toISOString();
+                        this.applyBackendSnapshotToDraft();
+                        return true;
+                    } catch (error) {
+                        this.backendConnected = false;
+                        this.backendError = `后台请求失败: ${error.message}`;
+                        return false;
+                    } finally {
+                        this.backendLoading = false;
+                    }
+                },
+
+                applyBackendSnapshotToDraft() {
+                    const dashboardAccount = this.backendSnapshot.dashboard?.account;
+                    if (dashboardAccount && Number.isFinite(Number(dashboardAccount.total_capital))) {
+                        this.cash = String(Math.round(Number(dashboardAccount.total_capital)));
+                    }
+
+                    const portfolioItems = Array.isArray(this.backendSnapshot.portfolio)
+                        ? this.backendSnapshot.portfolio
+                        : [];
+                    this.holdings = portfolioItems.map((item) => {
+                        const symbol = this.normalizeSymbol(item.symbol || '');
+                        const display = this.resolveAssetDisplay(symbol);
+                        return {
+                            symbol: display.symbol,
+                            name: display.name,
+                            market: display.market,
+                            shares: Number(item.shares || 0),
+                            avg_cost: Number(item.avg_cost || 100),
+                        };
+                    });
+
+                    const watchlistItems = Array.isArray(this.backendSnapshot.watchlist)
+                        ? this.backendSnapshot.watchlist
+                        : [];
+                    this.subscriptions = watchlistItems.map((item) => {
+                        const symbol = this.normalizeSymbol(item.symbol || '');
+                        const display = this.resolveAssetDisplay(symbol);
+                        return {
+                            symbol: display.symbol,
+                            name: display.name,
+                            market: display.market,
+                        };
+                    });
+                },
+
+                formatNumber(value, currency = 'USD') {
+                    const amount = Number(value);
+                    if (!Number.isFinite(amount)) {
+                        return '--';
+                    }
+                    try {
+                        return new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: currency || 'USD',
+                            maximumFractionDigits: 2,
+                        }).format(amount);
+                    } catch {
+                        return `${amount.toFixed(2)} ${currency || ''}`.trim();
+                    }
+                },
+
+                formatTime(value) {
+                    if (!value) {
+                        return '尚未同步';
+                    }
+                    const date = new Date(value);
+                    if (Number.isNaN(date.getTime())) {
+                        return String(value);
+                    }
+                    return date.toLocaleString();
                 },
 
                 initOfflineData() {
@@ -372,9 +680,9 @@
                     const seededSubscriptions = [];
 
                     const holdingDefaults = [
-                        { symbol: 'AAPL', shares: 100 },
-                        { symbol: 'RY.TO', shares: 150 },
-                        { symbol: 'BTCUSDT', shares: 1 }
+                        { symbol: 'AAPL', shares: 100, avg_cost: 100 },
+                        { symbol: 'RY.TO', shares: 150, avg_cost: 100 },
+                        { symbol: 'BTCUSDT', shares: 1, avg_cost: 30000 }
                     ];
                     for (const item of holdingDefaults) {
                         const asset = this.resolveAsset(item.symbol);
@@ -383,7 +691,8 @@
                                 symbol: this.normalizeSymbol(asset.symbol),
                                 name: asset.name,
                                 market: asset.market,
-                                shares: item.shares
+                                shares: item.shares,
+                                avg_cost: item.avg_cost,
                             });
                         }
                     }
@@ -538,22 +847,64 @@
                     this.subSuggestions = [];
                 },
 
-                sendCode() {
-                    if (!this.email) { this.showToast('请输入邮箱地址'); return; }
-                    this.showToast('验证码发送成功，请查收');
+                async sendCode() {
+                    const email = String(this.email || '').trim().toLowerCase();
+                    if (!email) {
+                        this.showToast('请输入邮箱地址');
+                        return;
+                    }
+                    try {
+                        const result = await this.requestApi('POST', '/v1/auth/send-code', {
+                            body: { email },
+                            auth: false,
+                            retry: false,
+                        });
+                        if (result?.dev_code) {
+                            this.code = result.dev_code;
+                            this.showToast(`验证码已生成，开发码 ${result.dev_code}`);
+                            return;
+                        }
+                        this.showToast(result?.message || '验证码已发送，请查收');
+                    } catch (error) {
+                        this.showToast(`发送失败：${error.message}`);
+                    }
                 },
 
-                login() {
-                    if (this.email && this.code) {
+                async login() {
+                    const email = String(this.email || '').trim().toLowerCase();
+                    const code = String(this.code || '').trim();
+                    if (!email || code.length !== 6) {
+                        this.showToast('请输入邮箱和6位验证码');
+                        return;
+                    }
+
+                    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+                    const locale = navigator.language || 'zh-CN';
+
+                    try {
+                        const sessionPayload = await this.requestApi('POST', '/v1/auth/verify', {
+                            body: { email, code, locale, timezone },
+                            auth: false,
+                            retry: false,
+                        });
+                        this.persistSession(sessionPayload);
+                        const connected = await this.loadBackendSnapshot();
+                        if (!this.accessToken) {
+                            this.showToast('登录会话已失效，请重新登录');
+                            return;
+                        }
                         this.step = 'construct';
+                        this.showToast(connected ? '登录成功，已连接后台' : '登录成功，后台暂不可用，可稍后刷新');
+                    } catch (error) {
+                        this.showToast(`登录失败：${error.message}`);
                     }
                 },
 
                 addHolding() {
-                    const asset = this.resolveAsset(this.newHoldSym);
+                    const normalizedInput = this.normalizeSymbol(this.newHoldSym);
                     const shares = parseInt(this.newHoldVol, 10);
-                    if (!asset) {
-                        this.showToast('离线库未找到该代码，请检查输入。');
+                    if (!normalizedInput) {
+                        this.showToast('请输入股票代码。');
                         return;
                     }
                     if (!Number.isFinite(shares) || shares <= 0) {
@@ -561,21 +912,28 @@
                         return;
                     }
 
-                    const symbol = this.normalizeSymbol(asset.symbol);
+                    const avgCostInput = Number.parseFloat(this.newHoldCost);
+                    const avgCost = Number.isFinite(avgCostInput) && avgCostInput > 0 ? avgCostInput : 100;
+                    const display = this.resolveAssetDisplay(normalizedInput);
+
+                    const symbol = this.normalizeSymbol(display.symbol);
                     const existing = this.holdings.find((item) => item.symbol === symbol);
                     if (existing) {
                         existing.shares += shares;
+                        existing.avg_cost = avgCost;
                     } else {
                         this.holdings.push({
                             symbol,
-                            name: asset.name,
-                            market: asset.market,
-                            shares
+                            name: display.name,
+                            market: display.market,
+                            shares,
+                            avg_cost: avgCost,
                         });
                     }
 
                     this.newHoldSym = '';
                     this.newHoldVol = '';
+                    this.newHoldCost = '';
                     this.holdingSuggestions = [];
                     this.showToast('已写入本地离线持仓。');
                 },
@@ -584,13 +942,15 @@
                 },
 
                 addSub() {
-                    const asset = this.resolveAsset(this.newSubSym);
-                    if (!asset) {
-                        this.showToast('离线库未找到该代码，请检查输入。');
+                    const normalizedInput = this.normalizeSymbol(this.newSubSym);
+                    if (!normalizedInput) {
+                        this.showToast('请输入订阅代码。');
                         return;
                     }
 
-                    const symbol = this.normalizeSymbol(asset.symbol);
+                    const display = this.resolveAssetDisplay(normalizedInput);
+
+                    const symbol = this.normalizeSymbol(display.symbol);
                     const exists = this.subscriptions.some((item) => item.symbol === symbol);
                     if (exists) {
                         this.showToast('该标的已在订阅列表中。');
@@ -599,8 +959,8 @@
 
                     this.subscriptions.push({
                         symbol,
-                        name: asset.name,
-                        market: asset.market
+                        name: display.name,
+                        market: display.market
                     });
                     this.newSubSym = '';
                     this.subSuggestions = [];
@@ -610,14 +970,107 @@
                     this.subscriptions.splice(idx, 1);
                 },
 
-                syncData() {
-                    this.step = 'active';
-                    this.showToast('配置已一次性同步至云端，开始监控');
+                planLimits(plan) {
+                    const normalized = String(plan || '').toLowerCase();
+                    const watchlistLimits = { free: 5, pro: 10, max: 20, premium: 20 };
+                    const portfolioLimits = { free: 3, pro: 6, max: 12, premium: 12 };
+                    return {
+                        watchlist: watchlistLimits[normalized] ?? 10,
+                        portfolio: portfolioLimits[normalized] ?? 3,
+                    };
+                },
+
+                buildStartSubscriptionPayload() {
+                    const totalCapital = Number(this.cash);
+                    if (!Number.isFinite(totalCapital) || totalCapital <= 0) {
+                        throw new Error('请输入有效现金金额。');
+                    }
+
+                    const limits = this.planLimits(this.currentUser?.plan);
+                    const watchlist = this.subscriptions
+                        .map((item) => this.normalizeSymbol(item.symbol))
+                        .filter((symbol) => Boolean(symbol))
+                        .map((symbol) => ({
+                            symbol,
+                            min_score: 65,
+                            notify: true,
+                        }));
+                    if (watchlist.length === 0) {
+                        throw new Error('请至少添加1个订阅标的。');
+                    }
+                    if (watchlist.length > limits.watchlist) {
+                        throw new Error(`当前套餐最多支持 ${limits.watchlist} 个订阅标的。`);
+                    }
+
+                    const portfolio = this.holdings
+                        .map((item) => ({
+                            symbol: this.normalizeSymbol(item.symbol),
+                            shares: Number.parseInt(item.shares, 10),
+                            avg_cost: Number.parseFloat(item.avg_cost),
+                        }))
+                        .filter((item) => item.symbol && Number.isFinite(item.shares) && item.shares > 0)
+                        .map((item) => ({
+                            symbol: item.symbol,
+                            shares: item.shares,
+                            avg_cost: Number.isFinite(item.avg_cost) && item.avg_cost > 0 ? item.avg_cost : 100,
+                            target_profit: 0.15,
+                            stop_loss: 0.08,
+                            notify: true,
+                        }));
+                    if (portfolio.length > limits.portfolio) {
+                        throw new Error(`当前套餐最多支持 ${limits.portfolio} 个持仓。`);
+                    }
+
+                    return {
+                        allow_empty_portfolio: portfolio.length === 0,
+                        account: {
+                            total_capital: totalCapital,
+                            currency: 'USD',
+                        },
+                        watchlist,
+                        portfolio,
+                    };
+                },
+
+                async syncData() {
+                    if (!this.accessToken) {
+                        this.showToast('请先完成登录并连接后台。');
+                        return;
+                    }
+
+                    let payload;
+                    try {
+                        payload = this.buildStartSubscriptionPayload();
+                    } catch (error) {
+                        this.showToast(error.message || '数据校验失败');
+                        return;
+                    }
+
+                    this.backendLoading = true;
+                    try {
+                        const result = await this.requestApi('POST', '/v1/account/start-subscription', {
+                            body: payload,
+                            auth: true,
+                        });
+                        this.step = 'active';
+                        await this.loadBackendSnapshot();
+                        this.showToast(result?.message || '配置已同步至后台，监控已开启');
+                    } catch (error) {
+                        this.showToast(`同步失败：${error.message}`);
+                    } finally {
+                        this.backendLoading = false;
+                    }
                 },
 
                 showToast(msg) {
-                    this.toast = msg;
-                    setTimeout(() => { this.toast = ''; }, 2500);
+                    this.toast = String(msg || '');
+                    if (this.toastTimer) {
+                        clearTimeout(this.toastTimer);
+                    }
+                    this.toastTimer = setTimeout(() => {
+                        this.toast = '';
+                        this.toastTimer = null;
+                    }, 2600);
                 }
             }
         }

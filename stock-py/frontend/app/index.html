@@ -1,225 +1,626 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trading App | Stock-Py</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Alpha 极简智投</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
-                    colors: {
-                        primary: '#3b82f6',
-                        success: '#10b981',
-                        danger: '#ef4444',
-                        surface: '#1e293b',
-                        background: '#0f172a'
-                    },
-                    spacing: {
-                        '128': '32rem',
+                    colors: { 
+                        brand: '#0f172a', // Slate 900
+                        accent: '#2563eb' // Blue 500 for crisp highlights
                     }
                 }
             }
         }
     </script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Custom Styles (UI/UX Pro Max Rules: Smooth Transitions, No outline without focus ring) -->
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        .bento-card {
-            background-color: var(--tw-colors-surface);
-            border: 1px solid #334155;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            transition: transform 200ms ease, box-shadow 200ms ease;
+        :root {
+            --app-bg-a: #f3f8ff;
+            --app-bg-b: #f8fbfd;
+            --app-bg-c: #fff8f3;
+            --app-surface-border: #e8eef8;
+            --app-surface-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
         }
-        .bento-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        body { 
+            -webkit-tap-highlight-color: transparent; 
+            background: linear-gradient(165deg, var(--app-bg-a) 0%, var(--app-bg-b) 52%, var(--app-bg-c) 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-        .touch-target {
-            min-height: 44px;
-            min-width: 44px;
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom, 24px); }
+        .safe-pt { padding-top: env(safe-area-inset-top, 44px); }
+        .app-shell {
+            background: linear-gradient(180deg, #ffffff 0%, #fbfdff 58%, #fffdfa 100%);
         }
+        .app-login-soft {
+            background: linear-gradient(180deg, #ffffff 0%, #f6faff 100%);
+        }
+        .app-construct {
+            background: linear-gradient(180deg, #f8fbff 0%, #f8fbfc 45%, #fffaf5 100%);
+        }
+        .app-header-soft {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(246, 250, 255, 0.92) 100%);
+            border-bottom: 1px solid #e8eef7;
+        }
+        .app-surface {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid var(--app-surface-border);
+            box-shadow: var(--app-surface-shadow);
+        }
+        .app-count-pill {
+            background: #eef3ff;
+            color: #5f6888;
+        }
+        .app-top-offset {
+            top: 14px;
+        }
+        .app-sync-pad {
+            padding: 0.5rem 1rem;
+        }
+        .app-bottom-bar {
+            background: rgba(248, 251, 255, 0.86);
+            border-top-color: #e7edf8;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        [x-cloak] { display: none !important; }
+        
+        /* Smooth transitions */
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        
+        /* iOS style inputs */
+        input { appearance: none; outline: none; }
+        input:focus { ring: 0; outline: none; }
     </style>
 </head>
-<body class="bg-background text-slate-100 antialiased h-screen flex overflow-hidden">
-    <!-- Sidebar Navigation -->
-    <aside class="w-64 border-r border-slate-800 bg-slate-900 flex flex-col hidden md:flex">
-        <div class="h-16 flex items-center px-6 border-b border-slate-800">
-            <i data-lucide="trending-up" class="w-6 h-6 text-primary mr-3"></i>
-            <span class="text-xl font-bold tracking-tight">StockApp</span>
+<body class="text-gray-900 overflow-hidden" x-data="appData()" x-init="initApp()">
+    
+    <!-- Mobile App Container -->
+    <div class="w-full max-w-md mx-auto app-shell h-screen flex flex-col relative shadow-sm overflow-hidden">
+        
+        <!-- Toast Notification -->
+        <div x-show="toast" x-transition x-cloak class="absolute top-12 left-0 right-0 z-50 flex justify-center safe-pt pointer-events-none">
+            <div class="bg-gray-900 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg" x-text="toast"></div>
         </div>
-        <nav class="flex-1 overflow-y-auto px-4 py-4 space-y-1">
-            <a href="#" class="touch-target flex items-center px-3 py-2 bg-slate-800 text-white rounded-lg group">
-                <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-primary"></i>
-                <span class="font-medium">Dashboard</span>
-            </a>
-            <a href="#" class="touch-target flex items-center px-3 py-2 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-lg transition-colors">
-                <i data-lucide="briefcase" class="w-5 h-5 mr-3 group-hover:text-slate-300"></i>
-                <span>Portfolio</span>
-            </a>
-            <a href="#" class="touch-target flex items-center px-3 py-2 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-lg transition-colors">
-                <i data-lucide="line-chart" class="w-5 h-5 mr-3"></i>
-                <span>Market Data</span>
-            </a>
-            <a href="#" class="touch-target flex items-center px-3 py-2 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-lg transition-colors">
-                <i data-lucide="zap" class="w-5 h-5 mr-3 text-yellow-500"></i>
-                <span>Signals & AI</span>
-            </a>
-        </nav>
-        <div class="p-4 border-t border-slate-800">
-            <button class="touch-target w-full flex items-center px-3 py-2 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-lg transition-colors">
-                <i data-lucide="settings" class="w-5 h-5 mr-3"></i>
-                <span>Settings</span>
-            </button>
-        </div>
-    </aside>
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col overflow-hidden relative">
-        <!-- Top Header (Mobile Navbar + User Profile) -->
-        <header class="h-16 border-b border-slate-800 flex items-center justify-between px-4 sm:px-6">
-            <div class="md:hidden flex items-center">
-                <i data-lucide="menu" class="w-6 h-6 text-slate-400"></i>
+        <!-- ==================== STEP 1: LOGIN ==================== -->
+        <div x-show="step === 'login'" x-transition.opacity class="flex-1 flex flex-col px-6 safe-pt app-login-soft z-10 relative">
+            <div class="mt-16 mb-12">
+                <div class="w-12 h-12 bg-brand text-white rounded-2xl flex items-center justify-center text-xl font-bold mb-6">A</div>
+                <h1 class="text-3xl font-extrabold tracking-tight">欢迎回来</h1>
+                <p class="text-gray-500 mt-2 text-sm">请输入您的邮箱以登录或注册您的订阅账户</p>
             </div>
-            <div class="flex-1"></div>
-            <div class="flex items-center space-x-4">
-                <button class="touch-target text-slate-400 hover:text-white relative">
-                    <i data-lucide="bell" class="w-5 h-5"></i>
-                    <span class="absolute top-2 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">邮箱地址</label>
+                    <input type="email" x-model="email" placeholder="name@example.com" 
+                           class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-[15px] focus:bg-white focus:border-brand transition-colors">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">验证码</label>
+                    <div class="flex gap-3">
+                        <input type="number" x-model="code" placeholder="6位数字" 
+                               class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-[15px] focus:bg-white focus:border-brand transition-colors">
+                        <button @click="sendCode()" class="shrink-0 px-4 bg-gray-100 text-gray-700 font-medium rounded-xl text-sm active:bg-gray-200 transition-colors">获取验证码</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-auto safe-pb pb-6 pt-4">
+                <button @click="login()" 
+                        :class="email && code ? 'bg-brand text-white shadow-md' : 'bg-gray-100 text-gray-400 cursor-not-allowed'"
+                        class="w-full py-4 rounded-2xl font-bold text-[15px] transition-all active:scale-[0.98]">
+                    安全登录
                 </button>
-                <div class="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-sm font-bold shadow-lg cursor-pointer">
-                    N
-                </div>
-            </div>
-        </header>
-
-        <!-- Bento Grid Dashboard Dashboard -->
-        <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-            <div class="max-w-7xl mx-auto space-y-6">
-                <!-- Page Title -->
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
-                    <div>
-                        <h1 class="text-2xl sm:text-3xl font-bold">Portfolio Overview</h1>
-                        <p class="text-slate-400 mt-1">Your AI trading agents are active.</p>
-                    </div>
-                    <button class="touch-target inline-flex items-center px-4 py-2 bg-primary hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none focus:ring-offset-2 focus:ring-offset-slate-900 shadow-md">
-                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
-                        New Agent
-                    </button>
-                </div>
-
-                <!-- Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <!-- Balance Card -->
-                    <div class="bento-card col-span-1 lg:col-span-2 flex flex-col justify-between">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-sm text-slate-400 font-medium">Total Balance</p>
-                                <h2 class="text-4xl font-bold mt-2">$245,890.00</h2>
-                            </div>
-                            <div class="p-2 bg-emerald-500/10 rounded-lg">
-                                <i data-lucide="arrow-up-right" class="w-6 h-6 text-emerald-400"></i>
-                            </div>
-                        </div>
-                        <div class="mt-6 flex items-center text-sm">
-                            <span class="text-emerald-400 font-medium flex items-center"><i data-lucide="trending-up" class="w-4 h-4 mr-1"></i> +2.4%</span>
-                            <span class="text-slate-500 ml-2">Today ($5,840.12)</span>
-                        </div>
-                    </div>
-
-                    <!-- Market Status -->
-                    <div class="bento-card">
-                        <p class="text-sm text-slate-400 font-medium">Market Status (S&P 500)</p>
-                        <h2 class="text-2xl font-bold mt-2">5,123.41</h2>
-                        <div class=" mt-4 h-12 flex items-end space-x-1">
-                            <!-- Simulated mini chart -->
-                            <div class="w-full bg-slate-800 h-2 rounded-t"></div>
-                            <div class="w-full bg-slate-800 h-4 rounded-t"></div>
-                            <div class="w-full bg-primary h-6 rounded-t"></div>
-                            <div class="w-full bg-primary h-8 rounded-t"></div>
-                            <div class="w-full bg-success h-10 rounded-t"></div>
-                        </div>
-                    </div>
-
-                    <!-- AI Agents -->
-                    <div class="bento-card">
-                        <div class="flex justify-between items-start mb-2">
-                            <p class="text-sm text-slate-400 font-medium">Active Agents</p>
-                            <i data-lucide="cpu" class="w-5 h-5 text-purple-400"></i>
-                        </div>
-                        <h2 class="text-3xl font-bold">3</h2>
-                        <div class="mt-4 space-y-2">
-                            <div class="flex items-center justify-between text-sm">
-                                <span class="text-slate-300">Momentum-Alpha</span>
-                                <span class="text-emerald-400 font-medium">+1.2%</span>
-                            </div>
-                            <div class="flex items-center justify-between text-sm">
-                                <span class="text-slate-300">Mean-Revert-QQQ</span>
-                                <span class="text-slate-500 font-medium">0.0%</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Watchlist Table (Spans full width) -->
-                    <div class="bento-card col-span-1 md:grid-cols-2 lg:col-span-4 overflow-x-auto">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-bold text-lg">Watchlist & Signals</h3>
-                            <button class="text-sm text-primary hover:text-blue-400 font-medium">View All</button>
-                        </div>
-                        <table class="min-w-full text-left text-sm">
-                            <thead>
-                                <tr class="text-slate-400 border-b border-slate-700/50">
-                                    <th class="pb-3 font-medium">Symbol</th>
-                                    <th class="pb-3 font-medium">Price</th>
-                                    <th class="pb-3 font-medium">24h Change</th>
-                                    <th class="pb-3 font-medium">AI Signal</th>
-                                    <th class="pb-3 font-medium text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-800/50">
-                                <tr>
-                                    <td class="py-4 font-bold">NVDA</td>
-                                    <td class="py-4">$875.28</td>
-                                    <td class="py-4 text-emerald-400">+4.28%</td>
-                                    <td class="py-4"><span class="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider">Strong Buy</span></td>
-                                    <td class="py-4 text-right">
-                                        <button class="touch-target text-slate-400 hover:text-white"><i data-lucide="more-horizontal" class="w-5 h-5 inline"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="py-4 font-bold">MSFT</td>
-                                    <td class="py-4">$412.30</td>
-                                    <td class="py-4 text-emerald-400">+1.15%</td>
-                                    <td class="py-4"><span class="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider">Hold</span></td>
-                                    <td class="py-4 text-right">
-                                        <button class="touch-target text-slate-400 hover:text-white"><i data-lucide="more-horizontal" class="w-5 h-5 inline"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="py-4 font-bold">TSLA</td>
-                                    <td class="py-4">$175.22</td>
-                                    <td class="py-4 text-red-400">-2.40%</td>
-                                    <td class="py-4"><span class="px-2 py-1 rounded bg-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider">Sell</span></td>
-                                    <td class="py-4 text-right">
-                                        <button class="touch-target text-slate-400 hover:text-white"><i data-lucide="more-horizontal" class="w-5 h-5 inline"></i></button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
             </div>
         </div>
-    </main>
+
+        <!-- ==================== STEP 2: CONSTRUCT (Offline First) ==================== -->
+        <div x-show="step === 'construct'" x-transition.opacity x-cloak class="flex-1 flex flex-col relative app-construct z-20 h-full">
+            
+            <header class="px-5 safe-pt pb-4 sticky app-top-offset app-header-soft z-30">
+                <h1 class="text-xl font-extrabold tracking-tight">订阅配置</h1>
+                
+            </header>
+
+            <main class="flex-1 overflow-y-auto no-scrollbar px-5 py-6 pb-32 space-y-8">
+                
+                <!-- Core Input 1: Cash -->
+                <section class="app-surface rounded-3xl p-5">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 rounded-full bg-blue-50 text-accent flex items-center justify-center"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                        <h2 class="font-bold text-[15px]">当前可用现金</h2>
+                    </div>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">¥</span>
+                        <input type="number" x-model="cash" class="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-8 pr-4 py-4 text-xl font-bold focus:bg-white focus:border-gray-200 transition-colors" placeholder="0.00">
+                    </div>
+                </section>
+
+                <!-- Core Input 2: Holdings -->
+                <section class="app-surface rounded-3xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg></div>
+                            <h2 class="font-bold text-[15px]">已持仓股票</h2>
+                        </div>
+                        <span class="text-xs px-2 py-1 rounded-md font-medium app-count-pill" x-text="holdings.length + ' 只'"></span>
+                    </div>
+
+                    <!-- List -->
+                    <div class="space-y-2 mb-4">
+                        <template x-for="(item, idx) in holdings" :key="idx">
+                            <div class="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl">
+                                <div>
+                                    <div class="font-semibold text-[15px]" x-text="item.symbol"></div>
+                                    <div class="text-[11px] text-gray-400" x-text="item.name"></div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="text-[10px] px-2 py-0.5 rounded bg-white border border-gray-200 text-gray-500" x-text="marketLabel(item.market)"></div>
+                                    <div class="text-sm text-gray-500"><span x-text="item.shares"></span> 股</div>
+                                    <button @click="removeHolding(idx)" class="text-gray-300 hover:text-red-500"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                                </div>
+                            </div>
+                        </template>
+                        <div x-show="holdings.length === 0" class="text-center py-4 text-xs text-gray-400">暂无持仓</div>
+                    </div>
+
+                    <!-- Add New Holding -->
+                    <div class="flex gap-2">
+                        <div class="w-1/2 relative">
+                            <input type="text" x-model="newHoldSym" @input="updateSuggestions('holding')" @focus="updateSuggestions('holding')" @blur="clearSuggestionsLater('holding')" placeholder="代码(如 AAPL / RY.TO / BTCUSDT)" class="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm uppercase">
+                            <div x-show="holdingSuggestions.length > 0" x-cloak class="absolute z-40 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+                                <template x-for="asset in holdingSuggestions" :key="asset.symbol">
+                                    <button type="button" @mousedown.prevent="pickSuggestion('holding', asset.symbol)" class="w-full px-3 py-2 text-left hover:bg-gray-50 active:bg-gray-100">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="text-xs font-semibold text-gray-800" x-text="asset.symbol"></span>
+                                            <span class="text-[10px] text-gray-500" x-text="marketLabel(asset.market)"></span>
+                                        </div>
+                                        <div class="text-[10px] text-gray-400 truncate" x-text="asset.name"></div>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                        <input type="number" x-model="newHoldVol" placeholder="股数" class="w-1/2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm">
+                        <button @click="addHolding()" class="shrink-0 w-10 h-10 bg-gray-900 text-white rounded-xl flex items-center justify-center active:scale-95"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"></path></svg></button>
+                    </div>
+                    <div class="mt-2 text-[10px] text-gray-400">支持输入代码自动补齐：美股 / 加股 / 数字货币。</div>
+                </section>
+
+                <!-- Core Input 3: Subscriptions -->
+                <section class="app-surface rounded-3xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg></div>
+                            <h2 class="font-bold text-[15px]">订阅追踪股票</h2>
+                        </div>
+                        <span class="text-xs px-2 py-1 rounded-md font-medium app-count-pill" x-text="subscriptions.length + ' 只'"></span>
+                    </div>
+
+                    <!-- List -->
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <template x-for="(sub, idx) in subscriptions" :key="idx">
+                            <div class="px-3 py-1.5 bg-gray-50 rounded-lg text-sm font-semibold flex items-center gap-2 border border-gray-100">
+                                <span x-text="sub.symbol"></span>
+                                <span class="text-[10px] font-medium text-gray-500" x-text="marketLabel(sub.market)"></span>
+                                <button @click="removeSub(idx)" class="text-gray-400 active:text-red-500"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                            </div>
+                        </template>
+                        <div x-show="subscriptions.length === 0" class="text-xs text-gray-400 py-1">暂无订阅标的</div>
+                    </div>
+
+                    <!-- Add New Sub -->
+                    <div class="flex gap-2">
+                        <div class="flex-1 relative">
+                            <input type="text" x-model="newSubSym" @input="updateSuggestions('sub')" @focus="updateSuggestions('sub')" @blur="clearSuggestionsLater('sub')" placeholder="输入代码(支持美股/加股/币)..." class="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-sm uppercase">
+                            <div x-show="subSuggestions.length > 0" x-cloak class="absolute z-40 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+                                <template x-for="asset in subSuggestions" :key="asset.symbol">
+                                    <button type="button" @mousedown.prevent="pickSuggestion('sub', asset.symbol)" class="w-full px-3 py-2 text-left hover:bg-gray-50 active:bg-gray-100">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="text-xs font-semibold text-gray-800" x-text="asset.symbol"></span>
+                                            <span class="text-[10px] text-gray-500" x-text="marketLabel(asset.market)"></span>
+                                        </div>
+                                        <div class="text-[10px] text-gray-400 truncate" x-text="asset.name"></div>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                        <button @click="addSub()" class="shrink-0 px-4 bg-gray-900 text-white rounded-xl text-sm font-medium active:scale-95">添加</button>
+                    </div>
+                    <div class="mt-2 text-[10px] text-gray-400">输入时会显示补齐候选，点击即可填充代码。</div>
+                </section>
+                
+            </main>
+
+            <!-- Sticky Bottom Action (One-time Sync) -->
+            <div class="absolute bottom-0 left-0 w-full backdrop-blur-xl border-t safe-pb app-sync-pad app-bottom-bar z-40">
+                <button @click="syncData()" class="w-full bg-brand text-white py-4 rounded-2xl font-bold text-[16px] shadow-[0_8px_20px_rgba(15,23,42,0.15)] active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    开始订阅 (本地同步)
+                </button>
+            </div>
+        </div>
+
+        <!-- ==================== STEP 3: ACTIVE STATE (Cloud Monitored) ==================== -->
+        <div x-show="step === 'active'" x-transition.opacity x-cloak class="flex-1 flex flex-col relative bg-brand z-50 h-full text-white">
+            
+            <header class="px-6 safe-pt pt-6 pb-2">
+                <div class="flex justify-between items-center">
+                    <div class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-sm font-bold">A</div>
+                    <button @click="step = 'construct'" class="text-white/60 text-sm font-medium px-3 py-1 bg-white/5 rounded-full active:bg-white/10">修改配置</button>
+                </div>
+            </header>
+
+            <main class="flex-1 flex flex-col items-center justify-center px-8 relative">
+                <!-- Radar Animation -->
+                <div class="relative w-48 h-48 flex items-center justify-center mb-10">
+                    <div class="absolute w-full h-full bg-accent/20 rounded-full animate-ping" style="animation-duration: 3s"></div>
+                    <div class="absolute w-3/4 h-3/4 bg-accent/30 rounded-full animate-pulse" style="animation-duration: 2s"></div>
+                    <div class="relative w-20 h-20 bg-accent rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(37,99,235,0.6)]">
+                        <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                </div>
+
+                <h2 class="text-2xl font-bold tracking-tight mb-3 text-center">引擎实时监控中</h2>
+                <p class="text-white/60 text-center text-[15px] leading-relaxed">
+                    您的现金 (<span class="text-white font-medium" x-text="'¥'+cash"></span>)、<span class="text-white font-medium" x-text="holdings.length+'只持仓'"></span> 及 <span class="text-white font-medium" x-text="subscriptions.length+'只订阅'"></span> 已同步云端。
+                </p>
+
+                <div class="bg-white/5 border border-white/10 rounded-2xl w-full mt-10 p-5 backdrop-blur-sm">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span class="text-sm font-semibold text-white/90">系统运行日志 (离线优先缓存)</span>
+                    </div>
+                    <div class="space-y-3 text-xs text-white/50 font-mono">
+                        <div class="flex justify-between"><span>[10:42:01] 引擎连接建立</span> <span class="text-emerald-400">已连通</span></div>
+                        <div class="flex justify-between"><span>[10:42:05] 推送持仓与资金快照</span> <span class="text-emerald-400">SUCCESS</span></div>
+                        <div class="flex justify-between"><span>[10:42:12] 等待量化信号与交易建议...</span> <span>...</span></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+    </div>
+
+    <script src="/app/js/offline-data.js"></script>
+    <!-- App Logic -->
     <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
+        function appData() {
+            return {
+                step: 'login', // 'login', 'construct', 'active'
+                email: '',
+                code: '',
+                toast: '',
+                offlineUniverse: [],
+                offlineSymbolMap: {},
+                offlineAliasMap: {},
+                offlineStats: { total: 0, US: 0, CAD: 0, CRYPTO: 0 },
+                holdingSuggestions: [],
+                subSuggestions: [],
+                
+                // Core minimal data
+                cash: '1000000',
+                holdings: [
+                    { symbol: 'AAPL', name: 'Apple Inc.', market: 'US', shares: 100 }
+                ],
+                subscriptions: [
+                    { symbol: 'TSLA', name: 'Tesla, Inc.', market: 'US' },
+                    { symbol: 'RY.TO', name: 'Royal Bank of Canada', market: 'CAD' },
+                    { symbol: 'BTCUSDT', name: 'BTC / USDT', market: 'CRYPTO' }
+                ],
+                
+                // Temp inputs
+                newHoldSym: '',
+                newHoldVol: '',
+                newSubSym: '',
+
+                initApp() {
+                    this.initOfflineData();
+                    this.seedDefaultAssets();
+                },
+
+                initOfflineData() {
+                    const payload = window.OFFLINE_MARKET_DATA || {};
+                    const universe = Array.isArray(payload) ? payload : (payload.universe || []);
+                    const stats = Array.isArray(payload) ? this.computeOfflineStats(universe) : (payload.stats || this.computeOfflineStats(universe));
+
+                    this.offlineUniverse = universe;
+                    this.offlineSymbolMap = {};
+                    this.offlineAliasMap = {};
+
+                    for (const asset of universe) {
+                        const symbol = this.normalizeSymbol(asset.symbol || '');
+                        if (!symbol) continue;
+                        this.offlineSymbolMap[symbol] = asset;
+                        const aliases = Array.isArray(asset.aliases) ? asset.aliases : [];
+                        for (const rawAlias of aliases) {
+                            const alias = this.normalizeSymbol(rawAlias || '');
+                            if (alias && !this.offlineAliasMap[alias]) {
+                                this.offlineAliasMap[alias] = symbol;
+                            }
+                        }
+                    }
+
+                    this.offlineStats = {
+                        total: universe.length,
+                        US: stats.US || 0,
+                        CAD: stats.CAD || 0,
+                        CRYPTO: stats.CRYPTO || 0
+                    };
+                },
+
+                computeOfflineStats(universe) {
+                    const stats = { US: 0, CAD: 0, CRYPTO: 0 };
+                    for (const asset of universe) {
+                        if (asset && stats[asset.market] !== undefined) {
+                            stats[asset.market] += 1;
+                        }
+                    }
+                    return stats;
+                },
+
+                seedDefaultAssets() {
+                    const seededHoldings = [];
+                    const seededSubscriptions = [];
+
+                    const holdingDefaults = [
+                        { symbol: 'AAPL', shares: 100 },
+                        { symbol: 'RY.TO', shares: 150 },
+                        { symbol: 'BTCUSDT', shares: 1 }
+                    ];
+                    for (const item of holdingDefaults) {
+                        const asset = this.resolveAsset(item.symbol);
+                        if (asset) {
+                            seededHoldings.push({
+                                symbol: this.normalizeSymbol(asset.symbol),
+                                name: asset.name,
+                                market: asset.market,
+                                shares: item.shares
+                            });
+                        }
+                    }
+
+                    const subDefaults = ['TSLA', 'ENB.TO', 'ETHUSDT'];
+                    for (const symbol of subDefaults) {
+                        const asset = this.resolveAsset(symbol);
+                        if (asset) {
+                            seededSubscriptions.push({
+                                symbol: this.normalizeSymbol(asset.symbol),
+                                name: asset.name,
+                                market: asset.market
+                            });
+                        }
+                    }
+
+                    if (seededHoldings.length > 0) {
+                        this.holdings = seededHoldings;
+                    }
+                    if (seededSubscriptions.length > 0) {
+                        this.subscriptions = seededSubscriptions;
+                    }
+                },
+
+                normalizeSymbol(value) {
+                    return String(value || '').trim().toUpperCase().replace(/\s+/g, '');
+                },
+
+                resolveAsset(rawSymbol) {
+                    const normalized = this.normalizeSymbol(rawSymbol);
+                    if (!normalized) return null;
+
+                    // Exact symbol has highest priority.
+                    if (this.offlineSymbolMap[normalized]) {
+                        return this.offlineSymbolMap[normalized];
+                    }
+
+                    const canonical = this.offlineAliasMap[normalized];
+                    if (canonical && this.offlineSymbolMap[canonical]) {
+                        return this.offlineSymbolMap[canonical];
+                    }
+                    return null;
+                },
+
+                marketLabel(market) {
+                    if (market === 'US') return '美股';
+                    if (market === 'CAD') return '加股';
+                    if (market === 'CRYPTO') return '数字货币';
+                    return market || '未知';
+                },
+
+                searchAssets(query, limit = 10) {
+                    const normalized = this.normalizeSymbol(query);
+                    if (!normalized) return [];
+
+                    const plainQuery = !normalized.includes('.TO');
+                    const scored = [];
+
+                    for (const asset of this.offlineUniverse) {
+                        const symbol = this.normalizeSymbol(asset.symbol || '');
+                        if (!symbol) continue;
+
+                        const name = String(asset.name || '').toUpperCase();
+                        const aliases = Array.isArray(asset.aliases) ? asset.aliases : [];
+                        const normalizedAliases = aliases.map((alias) => this.normalizeSymbol(alias));
+
+                        let rank = null;
+                        if (symbol === normalized) {
+                            rank = 0;
+                        } else if (normalizedAliases.some((alias) => alias === normalized)) {
+                            rank = 1;
+                        } else if (symbol.startsWith(normalized)) {
+                            rank = 2;
+                        } else if (normalizedAliases.some((alias) => alias.startsWith(normalized))) {
+                            rank = 3;
+                        } else if (name.includes(normalized)) {
+                            rank = 4;
+                        } else if (symbol.includes(normalized) || normalizedAliases.some((alias) => alias.includes(normalized))) {
+                            rank = 5;
+                        }
+
+                        if (rank === null) continue;
+
+                        // For plain query, prefer US primary symbol when .TO and US overlap.
+                        if (
+                            plainQuery &&
+                            symbol.endsWith('.TO') &&
+                            this.offlineSymbolMap[symbol.slice(0, -3)]
+                        ) {
+                            rank += 1;
+                        }
+                        if (plainQuery && asset.market === 'US') {
+                            rank -= 0.25;
+                        }
+
+                        scored.push({
+                            asset,
+                            rank,
+                            symbolLength: symbol.length,
+                        });
+                    }
+
+                    scored.sort((a, b) => {
+                        if (a.rank !== b.rank) return a.rank - b.rank;
+                        if (a.symbolLength !== b.symbolLength) return a.symbolLength - b.symbolLength;
+                        return a.asset.symbol.localeCompare(b.asset.symbol);
+                    });
+
+                    return scored.slice(0, limit).map((item) => item.asset);
+                },
+
+                updateSuggestions(field) {
+                    if (field === 'holding') {
+                        this.holdingSuggestions = this.searchAssets(this.newHoldSym, 8);
+                        return;
+                    }
+                    this.subSuggestions = this.searchAssets(this.newSubSym, 10);
+                },
+
+                clearSuggestionsLater(field) {
+                    setTimeout(() => {
+                        if (field === 'holding') {
+                            this.holdingSuggestions = [];
+                        } else {
+                            this.subSuggestions = [];
+                        }
+                    }, 120);
+                },
+
+                pickSuggestion(field, symbol) {
+                    const selectByQuery = (query, selectedSymbol) => {
+                        const normalizedQuery = this.normalizeSymbol(query);
+                        const normalizedSelected = this.normalizeSymbol(selectedSymbol);
+                        if (
+                            normalizedSelected.endsWith('.TO') &&
+                            !normalizedQuery.includes('.TO')
+                        ) {
+                            const usCandidate = normalizedSelected.slice(0, -3);
+                            if (this.offlineSymbolMap[usCandidate]) {
+                                return usCandidate;
+                            }
+                        }
+                        return normalizedSelected;
+                    };
+
+                    if (field === 'holding') {
+                        this.newHoldSym = selectByQuery(this.newHoldSym, symbol);
+                        this.holdingSuggestions = [];
+                        return;
+                    }
+                    this.newSubSym = selectByQuery(this.newSubSym, symbol);
+                    this.subSuggestions = [];
+                },
+
+                sendCode() {
+                    if (!this.email) { this.showToast('请输入邮箱地址'); return; }
+                    this.showToast('验证码发送成功，请查收');
+                },
+
+                login() {
+                    if (this.email && this.code) {
+                        this.step = 'construct';
+                    }
+                },
+
+                addHolding() {
+                    const asset = this.resolveAsset(this.newHoldSym);
+                    const shares = parseInt(this.newHoldVol, 10);
+                    if (!asset) {
+                        this.showToast('离线库未找到该代码，请检查输入。');
+                        return;
+                    }
+                    if (!Number.isFinite(shares) || shares <= 0) {
+                        this.showToast('请输入有效股数。');
+                        return;
+                    }
+
+                    const symbol = this.normalizeSymbol(asset.symbol);
+                    const existing = this.holdings.find((item) => item.symbol === symbol);
+                    if (existing) {
+                        existing.shares += shares;
+                    } else {
+                        this.holdings.push({
+                            symbol,
+                            name: asset.name,
+                            market: asset.market,
+                            shares
+                        });
+                    }
+
+                    this.newHoldSym = '';
+                    this.newHoldVol = '';
+                    this.holdingSuggestions = [];
+                    this.showToast('已写入本地离线持仓。');
+                },
+                removeHolding(idx) {
+                    this.holdings.splice(idx, 1);
+                },
+
+                addSub() {
+                    const asset = this.resolveAsset(this.newSubSym);
+                    if (!asset) {
+                        this.showToast('离线库未找到该代码，请检查输入。');
+                        return;
+                    }
+
+                    const symbol = this.normalizeSymbol(asset.symbol);
+                    const exists = this.subscriptions.some((item) => item.symbol === symbol);
+                    if (exists) {
+                        this.showToast('该标的已在订阅列表中。');
+                        return;
+                    }
+
+                    this.subscriptions.push({
+                        symbol,
+                        name: asset.name,
+                        market: asset.market
+                    });
+                    this.newSubSym = '';
+                    this.subSuggestions = [];
+                    this.showToast('已写入本地离线订阅。');
+                },
+                removeSub(idx) {
+                    this.subscriptions.splice(idx, 1);
+                },
+
+                syncData() {
+                    this.step = 'active';
+                    this.showToast('配置已一次性同步至云端，开始监控');
+                },
+
+                showToast(msg) {
+                    this.toast = msg;
+                    setTimeout(() => { this.toast = ''; }, 2500);
+                }
+            }
+        }
     </script>
 </body>
 </html>

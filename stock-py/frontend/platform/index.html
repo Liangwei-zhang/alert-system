@@ -194,8 +194,6 @@
                     <button @click="loadAll()" class="rounded-full border border-ink/20 bg-white/85 px-3 py-1 text-ink/80 transition hover:bg-white">
                         立即刷新
                     </button>
-                    <a href="/next/platform/" class="rounded-full bg-ink px-3 py-1 font-semibold text-panel transition hover:bg-ink/85">并行新版</a>
-                    <a href="/ui-versions/" class="rounded-full border border-tide/20 bg-tide/10 px-3 py-1 text-tide transition hover:bg-tide/15">版本切换</a>
                     <a href="/admin/" class="rounded-full border border-ink/15 bg-white/80 px-3 py-1 text-ink/80 transition hover:bg-white">管理端</a>
                     <a href="/app/" class="rounded-full border border-ink/15 bg-white/80 px-3 py-1 text-ink/80 transition hover:bg-white">订阅端</a>
                 </div>
@@ -205,14 +203,14 @@
         <section class="reveal mt-4 rounded-3xl border border-tide/20 bg-white/75 p-4 shadow-panel backdrop-blur-sm">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <p class="text-xs uppercase tracking-[0.22em] text-tide/80">Parallel Release</p>
-                    <h2 class="mt-1 text-lg font-semibold text-ink">你当前看到的是稳定版桌面端</h2>
-                    <p class="mt-1 text-sm text-ink/65">这次明显的桌面视觉改动放在并行新版路由下，稳定版继续保留原工作台结构。直接打开并行新版即可对比新的信息架构和操作流。</p>
+                    <p class="text-xs uppercase tracking-[0.22em] text-tide/80">Platform Overview</p>
+                    <h2 class="mt-1 text-lg font-semibold text-ink">策略桌面工作台</h2>
+                    <p class="mt-1 text-sm text-ink/65">当前桌面端继续聚合候选标的、交易执行、研究台和管理员会话入口，作为平台侧唯一的稳定工作台。</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <a href="/next/platform/" class="rounded-full bg-tide px-4 py-2 text-sm font-semibold text-white transition hover:bg-tide/90">打开并行新版平台端</a>
-                    <a href="/next/admin/" class="rounded-full border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-panel">打开并行新版管理端</a>
-                    <a href="/ui-versions/" class="rounded-full border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-panel">查看全部版本入口</a>
+                    <a href="#desktop-access-panel" class="rounded-full bg-tide px-4 py-2 text-sm font-semibold text-white transition hover:bg-tide/90">进入桌面接入台</a>
+                    <a href="/admin/" class="rounded-full border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-panel">打开管理端</a>
+                    <a href="/app/" class="rounded-full border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-panel">打开订阅端</a>
                 </div>
             </div>
         </section>

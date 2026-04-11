@@ -206,9 +206,9 @@
 
 | 原 stock 能力 | stock 原位置 | stock-py 状态 | 结论 |
 |---|---|---|---|
-| `/app` H5 订阅端 | `src/MobileApp.tsx` 及相关页面 | `apps/public_api/routers/ui.py` + `apps/public_api/ui_shell.py` | 已迁移为纯 HTML + Python shell |
-| `/platform` 桌面研究台 | `src/App.tsx` | `apps/public_api/routers/ui.py` + `apps/public_api/ui_shell.py` | 已迁移为纯 HTML + Python shell |
-| `/admin` 管理前端 | `src/AdminApp.tsx` | `apps/public_api/routers/ui.py` + `apps/public_api/ui_shell.py` | 已迁移为纯 HTML + Python shell |
+| `/app` H5 订阅端 | `src/MobileApp.tsx` 及相关页面 | `frontend/app` + `apps/public_api/routers/ui.py` | 已迁移为纯 HTML + FastAPI 静态入口 |
+| `/platform` 桌面研究台 | `src/App.tsx` | `frontend/platform` + `apps/public_api/routers/ui.py` | 已迁移为纯 HTML + FastAPI 静态入口 |
+| `/admin` 管理前端 | `src/AdminApp.tsx` | `frontend/admin` + `apps/public_api/routers/ui.py` | 已迁移为纯 HTML + FastAPI 静态入口 |
 
 说明：
 

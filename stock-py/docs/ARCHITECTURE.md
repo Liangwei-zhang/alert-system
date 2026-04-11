@@ -117,7 +117,7 @@ stock-py/
 - apps/public_api/routers/search.py → symbol search
 - apps/public_api/routers/notifications.py → notification center
 - apps/public_api/routers/trades.py → trade info / confirm / ignore / adjust
-- apps/public_api/routers/ui.py + apps/public_api/ui_shell.py → Python-served HTML shells for subscriber / platform / admin surfaces
+- apps/public_api/routers/ui.py + frontend/app + frontend/platform + frontend/admin → FastAPI-served static HTML/JS surfaces for subscriber / platform / admin
 - apps/public_api/routers/signal_ingest.py → internal signal ingest
 - apps/public_api/routers/tradingagents_submit.py + tradingagents_webhook.py → TradingAgents internal submit / terminal webhook
 
@@ -169,13 +169,13 @@ stock-py/
 ### 4.1 桌面端需求與現狀對齊
 
 - 需求 1：候選標的與入場研究應集中在平台端。
-	現狀：`/platform` 與 `/next/platform` 已承接 symbol search、觀察池操作與入場分數維護；對應 public API 為 `/v1/search/*` 與 `/v1/watchlist/*`。
+	現狀：`/platform` 已承接 symbol search、觀察池操作與入場分數維護；對應 public API 為 `/v1/search/*` 與 `/v1/watchlist/*`。
 - 需求 2：退出策略、持倉與交易執行應與策略判斷保持同屏閉環。
 	現狀：平台端已具備 portfolio CRUD、退出參數維護與 trade lookup / confirm / ignore / adjust；對應 public API 為 `/v1/portfolio/*` 與 `/v1/trades/*`。
 - 需求 3：回測、勝率、排名、scanner 決策觀測與策略健康度屬於平台核心，而非 admin 主產品面。
-	現狀：`/next/platform` 已把這些能力統一表述為「內部策略接口台」，但底層仍主要經 `/v1/admin/backtests/*`、`/v1/admin/scanner/*`、`/v1/admin/signal-stats/*`、`/v1/admin/analytics/*`、`/v1/admin/tradingagents/*` 取數，屬於產品歸屬已對齊、技術掛載仍過渡中的狀態。
+	現狀：`/platform` 已把這些能力統一表述為「內部策略接口台」，但底層仍主要經 `/v1/admin/backtests/*`、`/v1/admin/scanner/*`、`/v1/admin/signal-stats/*`、`/v1/admin/analytics/*`、`/v1/admin/tradingagents/*` 取數，屬於產品歸屬已對齊、技術掛載仍過渡中的狀態。
 - 需求 3.1：桌面端上的高權限策略操作，必須能自行完成 session 化認證，而不是要求操作者切去 admin 再回來。
-	現狀：`/next/platform` 已內嵌 `/v1/admin-auth/send-code`、`/v1/admin-auth/verify`、`/v1/admin-auth/refresh` 的入口，作為策略工作台自己的高權限登入流；`admin_api` 仍要求 access token 對應有效 `SessionModel`，所以只生成簽名 JWT 而不建立 session 時，請求會得到 `session_revoked`。
+	現狀：`/platform` 已內嵌 `/v1/admin-auth/send-code`、`/v1/admin-auth/verify`、`/v1/admin-auth/refresh` 的入口，作為策略工作台自己的高權限登入流；`admin_api` 仍要求 access token 對應有效 `SessionModel`，所以只生成簽名 JWT 而不建立 session 時，請求會得到 `session_revoked`。
 - 需求 4：桌面端應作為後續前端開發主戰場。
-	現狀：穩定版 `/platform` 仍保留原靜態駕駛艙；並行版 `/next/platform` 已按策略核心重排信息架構，後續桌面端增量開發應優先落在 `/next/platform`，再視切換窗口替代穩定版。
+	現狀：`/platform` 已作為桌面端唯一工作台，後續桌面端增量開發應直接落在這個入口，而不是維持額外的並行版本路由。
 - 結論：桌面端的產品邊界已經明確，現階段不需要再討論它是不是“研究/查詢頁”；真正的開發任務是把高權限策略能力逐步從 admin 敘事中抽離，持續向 platform 工作台收口。

@@ -277,7 +277,7 @@
             <div class="topbar__cluster">
                 <div>
                     <h2>${escapeHtml(page.title)}</h2>
-                    <div class="helper-text">当前是稳定版管理端，并行新版入口保留在 <a href="/next/admin/">/next/admin/</a>。</div>
+                    <div class="helper-text">当前是稳定版管理端，可直接切到平台端或订阅端查看联动体验。</div>
                 </div>
             </div>
             <div class="topbar__search">
@@ -286,8 +286,8 @@
                 <button id="topbar-endpoint-search-btn" class="btn btn--ghost btn--compact" type="button">筛选 API</button>
             </div>
             <div class="topbar__actions">
-                <a class="btn btn--primary btn--compact" href="/next/admin/">并行新版</a>
-                <a class="btn btn--ghost btn--compact" href="/ui-versions/">版本切换</a>
+                <a class="btn btn--primary btn--compact" href="/platform/">平台端</a>
+                <a class="btn btn--ghost btn--compact" href="/app/">订阅端</a>
             </div>
         `;
     }

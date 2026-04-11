@@ -18,11 +18,11 @@
 - 桌面策略駕駛艙與內部高權限策略接口的產品歸屬
 
 #### 桌面端需求對齊（2026-04）
-- 已對齊：候選標的搜索、觀察池 / 持倉、入場 / 退出參數維護、交易執行閉環，現在都已可由 `/platform` 或 `/next/platform` 承接，底層分別對應 `search`、`watchlist`、`portfolio`、`trades` 等 public API。
-- 已對齊：`/next/platform` 的信息架構已按策略核心重排為候選標的、策略組合、參數維護、交易執行與內部策略接口台，與先前確認的產品邊界一致。
+- 已對齊：候選標的搜索、觀察池 / 持倉、入場 / 退出參數維護、交易執行閉環，現在都由 `/platform` 承接，底層分別對應 `search`、`watchlist`、`portfolio`、`trades` 等 public API。
+- 已對齊：`/platform` 的信息架構已按策略核心重排為候選標的、策略組合、參數維護、交易執行與內部策略接口台，與先前確認的產品邊界一致。
 - 過渡中：`backtests`、`scanner`、`signal-stats`、`analytics`、`tradingagents` 這組高權限策略能力，技術上仍經 `admin_api` 的 `/v1/admin/*` 暴露，但產品上已視為桌面端策略核心的一部分。
-- 已對齊：`/next/platform` 已內嵌 `admin-auth` 驗證入口，桌面端可直接用 `/v1/admin-auth/send-code`、`/v1/admin-auth/verify`、`/v1/admin-auth/refresh` 建立高權限策略 session；僅生成簽名 JWT 而不落 session 時，`admin_api` 仍會回 `session_revoked`。
-- 開發優先級：桌面端後續應以 `/next/platform` 作為主開發面，持續把回測、勝率、排名、策略觀測與實驗能力往這個策略工作台收口，而不是再擴散到管理端。
+- 已對齊：`/platform` 已內嵌 `admin-auth` 驗證入口，桌面端可直接用 `/v1/admin-auth/send-code`、`/v1/admin-auth/verify`、`/v1/admin-auth/refresh` 建立高權限策略 session；僅生成簽名 JWT 而不落 session 時，`admin_api` 仍會回 `session_revoked`。
+- 開發優先級：桌面端後續應以 `/platform` 作為主開發面，持續把回測、勝率、排名、策略觀測與實驗能力往這個策略工作台收口，而不是再擴散到管理端。
 
 ### 2. 管理端 (Admin) - 用戶/推送/治理
 - 用戶生命週期與訂閱狀態管理
@@ -260,7 +260,7 @@ LOAD_REPORT_PREFIX=ops/reports/load/staging-smoke/baseline make load-baseline
 
 ## 已遷移的新架構切面
 
-- `apps/public_api/routers/ui.py` + `apps/public_api/ui_shell.py`: 由 FastAPI 直接輸出 `/app`、`/platform`、`/admin` 純 HTML 介面，透過瀏覽器直連 public/admin API
+- `apps/public_api/routers/ui.py` + `frontend/app` + `frontend/platform` + `frontend/admin`: 由 FastAPI 直接提供 `/app`、`/platform`、`/admin` 的靜態 HTML/JS 介面，透過瀏覽器直連 public/admin API
 - `apps/scheduler/main.py`: APScheduler 任務註冊中心，負責 heartbeat、event relay/dispatch、TradingAgents polling、market-data、scanner、retention、push/email dispatch、receipt escalation、backtest、cold storage 等週期任務
 - `apps/public_api/routers/sidecars.py`: 補上 `/api/yahoo/{symbol}`、`/api/binance/{symbol}`、`/alerts`、`/api/telegram` sidecar surface，並以 internal sidecar secret 保護內部代理 / relay / bridge 路由
 - `apps/public_api/routers/monitoring.py`: 補上 legacy `/api/monitoring/stats`、`/api/monitoring/metrics`、`/api/monitoring/reset` 兼容路由，支援 bearer 或 internal sidecar secret 鑑權

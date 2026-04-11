@@ -13,7 +13,7 @@ class PublicHtmlRoutesTest(unittest.TestCase):
         self.client.close()
         public_main.app.dependency_overrides.clear()
 
-    def test_app_platform_and_admin_pages_render_python_html_shells(self) -> None:
+    def test_app_platform_and_admin_pages_render_static_html_surfaces(self) -> None:
         app_response = self.client.get("/app")
         self.assertEqual(app_response.status_code, 200)
         self.assertIn("text/html", app_response.headers["content-type"])
@@ -33,9 +33,10 @@ class PublicHtmlRoutesTest(unittest.TestCase):
         platform_response = self.client.get("/platform")
         self.assertEqual(platform_response.status_code, 200)
         self.assertIn("策略驾驶舱", platform_response.text)
-        self.assertIn("你当前看到的是稳定版桌面端", platform_response.text)
-        self.assertIn("/next/platform/", platform_response.text)
-        self.assertIn("/ui-versions/", platform_response.text)
+        self.assertIn("策略桌面工作台", platform_response.text)
+        self.assertIn("进入桌面接入台", platform_response.text)
+        self.assertIn("/admin/", platform_response.text)
+        self.assertIn("/app/", platform_response.text)
         self.assertIn("Desktop Workbench", platform_response.text)
         self.assertIn("Desktop Access", platform_response.text)
         self.assertIn("Desktop Launchpad", platform_response.text)
@@ -81,8 +82,8 @@ class PublicHtmlRoutesTest(unittest.TestCase):
         self.assertIn('const ADMIN_UI_BUILD = "2026-04-07-r2"', admin_app_script_response.text)
         self.assertIn('href: adminRoute("people")', admin_app_script_response.text)
         self.assertIn('href: adminRoute("runtime")', admin_app_script_response.text)
-        self.assertIn('/next/admin/', admin_app_script_response.text)
-        self.assertIn('/ui-versions/', admin_app_script_response.text)
+        self.assertIn('href="/platform/"', admin_app_script_response.text)
+        self.assertIn('href="/app/"', admin_app_script_response.text)
 
         admin_api_maps_script_response = self.client.get("/admin/js/api-maps.js")
         self.assertEqual(admin_api_maps_script_response.status_code, 200)

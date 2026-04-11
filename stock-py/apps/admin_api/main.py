@@ -56,6 +56,13 @@ async def lifespan(_app: FastAPI):
 settings = get_settings()
 metrics = get_metrics_registry()
 
+cors_allowed_origins = list(settings.allowed_origins)
+cors_allow_origin_regex = None
+if "*" in cors_allowed_origins:
+    # Wildcard + credentials can behave inconsistently across clients.
+    cors_allowed_origins = []
+    cors_allow_origin_regex = r"https?://.*"
+
 app = FastAPI(
     title=f"{settings.project_name} Admin API",
     version=settings.version,
@@ -69,7 +76,8 @@ register_exception_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins,
+    allow_origins=cors_allowed_origins,
+    allow_origin_regex=cors_allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

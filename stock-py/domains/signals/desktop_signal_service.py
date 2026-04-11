@@ -5,7 +5,6 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domains.signals.audience_service import SignalAudienceResolver
 from domains.signals.dedupe_policy import SignalDedupePolicy
 from domains.signals.repository import SignalRepository
 from domains.signals.schemas import DesktopSignalRequest
@@ -17,7 +16,6 @@ class DesktopSignalService:
         self.session = session
         self.repository = SignalRepository(session)
         self.dedupe_policy = SignalDedupePolicy()
-        self.audience = SignalAudienceResolver(session)
         self.outbox = OutboxPublisher(session)
 
     async def ingest_desktop_signal(self, request: DesktopSignalRequest) -> dict[str, Any]:
@@ -79,15 +77,12 @@ class DesktopSignalService:
                 "generated_at": self._normalize_emitted_at(request.emitted_at),
             }
         )
-        recipient_ids = await self.audience.resolve_recipient_ids(
-            request.alert.symbol, request.alert.score
-        )
-        await self.route_signal(signal.id, request, recipient_ids, dedupe_key)
+        await self.route_signal(signal.id, request, dedupe_key=dedupe_key)
         return {
             "signal_id": signal.id,
             "dedupe_key": dedupe_key,
             "suppressed": False,
-            "queued_recipient_count": len(recipient_ids),
+            "queued_recipient_count": 0,
             "status": "accepted",
         }
 
@@ -95,8 +90,8 @@ class DesktopSignalService:
         self,
         signal_id: int,
         request: DesktopSignalRequest,
-        recipient_ids: list[int],
         dedupe_key: str,
+        recipient_ids: list[int] | None = None,
     ) -> None:
         payload = {
             "signal_id": str(signal_id),
@@ -107,7 +102,7 @@ class DesktopSignalService:
             "reasons": request.alert.reasons,
             "analysis": request.analysis,
             "source": request.source,
-            "user_ids": recipient_ids,
+            "user_ids": recipient_ids or [],
             "strategy_window": self._strategy_window(request),
             "market_regime": self._market_regime(request),
             "dedupe_key": dedupe_key,

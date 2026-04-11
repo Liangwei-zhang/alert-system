@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -34,4 +35,5 @@ class PortfolioItemResponse(BaseModel):
     stop_loss: float
     notify: bool
     notes: str | None = None
+    extra: dict[str, Any] | None = None
     updated_at: datetime

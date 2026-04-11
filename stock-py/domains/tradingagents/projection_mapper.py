@@ -2,14 +2,67 @@
 Projection mapper for TradingAgents responses.
 """
 
-from datetime import datetime
 from typing import Any, Dict, Optional
 
-from domains.tradingagents.schemas import TradingAgentsJobTerminalEvent, TradingAgentsProjection
+from domains.tradingagents.schemas import TradingAgentsProjection
 
 
 class TradingAgentsProjectionMapper:
     """Maps API responses to projection schemas."""
+
+    _STATUS_MAPPING = {
+        "queued": "pending",
+        "pending": "pending",
+        "submitted": "submitted",
+        "running": "running",
+        "succeeded": "completed",
+        "completed": "completed",
+        "failed": "failed",
+        "error": "failed",
+        "canceled": "failed",
+        "cancelled": "failed",
+        "timeout": "timeout",
+    }
+
+    _FINAL_ACTION_MAPPING = {
+        "buy": "buy",
+        "sell": "sell",
+        "hold": "hold",
+        "no_action": "no_action",
+        "add": "add",
+        "reduce": "reduce",
+    }
+
+    @classmethod
+    def to_internal_status(
+        cls,
+        status: Any,
+        *,
+        http_status: int | None = None,
+    ) -> str:
+        normalized = str(status or "").strip().lower()
+        if normalized:
+            return cls._STATUS_MAPPING.get(normalized, "running")
+        if http_status == 200:
+            return "completed"
+        if http_status == 409:
+            return "failed"
+        if http_status == 202:
+            return "running"
+        return "running"
+
+    @classmethod
+    def normalize_final_action(cls, action: Any) -> Optional[str]:
+        if action in (None, ""):
+            return None
+        normalized = str(action).strip().lower().replace(" ", "_")
+        return cls._FINAL_ACTION_MAPPING.get(normalized, normalized)
+
+    @staticmethod
+    def _extract_projection_payload(payload: dict) -> dict:
+        if isinstance(payload.get("projection"), dict):
+            return payload["projection"]
+        return payload
 
     @staticmethod
     def from_webhook_payload(payload: dict) -> TradingAgentsProjection:
@@ -27,13 +80,34 @@ class TradingAgentsProjectionMapper:
             "timestamp": "2024-04-04T12:00:00Z"
         }
         """
+        projection_payload = TradingAgentsProjectionMapper._extract_projection_payload(payload)
+        status = projection_payload.get("tradingagents_status") or projection_payload.get("status")
+        result_payload = projection_payload.get("result_payload")
+        if result_payload is None and isinstance(payload.get("result_payload"), dict):
+            result_payload = payload.get("result_payload")
+
+        final_action = (
+            projection_payload.get("final_action")
+            or payload.get("final_action")
+            or TradingAgentsProjectionMapper.extract_final_action(result_payload)
+        )
+        decision_summary = (
+            projection_payload.get("decision_summary")
+            or projection_payload.get("error_message")
+            or payload.get("decision_summary")
+            or payload.get("error_message")
+        )
+
         return TradingAgentsProjection(
-            request_id=payload.get("request_id", ""),
-            job_id=payload.get("job_id"),
-            tradingagents_status=payload.get("status", "unknown"),
-            final_action=payload.get("final_action"),
-            decision_summary=payload.get("decision_summary"),
-            result_payload=payload.get("result_payload"),
+            request_id=str(projection_payload.get("request_id") or payload.get("request_id") or ""),
+            job_id=projection_payload.get("job_id") or payload.get("job_id"),
+            tradingagents_status=TradingAgentsProjectionMapper.to_internal_status(
+                status,
+                http_status=payload.get("http_status"),
+            ),
+            final_action=TradingAgentsProjectionMapper.normalize_final_action(final_action),
+            decision_summary=decision_summary,
+            result_payload=result_payload,
         )
 
     @staticmethod
@@ -53,27 +127,27 @@ class TradingAgentsProjectionMapper:
             "result": {...}
         }
         """
-        status = poll_data.get("status", "unknown")
+        status = poll_data.get("tradingagents_status") or poll_data.get("status")
+        result_payload = poll_data.get("result_payload")
+        if result_payload is None:
+            result_payload = poll_data.get("result")
 
-        # Map status to our status enum
-        if status == "completed":
-            final_status = "completed"
-        elif status == "running":
-            final_status = "running"
-        elif status == "failed":
-            final_status = "failed"
-        elif status == "timeout":
-            final_status = "timeout"
-        else:
-            final_status = "unknown"
+        final_action = (
+            poll_data.get("final_action")
+            or TradingAgentsProjectionMapper.extract_final_action(result_payload)
+        )
+        decision_summary = poll_data.get("decision_summary") or poll_data.get("error_message")
 
         return TradingAgentsProjection(
             request_id=request_id,
-            job_id=job_id,
-            tradingagents_status=final_status,
-            final_action=poll_data.get("final_action"),
-            decision_summary=poll_data.get("decision_summary"),
-            result_payload=poll_data.get("result"),
+            job_id=str(poll_data.get("job_id") or job_id),
+            tradingagents_status=TradingAgentsProjectionMapper.to_internal_status(
+                status,
+                http_status=poll_data.get("http_status"),
+            ),
+            final_action=TradingAgentsProjectionMapper.normalize_final_action(final_action),
+            decision_summary=decision_summary,
+            result_payload=result_payload,
         )
 
     @staticmethod
@@ -92,24 +166,12 @@ class TradingAgentsProjectionMapper:
             ...
         }
         """
-        status = status_data.get("status", "unknown")
-
-        # Map to our status format
-        status_mapping = {
-            "pending": "pending",
-            "submitted": "submitted",
-            "running": "running",
-            "completed": "completed",
-            "failed": "failed",
-            "timeout": "timeout",
-        }
-
-        mapped_status = status_mapping.get(status, status)
+        status = status_data.get("tradingagents_status") or status_data.get("status")
 
         return TradingAgentsProjection(
             request_id=request_id,
             job_id=job_id,
-            tradingagents_status=mapped_status,
+            tradingagents_status=TradingAgentsProjectionMapper.to_internal_status(status),
             final_action=None,
             decision_summary=None,
             result_payload=None,

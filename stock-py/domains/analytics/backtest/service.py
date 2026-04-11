@@ -1,8 +1,17 @@
 from __future__ import annotations
 
 import math
+from datetime import datetime, timedelta, timezone
 from statistics import mean, pstdev
 from typing import Any, Iterable
+
+from domains.analytics.backtest.experiment_tracking import (
+    build_artifact_manifest,
+    build_dataset_fingerprint,
+    build_experiment_config,
+    build_run_key,
+    capture_code_version,
+)
 
 
 class NullPublisher:
@@ -20,6 +29,33 @@ class NullPublisher:
 class BacktestService:
     DEFAULT_WINDOWS = (30, 90, 180, 365)
     DEFAULT_STRATEGIES = ("trend_following", "mean_reversion", "breakout")
+    BASELINE_STRATEGIES = (
+        "buy_and_hold",
+        "sma_cross",
+        "rsi_reversion",
+        "bollinger_reversion",
+    )
+    STRATEGY_ALIASES = {
+        "trend_following": "trend_following",
+        "momentum": "trend_following",
+        "mean_reversion": "mean_reversion",
+        "mean-reversion": "mean_reversion",
+        "breakout": "breakout",
+        "buy_and_hold": "buy_and_hold",
+        "buy-and-hold": "buy_and_hold",
+        "hold": "buy_and_hold",
+        "sma_cross": "sma_cross",
+        "sma-cross": "sma_cross",
+        "golden_cross": "sma_cross",
+        "golden-cross": "sma_cross",
+        "rsi_reversion": "rsi_reversion",
+        "rsi-reversion": "rsi_reversion",
+        "rsi": "rsi_reversion",
+        "bollinger_reversion": "bollinger_reversion",
+        "bollinger-reversion": "bollinger_reversion",
+        "bollinger": "bollinger_reversion",
+    }
+    SUPPORTED_STRATEGIES = DEFAULT_STRATEGIES + BASELINE_STRATEGIES
 
     def __init__(
         self,
@@ -41,6 +77,9 @@ class BacktestService:
         strategy_names: Iterable[str] | None = None,
         windows: Iterable[int] | None = None,
         timeframe: str = "1d",
+        experiment_name: str | None = None,
+        experiment_context: dict[str, Any] | None = None,
+        artifact_entries: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         repository = self._get_repository()
         resolved_symbols = [
@@ -48,107 +87,185 @@ class BacktestService:
             for symbol in (symbols or await self._list_symbols())
             if symbol.strip()
         ]
-        resolved_strategies = tuple(strategy_names or self.DEFAULT_STRATEGIES)
+        resolved_strategies = self._normalize_strategy_names(strategy_names)
         resolved_windows = tuple(int(window) for window in (windows or self.DEFAULT_WINDOWS))
+        normalized_timeframe = timeframe.strip().lower()
+        normalized_experiment_name = str(
+            experiment_name or "backtest.ranking-refresh"
+        ).strip() or "backtest.ranking-refresh"
+        normalized_experiment_context = dict(experiment_context or {})
+        started_at = datetime.now(timezone.utc)
+        config_snapshot = build_experiment_config(
+            symbols=resolved_symbols,
+            strategy_names=list(resolved_strategies),
+            windows=resolved_windows,
+            timeframe=normalized_timeframe,
+            experiment_context=normalized_experiment_context,
+        )
+        dataset_fingerprint = build_dataset_fingerprint(
+            symbols=resolved_symbols,
+            windows=resolved_windows,
+            timeframe=normalized_timeframe,
+            experiment_context=normalized_experiment_context,
+        )
+        code_version = capture_code_version()
+        run_key = build_run_key(
+            experiment_name=normalized_experiment_name,
+            timeframe=normalized_timeframe,
+            started_at=started_at,
+        )
+        max_window = max(resolved_windows) if resolved_windows else 0
+        preloaded_bars: dict[str, list[dict[str, Any]]] = {}
+
+        if max_window > 0:
+            for symbol in resolved_symbols:
+                bars = await repository.load_window_data(symbol, max_window, normalized_timeframe)
+                if bars:
+                    preloaded_bars[symbol] = bars
 
         run = await repository.save_run(
             {
                 "strategy_name": "ranking_refresh",
+                "experiment_name": normalized_experiment_name,
+                "run_key": run_key,
                 "symbol": "*",
-                "timeframe": timeframe,
+                "timeframe": normalized_timeframe,
                 "window_days": max(resolved_windows) if resolved_windows else 0,
                 "status": "running",
                 "summary": {"symbols": resolved_symbols, "strategies": list(resolved_strategies)},
+                "config": config_snapshot,
+                "code_version": code_version,
+                "dataset_fingerprint": dataset_fingerprint,
+                "started_at": started_at,
             }
         )
+        run_id = int(getattr(run, "id", run))
 
-        rankings: list[dict[str, Any]] = []
-        for strategy_name in resolved_strategies:
-            per_window: dict[int, dict[str, Any]] = {}
-            for window_days in resolved_windows:
-                window_results: list[dict[str, Any]] = []
-                for symbol in resolved_symbols:
-                    result = await self.run_backtest_window(
-                        symbol=symbol,
-                        window_days=window_days,
-                        strategy_name=strategy_name,
-                        timeframe=timeframe,
-                    )
-                    if result is None:
+        try:
+            rankings: list[dict[str, Any]] = []
+            for strategy_name in resolved_strategies:
+                per_window: dict[int, dict[str, Any]] = {}
+                for window_days in resolved_windows:
+                    window_results: list[dict[str, Any]] = []
+                    for symbol in resolved_symbols:
+                        result = self._run_backtest_from_bars(
+                            symbol=symbol,
+                            window_days=window_days,
+                            strategy_name=strategy_name,
+                            timeframe=normalized_timeframe,
+                            bars=self._slice_bars_to_window(
+                                preloaded_bars.get(symbol, []),
+                                window_days,
+                            ),
+                        )
+                        if result is None:
+                            continue
+                        window_results.append(result)
+
+                    aggregate_metrics = self._aggregate_window_results(window_results)
+                    if aggregate_metrics is None:
                         continue
-                    window_results.append(result)
+                    score = self._ranking_score(aggregate_metrics)
+                    top_symbols = sorted(
+                        (
+                            {
+                                "symbol": item["symbol"],
+                                "return_percent": item["metrics"]["total_return_percent"],
+                                "trade_count": item["metrics"]["trade_count"],
+                            }
+                            for item in window_results
+                        ),
+                        key=lambda item: item["return_percent"],
+                        reverse=True,
+                    )[:5]
+                    per_window[window_days] = {
+                        "score": score,
+                        "symbols_covered": len(window_results),
+                        "metrics": aggregate_metrics,
+                        "top_symbols": top_symbols,
+                    }
 
-                aggregate_metrics = self._aggregate_window_results(window_results)
-                if aggregate_metrics is None:
+                if not per_window:
                     continue
-                score = self._ranking_score(aggregate_metrics)
-                top_symbols = sorted(
-                    (
-                        {
-                            "symbol": item["symbol"],
-                            "return_percent": item["metrics"]["total_return_percent"],
-                            "trade_count": item["metrics"]["trade_count"],
-                        }
-                        for item in window_results
-                    ),
-                    key=lambda item: item["return_percent"],
-                    reverse=True,
-                )[:5]
-                per_window[window_days] = {
-                    "score": score,
-                    "symbols_covered": len(window_results),
-                    "metrics": aggregate_metrics,
-                    "top_symbols": top_symbols,
-                }
 
-            if not per_window:
-                continue
+                degradation = self.calculate_degradation(
+                    {window: payload["score"] for window, payload in per_window.items()}
+                )
+                evidence = self.build_strategy_evidence(strategy_name, per_window, degradation)
+                overall_score = round(
+                    mean(payload["score"] for payload in per_window.values()) - degradation,
+                    4,
+                )
+                rankings.append(
+                    {
+                        "strategy_name": strategy_name,
+                        "timeframe": normalized_timeframe,
+                        "score": overall_score,
+                        "degradation": degradation,
+                        "symbols_covered": sum(
+                            payload["symbols_covered"] for payload in per_window.values()
+                        ),
+                        "evidence": evidence,
+                    }
+                )
 
-            degradation = self.calculate_degradation(
-                {window: payload["score"] for window, payload in per_window.items()}
-            )
-            evidence = self.build_strategy_evidence(strategy_name, per_window, degradation)
-            overall_score = round(
-                mean(payload["score"] for payload in per_window.values()) - degradation, 4
-            )
-            rankings.append(
+            rankings.sort(key=lambda item: item["score"], reverse=True)
+            for index, item in enumerate(rankings, start=1):
+                item["rank"] = index
+
+            rankings_as_of = datetime.now(timezone.utc)
+            saved_rankings = await repository.save_rankings(rankings, as_of_date=rankings_as_of)
+            summary = {
+                "ranking_count": len(rankings),
+                "top_strategy": rankings[0]["strategy_name"] if rankings else None,
+                "symbols_covered": len(resolved_symbols),
+            }
+            await repository.save_results(
+                run,
                 {
-                    "strategy_name": strategy_name,
-                    "timeframe": timeframe,
-                    "score": overall_score,
-                    "degradation": degradation,
-                    "symbols_covered": sum(
-                        payload["symbols_covered"] for payload in per_window.values()
+                    "status": "completed",
+                    "summary": summary,
+                    "metrics": {"rankings": rankings},
+                    "evidence": {"strategies": [item["strategy_name"] for item in rankings]},
+                    "artifacts": build_artifact_manifest(
+                        run_id=run_id,
+                        timeframe=normalized_timeframe,
+                        rankings_as_of=rankings_as_of,
+                        ranking_count=len(saved_rankings),
+                        extra_entries=artifact_entries,
                     ),
-                    "evidence": evidence,
-                }
+                },
             )
-
-        rankings.sort(key=lambda item: item["score"], reverse=True)
-        for index, item in enumerate(rankings, start=1):
-            item["rank"] = index
-
-        saved_rankings = await repository.save_rankings(rankings)
-        summary = {
-            "ranking_count": len(rankings),
-            "top_strategy": rankings[0]["strategy_name"] if rankings else None,
-            "symbols_covered": len(resolved_symbols),
-        }
-        await repository.save_results(
-            run,
-            {
-                "status": "completed",
-                "summary": summary,
-                "metrics": {"rankings": rankings},
-                "evidence": {"strategies": [item["strategy_name"] for item in rankings]},
-            },
-        )
-        await self._publish_refresh(summary, rankings, timeframe=timeframe)
-        return {
-            "run_id": int(getattr(run, "id", run)),
-            "ranking_count": len(saved_rankings),
-            "rankings": rankings,
-        }
+            await self._publish_refresh(summary, rankings, timeframe=normalized_timeframe)
+            return {
+                "run_id": run_id,
+                "experiment_name": normalized_experiment_name,
+                "run_key": run_key,
+                "code_version": code_version,
+                "dataset_fingerprint": dataset_fingerprint,
+                "ranking_count": len(saved_rankings),
+                "rankings": rankings,
+            }
+        except Exception as exc:
+            await repository.save_results(
+                run,
+                {
+                    "status": "failed",
+                    "summary": {
+                        "ranking_count": 0,
+                        "symbols_covered": len(resolved_symbols),
+                        "top_strategy": None,
+                    },
+                    "evidence": {"strategies": list(resolved_strategies)},
+                    "artifacts": build_artifact_manifest(
+                        run_id=run_id,
+                        timeframe=normalized_timeframe,
+                        extra_entries=artifact_entries,
+                    ),
+                    "error_message": str(exc),
+                },
+            )
+            raise
 
     async def run_backtest_window(
         self,
@@ -159,6 +276,23 @@ class BacktestService:
         timeframe: str = "1d",
     ) -> dict[str, Any] | None:
         bars = await self._get_repository().load_window_data(symbol, window_days, timeframe)
+        return self._run_backtest_from_bars(
+            symbol=symbol,
+            window_days=window_days,
+            strategy_name=strategy_name,
+            timeframe=timeframe,
+            bars=bars,
+        )
+
+    def _run_backtest_from_bars(
+        self,
+        *,
+        symbol: str,
+        window_days: int,
+        strategy_name: str,
+        timeframe: str,
+        bars: list[dict[str, Any]],
+    ) -> dict[str, Any] | None:
         if len(bars) < 20:
             return None
 
@@ -256,6 +390,14 @@ class BacktestService:
             "trades": trades,
             "equity_points": equity_points,
         }
+
+    @staticmethod
+    def _slice_bars_to_window(bars: list[dict[str, Any]], window_days: int) -> list[dict[str, Any]]:
+        if not bars:
+            return []
+        latest_timestamp = bars[-1]["timestamp"]
+        cutoff = latest_timestamp - timedelta(days=window_days)
+        return [bar for bar in bars if bar["timestamp"] >= cutoff]
 
     def calculate_degradation(self, scores_by_window: dict[int, float]) -> float:
         if len(scores_by_window) < 2:
@@ -399,6 +541,10 @@ class BacktestService:
         std20 = pstdev(closes[-20:]) if len(closes) >= 20 else 0.0
         breakout_high = max(highs[-21:-1])
         breakdown_low = min(lows[-11:-1])
+        rsi14 = self._compute_rsi(closes[-15:])
+
+        if strategy_name == "buy_and_hold":
+            return "buy" if index == 20 else None
 
         if strategy_name == "trend_following":
             if current > sma10 > sma20 and (current - closes[-2]) > 0:
@@ -421,8 +567,70 @@ class BacktestService:
                 return "sell"
             return None
 
+        if strategy_name == "sma_cross":
+            if sma10 > sma20 and prev_sma10 <= prev_sma20:
+                return "buy"
+            if sma10 < sma20 and prev_sma10 >= prev_sma20:
+                return "sell"
+            return None
+
+        if strategy_name == "rsi_reversion":
+            if rsi14 <= 30.0:
+                return "buy"
+            if rsi14 >= 55.0 or current >= sma10:
+                return "sell"
+            return None
+
+        if strategy_name == "bollinger_reversion":
+            lower_band = sma20 - (std20 * 2.0)
+            if current <= lower_band:
+                return "buy"
+            if current >= sma20:
+                return "sell"
+            return None
+
         if current > sma20:
             return "buy"
         if current < sma20:
             return "sell"
         return None
+
+    def _normalize_strategy_names(
+        self,
+        strategy_names: Iterable[str] | None,
+    ) -> tuple[str, ...]:
+        requested = strategy_names or self.DEFAULT_STRATEGIES
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for item in requested:
+            raw = str(item or "").strip().lower()
+            if not raw:
+                continue
+            canonical = self.STRATEGY_ALIASES.get(raw, raw)
+            if canonical in seen:
+                continue
+            seen.add(canonical)
+            normalized.append(canonical)
+        return tuple(normalized or self.DEFAULT_STRATEGIES)
+
+    @staticmethod
+    def _compute_rsi(closes: list[float]) -> float:
+        if len(closes) < 2:
+            return 50.0
+
+        gains = 0.0
+        losses = 0.0
+        for previous, current in zip(closes[:-1], closes[1:]):
+            change = current - previous
+            if change >= 0:
+                gains += change
+            else:
+                losses += abs(change)
+
+        periods = max(len(closes) - 1, 1)
+        average_gain = gains / periods
+        average_loss = losses / periods
+        if average_loss == 0:
+            return 100.0 if average_gain > 0 else 50.0
+        relative_strength = average_gain / average_loss
+        return 100.0 - (100.0 / (1.0 + relative_strength))

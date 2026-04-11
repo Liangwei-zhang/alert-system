@@ -1,4 +1,5 @@
 import asyncio
+import json
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -103,6 +104,78 @@ class TradeServiceReadPathTest(unittest.TestCase):
         service.notification_repository.list_ids_by_trade.assert_awaited_once_with(7, "trade-42")
         service.receipt_repository.acknowledge_many.assert_not_called()
         service.outbox.publish_batch_after_commit.assert_not_called()
+
+    def test_apply_buy_to_portfolio_builds_staged_exit_metadata(self) -> None:
+        service = TradeService(SimpleNamespace(info={}))
+        service.portfolio_repository = SimpleNamespace(
+            get_by_user_and_symbol=AsyncMock(return_value=None),
+            create=AsyncMock(),
+        )
+        trade = SimpleNamespace(
+            user_id=7,
+            symbol="AAPL",
+            action=TradeAction.BUY,
+            extra=json.dumps(
+                {
+                    "take_profit_1": 120.0,
+                    "take_profit_2": 128.0,
+                    "take_profit_3": 140.0,
+                    "stop_loss": 94.0,
+                }
+            ),
+        )
+
+        asyncio.run(service._apply_buy_to_portfolio(trade, shares=10, price=100.0, amount=1000.0))
+
+        create_kwargs = service.portfolio_repository.create.await_args.kwargs
+        self.assertAlmostEqual(create_kwargs["target_profit"], 0.2)
+        self.assertAlmostEqual(create_kwargs["stop_loss"], 0.06)
+        self.assertEqual(create_kwargs["extra"]["sell_plan"]["base_shares"], 10)
+        self.assertEqual(
+            [stage["id"] for stage in create_kwargs["extra"]["sell_plan"]["stages"]],
+            ["tp1", "tp2", "tp3"],
+        )
+
+    def test_apply_sell_to_portfolio_marks_stage_progress(self) -> None:
+        service = TradeService(SimpleNamespace(info={}))
+        position = SimpleNamespace(
+            shares=10,
+            avg_cost=100.0,
+            target_profit=0.15,
+            stop_loss=0.08,
+            extra=json.dumps(
+                {
+                    "sell_plan": {
+                        "base_shares": 10,
+                        "stages": [
+                            {"id": "tp1", "label": "Batch 1", "trigger_pct": 0.15, "sell_pct": 0.25},
+                            {"id": "tp2", "label": "Batch 2", "trigger_pct": 0.23, "sell_pct": 0.35},
+                            {"id": "tp3", "label": "Batch 3", "trigger_pct": 0.35, "sell_pct": 0.4},
+                        ],
+                    },
+                    "sell_progress": {"completed_stage_ids": []},
+                }
+            ),
+        )
+        service.portfolio_repository = SimpleNamespace(
+            get_by_user_and_symbol=AsyncMock(return_value=position),
+            update=AsyncMock(),
+            delete=AsyncMock(),
+        )
+        trade = SimpleNamespace(
+            user_id=7,
+            symbol="AAPL",
+            action=TradeAction.SELL,
+            extra=json.dumps({"sell_stage_id": "tp1"}),
+        )
+
+        asyncio.run(service._apply_sell_to_portfolio(trade, shares=3, price=120.0))
+
+        update_args = service.portfolio_repository.update.await_args.args[1]
+        self.assertEqual(update_args["shares"], 7)
+        updated_extra = update_args["extra"]
+        self.assertEqual(updated_extra["sell_progress"]["completed_stage_ids"], ["tp1"])
+        self.assertEqual(updated_extra["last_exit"]["remaining_shares"], 7)
 
 
 if __name__ == "__main__":

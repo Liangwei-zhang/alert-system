@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard - Stock-py</title>
+  <link href="../../dist/css/tabler.css" rel="stylesheet" />
+  <link href="../../dist/css/tabler-vendors.css" rel="stylesheet" />
+  <script src="../../dist/js/tabler-theme.min.js"></script>
+  <style>
+    @import url("https://rsms.me/inter/inter.css");
+    .stat-card { transition: transform 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); }
+    .loading-spinner { display: flex; justify-content: center; padding: 40px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Sidebar -->
+    <aside class="sidebar sidebar-dark d-none d-md-block" style="position: fixed; left: 0; top: 0; bottom: 0; width: 260px; z-index: 1000;">
+      <div class="sidebar-brand p-3 text-center">
+        <a href="/pages/dashboard.html" class="text-white text-decoration-none">
+          <svg xmlns="http://www.w3.org/2000/svg" width="120" height="32" viewBox="0 0 232 68">
+            <path d="M64.6 16.2C63 9.9 58.1 5 51.8 3.4 40 1.5 28 1.5 16.2 3.4 9.9 5 5 9.9 3.4 16.2 1.5 28 1.5 40 3.4 51.8 5 58.1 9.9 63 16.2 64.6c11.8 1.9 23.8 1.9 35.6 0C58.1 63 63 58.1 64.6 51.8c1.9-11.8 1.9-23.8 0-35.6z" fill="#066fd1"/>
+            <path d="M105 40l5-5 5 5 10-10-5-5 5-5-10-10-5 5-5-5-10 10 5 5-5 5 10 10zm20-15l5-5-5-5-5 5z" fill="#fff"/>
+          </svg>
+        </a>
+        <div class="text-muted small mt-1">Admin Panel</div>
+      </div>
+      <ul class="nav nav-vertical py-2">
+        <li class="nav-item"><a class="nav-link active" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="users.html">Users</a></li>
+        <li class="nav-item"><a class="nav-link" href="subscriptions.html">Subscriptions</a></li>
+        <li class="nav-item"><a class="nav-link" href="tasks.html">Tasks</a></li>
+        <li class="nav-item"><a class="nav-link" href="audit.html">Audit Logs</a></li>
+        <li class="nav-item"><a class="nav-link" href="push.html">Push / Devices</a></li>
+        <li class="nav-item mt-4"><a class="nav-link text-muted" href="/pages/dashboard.html">← Back to App</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main -->
+    <div class="page-main" style="margin-left: 260px;">
+      <header class="navbar navbar-expand-md d-print-none border-bottom">
+        <div class="container-xl">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="navbar-nav"><span class="text-muted">Stock-py Admin</span></div>
+        </div>
+      </header>
+
+      <div class="container-xl py-4">
+        <h1 class="mb-4">Dashboard</h1>
+        
+        <!-- Stats Cards -->
+        <div class="row g-3 mb-4" id="stats-cards">
+          <div class="col-6 col-md-3">
+            <div class="card stat-card">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="bg-primary-lt rounded p-2 me-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                  </div>
+                  <div>
+                    <div class="text-muted small">Total Users</div>
+                    <div class="h3 mb-0" id="stat-users">-</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="card stat-card">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="bg-success-lt rounded p-2 me-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                  </div>
+                  <div>
+                    <div class="text-muted small">Total Signals</div>
+                    <div class="h3 mb-0" id="stat-signals">-</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="card stat-card">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="bg-warning-lt rounded p-2 me-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+                  </div>
+                  <div>
+                    <div class="text-muted small">Portfolios</div>
+                    <div class="h3 mb-0" id="stat-portfolios">-</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="card stat-card">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="bg-info-lt rounded p-2 me-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect></svg>
+                  </div>
+                  <div>
+                    <div class="text-muted small">Active Subs</div>
+                    <div class="h3 mb-0" id="stat-subs">-</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Health -->
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">System Health</h3>
+              </div>
+              <div class="card-body" id="system-health">
+                <div class="text-muted">Loading...</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Celery Status</h3>
+              </div>
+              <div class="card-body" id="celery-status">
+                <div class="text-muted">Loading...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../dist/js/tabler.min.js"></script>
+  <script>
+    async function fetchJSON(url) {
+      try {
+        const res = await fetch('/api' + url);
+        if (!res.ok) throw new Error(res.status);
+        return await res.json();
+      } catch (e) {
+        console.error('API Error:', url, e);
+        return null;
+      }
+    }
+
+    async function loadStats() {
+      const stats = await fetchJSON('/admin/operational-stats');
+      if (stats) {
+        document.getElementById('stat-users').textContent = stats.users?.total || 0;
+        document.getElementById('stat-signals').textContent = stats.signals?.total || 0;
+        document.getElementById('stat-portfolios').textContent = stats.portfolios?.total || 0;
+        document.getElementById('stat-subs').textContent = stats.subscriptions?.active || 0;
+      }
+
+      const health = await fetchJSON('/admin/system-health');
+      if (health) {
+        document.getElementById('system-health').innerHTML = `
+          <div class="row">
+            <div class="col-6 mb-2"><span class="text-muted">CPU:</span> ${health.cpu?.percent || 'N/A'}%</div>
+            <div class="col-6 mb-2"><span class="text-muted">Memory:</span> ${health.memory?.percent || 'N/A'}%</div>
+            <div class="col-6"><span class="text-muted">Disk:</span> ${health.disk?.percent || 'N/A'}%</div>
+            <div class="col-6"><span class="text-muted">Status:</span> <span class="badge bg-${health.status === 'healthy' ? 'success' : 'danger'}">${health.status || 'unknown'}</span></div>
+          </div>
+        `;
+      }
+
+      const celery = await fetchJSON('/admin/celery-status');
+      if (celery) {
+        document.getElementById('celery-status').innerHTML = `
+          <div class="row">
+            <div class="col-6 mb-2"><span class="text-muted">Status:</span> <span class="badge bg-${celery.status === 'ok' ? 'success' : 'warning'}">${celery.status || 'unknown'}</span></div>
+            <div class="col-6 mb-2"><span class="text-muted">Workers:</span> ${celery.active_workers || 0}</div>
+            <div class="col-6"><span class="text-muted">Active:</span> ${celery.active_tasks || 0}</div>
+            <div class="col-6"><span class="text-muted">Queued:</span> ${celery.queued_tasks || 0}</div>
+          </div>
+        `;
+      }
+    }
+
+    loadStats();
+  </script>
+</body>
+</html>

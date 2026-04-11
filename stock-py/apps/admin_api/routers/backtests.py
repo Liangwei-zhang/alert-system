@@ -19,13 +19,19 @@ router = APIRouter(prefix="/v1/admin/backtests", tags=["admin", "backtests"])
 class AdminBacktestRunResponse(BaseModel):
     id: int
     strategy_name: str
+    experiment_name: str | None = None
+    run_key: str | None = None
     symbol: str | None = None
     timeframe: str
     window_days: int
     status: str
     summary: dict[str, Any] | list[Any] | None = None
+    config: dict[str, Any] | list[Any] | None = None
     metrics: dict[str, Any] | list[Any] | None = None
     evidence: dict[str, Any] | list[Any] | None = None
+    artifacts: dict[str, Any] | list[Any] | None = None
+    code_version: str | None = None
+    dataset_fingerprint: str | None = None
     error_message: str | None = None
     started_at: datetime
     completed_at: datetime | None = None
@@ -62,10 +68,15 @@ class TriggerBacktestRefreshRequest(BaseModel):
     strategy_names: list[str] | None = Field(default=None)
     windows: list[int] | None = Field(default=None)
     timeframe: str = Field(default="1d", min_length=1, max_length=16)
+    experiment_name: str | None = Field(default=None, min_length=1, max_length=120)
 
 
 class TriggerBacktestRefreshResponse(BaseModel):
     run_id: int
+    experiment_name: str | None = None
+    run_key: str | None = None
+    code_version: str | None = None
+    dataset_fingerprint: str | None = None
     ranking_count: int
     rankings: list[AdminBacktestRankingResponse]
 
@@ -86,13 +97,19 @@ def _run_to_response(run: Any) -> AdminBacktestRunResponse:
     return AdminBacktestRunResponse(
         id=int(run.id),
         strategy_name=str(run.strategy_name),
+        experiment_name=getattr(run, "experiment_name", None),
+        run_key=getattr(run, "run_key", None),
         symbol=str(run.symbol) if getattr(run, "symbol", None) else None,
         timeframe=str(run.timeframe),
         window_days=int(run.window_days or 0),
         status=str(getattr(run.status, "value", run.status)),
         summary=_load_payload(getattr(run, "summary", None)),
+        config=_load_payload(getattr(run, "config", None)),
         metrics=_load_payload(getattr(run, "metrics", None)),
         evidence=_load_payload(getattr(run, "evidence", None)),
+        artifacts=_load_payload(getattr(run, "artifacts", None)),
+        code_version=getattr(run, "code_version", None),
+        dataset_fingerprint=getattr(run, "dataset_fingerprint", None),
         error_message=getattr(run, "error_message", None),
         started_at=run.started_at,
         completed_at=getattr(run, "completed_at", None),
@@ -141,6 +158,8 @@ async def list_runs(
         description="Filter by run status",
     ),
     strategy_name: str | None = Query(None, description="Filter by strategy name"),
+    experiment_name: str | None = Query(None, description="Filter by experiment name"),
+    run_key: str | None = Query(None, description="Filter by run key"),
     timeframe: str | None = Query(None, description="Filter by timeframe"),
     symbol: str | None = Query(None, description="Filter by symbol"),
     limit: int = Query(50, ge=1, le=500, description="Results limit"),
@@ -153,12 +172,16 @@ async def list_runs(
         offset=offset,
         status=status,
         strategy_name=strategy_name,
+        experiment_name=experiment_name,
+        run_key=run_key,
         timeframe=timeframe,
         symbol=symbol,
     )
     total = await repository.count_runs(
         status=status,
         strategy_name=strategy_name,
+        experiment_name=experiment_name,
+        run_key=run_key,
         timeframe=timeframe,
         symbol=symbol,
     )
@@ -210,6 +233,14 @@ async def create_run(
         strategy_names=request.strategy_names,
         windows=request.windows,
         timeframe=request.timeframe,
+        experiment_name=request.experiment_name,
+        experiment_context={
+            "trigger": "admin_api",
+            "entrypoint": "apps.admin_api.routers.backtests.create_run",
+            "dataset": {
+                "selection_mode": "request",
+            },
+        },
     )
     rankings = [
         _ranking_payload_to_response(ranking)
@@ -218,6 +249,10 @@ async def create_run(
     ]
     return TriggerBacktestRefreshResponse(
         run_id=int(result.get("run_id") or 0),
+        experiment_name=result.get("experiment_name"),
+        run_key=result.get("run_key"),
+        code_version=result.get("code_version"),
+        dataset_fingerprint=result.get("dataset_fingerprint"),
         ranking_count=int(result.get("ranking_count") or len(rankings)),
         rankings=rankings,
     )

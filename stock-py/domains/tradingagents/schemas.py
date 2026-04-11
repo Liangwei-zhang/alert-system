@@ -3,7 +3,7 @@ Pydantic schemas for TradingAgents domain.
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -18,9 +18,25 @@ class SubmitTradingAgentsRequest(BaseModel):
         default=None, description="List of analysts to use"
     )
     trigger_type: str = Field(
-        ..., pattern="^(scanner|manual|position_review|scheduled)$", description="Trigger type"
+        default="manual",
+        pattern="^(scanner|manual|position_review|scheduled)$",
+        description="Trigger type",
     )
     trigger_context: Optional[dict] = Field(default=None, description="Additional trigger context")
+    debug: Optional[bool] = Field(default=None, description="Debug mode forwarded to TradingAgents")
+    config_overrides: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="Optional TradingAgents config overrides",
+    )
+    publish_video: Optional[bool] = Field(
+        default=None,
+        description="Optional report video generation flag",
+    )
+    video_privacy_status: Optional[str] = Field(
+        default=None,
+        pattern="^(public|unlisted|private)$",
+        description="Video privacy when publish_video is enabled",
+    )
 
     @field_validator("ticker")
     @classmethod
@@ -34,7 +50,8 @@ class TradingAgentsProjection(BaseModel):
     request_id: str
     job_id: Optional[str] = None
     tradingagents_status: str = Field(
-        ..., description="pending|submitted|running|completed|failed|timeout"
+        ...,
+        description="pending|submitted|running|completed|failed|timeout|queued|succeeded|canceled",
     )
     final_action: Optional[str] = Field(default=None, description="buy|sell|hold|no_action|unknown")
     decision_summary: Optional[str] = None
@@ -60,11 +77,19 @@ class TradingAgentsJobTerminalEvent(BaseModel):
 
     request_id: str
     job_id: str
-    status: str = Field(..., description="completed|failed|timeout")
+    status: Optional[str] = Field(
+        default=None,
+        description="queued|running|succeeded|failed|canceled|completed|timeout",
+    )
+    tradingagents_status: Optional[str] = Field(
+        default=None,
+        description="queued|running|succeeded|failed|canceled",
+    )
     final_action: Optional[str] = None
     decision_summary: Optional[str] = None
     result_payload: Optional[dict] = None
-    timestamp: datetime
+    timestamp: Optional[datetime] = None
+    delivered_at: Optional[datetime] = None
 
 
 class TradingAgentsAnalysisListQuery(BaseModel):

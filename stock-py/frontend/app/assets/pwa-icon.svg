@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Alpha Smart Subscribe Icon</title>
+  <desc id="desc">Rounded blue square with stylized white A mark.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d4ed8" />
+      <stop offset="1" stop-color="#2563eb" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dbeafe" />
+      <stop offset="1" stop-color="#bfdbfe" />
+    </linearGradient>
+  </defs>
+
+  <rect x="40" y="40" width="432" height="432" rx="112" fill="url(#bg)" />
+  <path d="M256 124L368 380H317L287 308H225L195 380H144L256 124Z" fill="#ffffff" />
+  <path d="M241 264H271L256 226L241 264Z" fill="url(#accent)" />
+  <circle cx="356" cy="156" r="26" fill="#93c5fd" opacity="0.88" />
+</svg>

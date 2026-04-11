@@ -281,6 +281,14 @@ class LocalClickHouseBackend:
 
 
 class ClickHouseHttpBackend:
+    _MISSING_ENTITY_EXCEPTION_CODES = {"60", "81"}
+    _MISSING_ENTITY_MARKERS = (
+        "UNKNOWN_TABLE",
+        "UNKNOWN_DATABASE",
+        "DOESN'T EXIST",
+        "DOES NOT EXIST",
+    )
+
     def __init__(
         self,
         *,
@@ -401,7 +409,7 @@ class ClickHouseHttpBackend:
         try:
             response_text = await self._post_query(query)
         except httpx.HTTPStatusError as exc:
-            if self._is_unknown_table_error(exc):
+            if self._is_missing_entity_error(exc):
                 return []
             raise
 
@@ -430,7 +438,7 @@ class ClickHouseHttpBackend:
                 "ORDER BY partition_key FORMAT JSONEachRow"
             )
         except httpx.HTTPStatusError as exc:
-            if self._is_unknown_table_error(exc):
+            if self._is_missing_entity_error(exc):
                 return []
             raise
         partitions: list[str] = []
@@ -493,9 +501,17 @@ class ClickHouseHttpBackend:
             return response.text
 
     @staticmethod
-    def _is_unknown_table_error(exc: httpx.HTTPStatusError) -> bool:
+    def _is_missing_entity_error(exc: httpx.HTTPStatusError) -> bool:
         response = exc.response
-        return response is not None and "UNKNOWN_TABLE" in response.text
+        if response is None:
+            return False
+
+        exception_code = str(response.headers.get("X-ClickHouse-Exception-Code", "")).strip()
+        if exception_code in ClickHouseHttpBackend._MISSING_ENTITY_EXCEPTION_CODES:
+            return True
+
+        response_text = response.text.upper()
+        return any(marker in response_text for marker in ClickHouseHttpBackend._MISSING_ENTITY_MARKERS)
 
 
 class ClickHouseClient:

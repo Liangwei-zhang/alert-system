@@ -1,15 +1,16 @@
 (function () {
     const data = window.adminDemoData || {};
     const ADMIN_UI_BUILD = "2026-04-07-r2";
+    const adminRoute = (path = "") => path ? `/admin/${path}` : "/admin/";
     const pages = {
         dashboard: {
             title: "Admin control plane",
             eyebrow: "Unified operating view",
             copy: "Map the real admin-api surface into one operator cockpit before wiring live tokens and fetch calls. This frontend shows every major workflow area already present in the backend.",
             ctas: [
-                { label: "Open people desk", href: "people.html", icon: "users" },
-                { label: "Review active alerts", href: "runtime.html", icon: "shield-alert" },
-                { label: "Queue a campaign", href: "communications.html", icon: "send" }
+                { label: "Open people desk", href: adminRoute("people"), icon: "users" },
+                { label: "Review active alerts", href: adminRoute("runtime"), icon: "shield-alert" },
+                { label: "Queue a campaign", href: adminRoute("communications"), icon: "send" }
             ]
         },
         people: {
@@ -69,13 +70,13 @@
         {
             label: "Command",
             items: [
-                { page: "dashboard", title: "Overview", href: "index.html", icon: "layout-dashboard" },
-                { page: "people", title: "People desk", href: "people.html", icon: "users" },
-                { page: "communications", title: "Delivery ops", href: "communications.html", icon: "send" },
-                { page: "intelligence", title: "Intelligence", href: "intelligence.html", icon: "activity" },
-                { page: "experiments", title: "Experiments", href: "experiments.html", icon: "flask-conical" },
-                { page: "runtime", title: "Runtime & audit", href: "runtime.html", icon: "shield-alert" },
-                { page: "api", title: "API Console", href: "api.html", icon: "terminal" }
+                { page: "dashboard", title: "Overview", href: adminRoute(), icon: "layout-dashboard" },
+                { page: "people", title: "People desk", href: adminRoute("people"), icon: "users" },
+                { page: "communications", title: "Delivery ops", href: adminRoute("communications"), icon: "send" },
+                { page: "intelligence", title: "Intelligence", href: adminRoute("intelligence"), icon: "activity" },
+                { page: "experiments", title: "Experiments", href: adminRoute("experiments"), icon: "flask-conical" },
+                { page: "runtime", title: "Runtime & audit", href: adminRoute("runtime"), icon: "shield-alert" },
+                { page: "api", title: "API Console", href: adminRoute("api"), icon: "terminal" }
             ]
         }
     ];
@@ -276,6 +277,7 @@
             <div class="topbar__cluster">
                 <div>
                     <h2>${escapeHtml(page.title)}</h2>
+                    <div class="helper-text">当前是稳定版管理端，并行新版入口保留在 <a href="/next/admin/">/next/admin/</a>。</div>
                 </div>
             </div>
             <div class="topbar__search">
@@ -284,6 +286,8 @@
                 <button id="topbar-endpoint-search-btn" class="btn btn--ghost btn--compact" type="button">筛选 API</button>
             </div>
             <div class="topbar__actions">
+                <a class="btn btn--primary btn--compact" href="/next/admin/">并行新版</a>
+                <a class="btn btn--ghost btn--compact" href="/ui-versions/">版本切换</a>
             </div>
         `;
     }

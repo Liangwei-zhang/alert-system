@@ -21,7 +21,7 @@ from domains.tradingagents.schemas import (
     SubmitTradingAgentsResponse,
     TradingAgentsProjection,
 )
-from domains.tradingagents.webhook_service import TradingAgentsWebhookService
+from infra.core.config import get_settings
 from infra.events.outbox import OutboxPublisher
 
 logger = logging.getLogger(__name__)
@@ -380,7 +380,10 @@ class TradingAgentsOrchestrator:
         await self.repository.increment_poll_count(request_id)
 
         try:
-            poll_result = await self.gateway.get_stock_result(record.job_id)
+            poll_result = await self.gateway.get_stock_result(
+                request_id=request_id,
+                include_full_result_payload=get_settings().tradingagents_poll_include_full_result_payload,
+            )
 
             if not poll_result:
                 return None  # Job not found or still processing
@@ -410,10 +413,12 @@ class TradingAgentsOrchestrator:
                     decision_summary=projection.decision_summary,
                     result_payload=projection.result_payload,
                 )
-            elif projection.tradingagents_status == "failed":
+            elif projection.tradingagents_status in {"failed", "timeout"}:
                 await self.repository.mark_failed(
                     request_id=request_id,
-                    error_message=projection.decision_summary,
+                    error_message=projection.decision_summary
+                    or poll_result.get("error_message")
+                    or "TradingAgents terminal failure",
                 )
 
             return projection

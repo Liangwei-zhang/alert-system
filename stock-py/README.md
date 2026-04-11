@@ -7,22 +7,30 @@
 - `stock-py` 是後續獨立運行的主系統，資料、部署與運維邊界以本倉庫為準。
 - 預設基線使用獨立 PostgreSQL / Redis / ClickHouse / object storage 命名，不再沿用舊 `stock` 的默認資料庫識別。
 - subscriber / admin / platform 三端 UI 屬於 `stock-py` 正式產品範圍，現在由 Python 直接提供 `/app`、`/platform`、`/admin` 三個純 HTML 入口，不再依賴舊 `stock` 倉庫或 Node build pipeline。
+- 三端的產品邊界應按「訂閱端 = 用戶資料輸入與接收通知」「桌面端 = 策略核心」「管理端 = 用戶/推送/治理/監控」理解，而不是按目前某些高權限 API 暫時掛在哪個服務下理解。
 
 ## 三端架構
 
-### 1. 管理端 (Admin) - 用戶/推送/治理
-- 用戶管理 (創建/編輯/刪除/權限)
-- 訂閱管理 (計劃/狀態/過期)
-- 推送管理 (設備/統計/手動推送)
-- 項目治理 (任務/回測/分發/審計)
+### 1. 桌面端 (Platform) - 策略核心
+- 候選標的池、觀察列表、持倉與交易執行
+- 買入預警策略與退出策略的選擇、調參與迭代
+- 歷史回測、勝率、排名與策略效果驗證
+- 桌面策略駕駛艙與內部高權限策略接口的產品歸屬
 
-### 2. 桌面端 (Platform) - 股票/算法/預警
-- 股票監控 (實時報價/監控列表/搜索)
-- 核心算法 (信號生成/策略引擎/回測/Market Regime)
-- 預警系統 (預警觸發/確認/分發)
-- 持倉管理 (持倉展示/交易記錄/P&L)
+#### 桌面端需求對齊（2026-04）
+- 已對齊：候選標的搜索、觀察池 / 持倉、入場 / 退出參數維護、交易執行閉環，現在都已可由 `/platform` 或 `/next/platform` 承接，底層分別對應 `search`、`watchlist`、`portfolio`、`trades` 等 public API。
+- 已對齊：`/next/platform` 的信息架構已按策略核心重排為候選標的、策略組合、參數維護、交易執行與內部策略接口台，與先前確認的產品邊界一致。
+- 過渡中：`backtests`、`scanner`、`signal-stats`、`analytics`、`tradingagents` 這組高權限策略能力，技術上仍經 `admin_api` 的 `/v1/admin/*` 暴露，但產品上已視為桌面端策略核心的一部分。
+- 已對齊：`/next/platform` 已內嵌 `admin-auth` 驗證入口，桌面端可直接用 `/v1/admin-auth/send-code`、`/v1/admin-auth/verify`、`/v1/admin-auth/refresh` 建立高權限策略 session；僅生成簽名 JWT 而不落 session 時，`admin_api` 仍會回 `session_revoked`。
+- 開發優先級：桌面端後續應以 `/next/platform` 作為主開發面，持續把回測、勝率、排名、策略觀測與實驗能力往這個策略工作台收口，而不是再擴散到管理端。
 
-### 3. 訂閱端 (Subscriber) - 客戶/預警/資料
+### 2. 管理端 (Admin) - 用戶/推送/治理
+- 用戶生命週期與訂閱狀態管理
+- 推送設備、手動消息、發件箱、回執與運營任務
+- 操作員權限、審計、運行監控、告警與驗收證據
+- 對平台策略服務的內部觀測與應急操作，但不是策略產品中心
+
+### 3. 訂閱端 (Subscriber) - 客戶/通知/資料
 - 認證 (登入/註冊/驗證碼)
 - 資料輸入 (關注股票/持有股票/現金)
 - 接收預警 (站內/WebPush/郵件)
@@ -98,8 +106,10 @@ make run-admin-api
 如果你是走 compose / nginx，直接開同一個 host：
 
 - `/app`：subscriber 郵箱驗證碼登入、本地離線草稿、訂閱股票 / 已持倉股票 / 現金錄入，以及單次 `开始订阅` 同步
-- `/platform`：symbol search、shared watchlist / portfolio 維護、trade lookup 與 app trade execution
-- `/admin`：admin 登入、operators、manual distribution、task center、users、audit、scanner、backtests、analytics、acceptance、runtime 指標與告警
+- `/platform`：桌面策略核心入口；當前已承接 symbol search、shared watchlist / portfolio、trade lookup 與 app trade execution，買入預警、退出策略、回測與勝率能力也應由同一產品面承接
+- `/admin`：內部運營治理入口；主責 admin 登入、operators、manual distribution、task center、users、audit、runtime 指標與告警，`scanner` / `backtests` / `analytics` 等高權限頁面屬於對平台核心的內部觀測與治理支援
+
+注意：目前 `backtests`、`scanner`、`signal-stats`、`analytics` 等高權限策略接口在技術上仍掛在 `admin_api` 下，但這不代表它們的產品歸屬屬於管理端；從產品邊界看，它們仍是桌面端策略核心的一部分。
 
 如果你直接開 public API 而不是經過 nginx，也可以在 query string 預先指定 API base URL：
 
@@ -118,6 +128,16 @@ make lint
 
 # contract + e2e smoke baseline
 make test-qa
+
+# 平台桌面端 smoke：驗證平台頁/腳本標記、admin-auth verify/refresh/logout、只讀數據鏈路
+make smoke-platform-workbench \
+PLATFORM_SMOKE_PUBLIC_BASE_URL=http://127.0.0.1:8012 \
+PLATFORM_SMOKE_ADMIN_BASE_URL=http://127.0.0.1:8011
+
+# 平台桌面端交互 smoke：用前端真實 JS 鏈路驗證 send-code -> verify -> loadAll -> 首屏自動路由 -> reload restore -> logout
+make smoke-platform-workbench-interaction \
+PLATFORM_SMOKE_PUBLIC_BASE_URL=http://127.0.0.1:8012 \
+PLATFORM_SMOKE_ADMIN_BASE_URL=http://127.0.0.1:8011
 
 # full unit + contract + e2e + load import baseline
 make qa-ci
@@ -191,6 +211,34 @@ make cutover-threshold-calibrate
 
 GitHub Actions 現在會在 Python 3.13 上先跑 `make lint`，再跑 `make qa-ci`。
 
+## 策略目標基準
+
+如果你要驗證當前 ranking-aware live strategy 是否仍然達到這輪遷移的目標勝率，可以直接跑：
+
+```bash
+.venv/bin/python run_live_strategy_goal_benchmark.py
+```
+
+這個命令會使用 archive-backed `1d` universe，默認按最近 `365` 根 bar 切成 `275` 根訓練 + `90` 根測試，baseline 使用舊 heuristic selector，ranking 輸入則優先取最近一批正式 benchmark-backed rankings，並把以下門檻當成 quality gate：
+
+- 新邏輯勝率 `>= 65.58%`
+- 絕對提升 `>= 10.89` 個百分點
+- 相對提升 `>= 19.92%`
+
+如果你想把 ranking 輸入切回純 train-window proxy，而不是使用資料庫裡最近一批正式 rankings，可以改成：
+
+```bash
+.venv/bin/python run_live_strategy_goal_benchmark.py --ranking-source train_window
+```
+
+如果你想看固定 `rsi_proxy` 的對照，也可以顯式指定：
+
+```bash
+.venv/bin/python run_live_strategy_goal_benchmark.py --baseline rsi_proxy
+```
+
+目標未達標時腳本會返回非零 exit code；如果只想看報告不想阻斷流程，可以加 `--allow-goal-miss`。如需保存 JSON 報告，可再加 `--output ops/reports/backtest-goal/latest.json`。
+
 Locust 報告會自動輸出到 `ops/reports/load/<UTC timestamp>/`，包含：
 
 - `baseline_stats.csv`
@@ -218,7 +266,7 @@ LOAD_REPORT_PREFIX=ops/reports/load/staging-smoke/baseline make load-baseline
 - `apps/public_api/routers/monitoring.py`: 補上 legacy `/api/monitoring/stats`、`/api/monitoring/metrics`、`/api/monitoring/reset` 兼容路由，支援 bearer 或 internal sidecar secret 鑑權
 - `apps/workers/event_pipeline/worker.py`: 將 transaction 內持久化的 `event_outbox` relay 到可切換的 Redis Streams / Kafka broker，並由 dispatcher worker 觸發既有 subscriber 鏈路
 - `infra/events/outbox.py`: 補上 dead-letter / replay repository 與 CLI，支援 `python -m infra.events.outbox stats`、`python -m infra.events.outbox replay-dead-letter`
-- `apps/admin_api/routers/analytics.py`: 管理端 analytics read-model API，提供 overview、distribution、strategy health、TradingAgents 指標
+- `apps/admin_api/routers/analytics.py`: 內部高權限 analytics read-model API，提供 overview、distribution、strategy health、TradingAgents 指標，主要服務平台策略觀測與 admin 治理復核
 - `apps/workers/analytics_sink/worker.py`: analytics sink subscriber 實作，透過 event-pipeline dispatcher 觸發下沉到 analytics storage
 - `apps/workers/cold_storage/worker.py`: 將過舊 analytics partition 匯出到 object storage
 - `infra/analytics/clickhouse_client.py`: 支援本地 JSONL facade 與真 ClickHouse HTTP backend，方便在本地與部署環境間切換

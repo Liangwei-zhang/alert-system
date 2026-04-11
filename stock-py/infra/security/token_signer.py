@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from typing import Any, Mapping
+from uuid import uuid4
 
 from jose import JWTError, jwt
 
@@ -29,6 +30,7 @@ class TokenSigner:
         now = datetime.now(timezone.utc)
         ttl = expires_in or timedelta(minutes=self.default_ttl_minutes)
         payload = dict(claims or {})
+        payload.setdefault("jti", uuid4().hex)
         payload.update(
             {
                 "sub": str(subject),

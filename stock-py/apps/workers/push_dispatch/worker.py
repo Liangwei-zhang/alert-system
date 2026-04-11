@@ -4,7 +4,9 @@ import asyncio
 import json
 import logging
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
+from infra.core.config import get_settings
 from infra.security.webpush import load_vapid_private_key
 from infra.observability.runtime_monitoring import run_runtime_monitored
 
@@ -12,10 +14,27 @@ logger = logging.getLogger(__name__)
 
 
 class PushDispatchWorker:
-    def __init__(self, batch_size: int = 100) -> None:
-        self.batch_size = batch_size
+    def __init__(self, batch_size: int | None = None, max_concurrency: int | None = None) -> None:
+        settings = get_settings()
+        self.batch_size = max(int(batch_size or settings.push_dispatch_batch_size), 1)
+        self.max_concurrency = max(
+            int(max_concurrency or settings.push_dispatch_max_concurrency),
+            1,
+        )
 
     async def process_event(self, topic: str, payload: dict[str, Any]) -> dict[str, Any]:
+        if topic == "notification.push.batch.requested":
+            if str(payload.get("channel") or "").lower() != "push":
+                return {"processed": 0, "delivered": 0, "failed": 0, "invalidated": 0}
+            outbox_ids = [
+                str(outbox_id)
+                for outbox_id in (payload.get("outbox_ids") or [])
+                if outbox_id not in (None, "")
+            ]
+            if not outbox_ids:
+                return {"processed": 0, "delivered": 0, "failed": 0, "invalidated": 0}
+            return await self.process_outbox_batch(outbox_ids)
+
         if topic != "notification.requested":
             raise ValueError(f"Unsupported push dispatch topic: {topic}")
         if str(payload.get("channel") or "").lower() != "push":
@@ -27,15 +46,36 @@ class PushDispatchWorker:
 
     async def run_once(self) -> dict[str, int]:
         pending_ids = await self._claim_pending_ids()
-        stats = {"processed": 0, "delivered": 0, "failed": 0, "invalidated": 0}
+        return await self.process_outbox_batch(pending_ids)
 
-        for outbox_id in pending_ids:
-            result = await self.process_outbox_message(outbox_id)
-            if not result["processed"]:
+    async def process_outbox_batch(self, outbox_ids: list[str]) -> dict[str, int]:
+        stats = {"processed": 0, "delivered": 0, "failed": 0, "invalidated": 0}
+        if not outbox_ids:
+            return stats
+
+        semaphore = asyncio.Semaphore(self.max_concurrency)
+
+        async def _process_one(outbox_id: str) -> dict[str, Any]:
+            async with semaphore:
+                return await self.process_outbox_message(outbox_id)
+
+        results = await asyncio.gather(
+            *(_process_one(outbox_id) for outbox_id in outbox_ids),
+            return_exceptions=True,
+        )
+
+        for result in results:
+            if isinstance(result, Exception):
+                logger.exception("Push dispatch batch item failed", exc_info=result)
+                stats["failed"] += 1
                 continue
+
+            if not result.get("processed"):
+                continue
+
             stats["processed"] += 1
-            stats["invalidated"] += result["invalidated"]
-            if result["delivered"]:
+            stats["invalidated"] += int(result.get("invalidated", 0) or 0)
+            if result.get("delivered"):
                 stats["delivered"] += 1
             else:
                 stats["failed"] += 1
@@ -103,7 +143,10 @@ class PushDispatchWorker:
             delivered = False
             invalidated = 0
             last_error = "push_delivery_failed"
-            payload = dict(message.payload or {})
+            payload = self._decorate_push_payload(
+                dict(message.payload or {}),
+                message.notification_id,
+            )
 
             for device in devices:
                 success, was_invalidated, error_message = await self._send_to_device(
@@ -176,8 +219,6 @@ class PushDispatchWorker:
         if device.provider != "webpush":
             return False, False, "provider_not_implemented"
 
-        from infra.core.config import get_settings
-
         settings = get_settings()
         if not settings.web_push_public_key or not settings.web_push_private_key:
             return False, False, "web_push_not_configured"
@@ -199,9 +240,10 @@ class PushDispatchWorker:
                 },
                 data=json.dumps(
                     {
-                        "title": payload.get("title", "Notification"),
+                        "title": payload.get("title", "系统通知"),
                         "body": payload.get("body", ""),
                         "url": payload.get("url", "/app/notifications"),
+                        "notification_id": payload.get("notification_id"),
                         "tag": payload.get("tag", f"notification-{device.device_id}"),
                         "metadata": payload.get("metadata") or {},
                     }
@@ -218,6 +260,39 @@ class PushDispatchWorker:
             return False, False, str(exc)
 
         return True, False, None
+
+    @staticmethod
+    def _decorate_push_payload(
+        payload: dict[str, Any],
+        notification_id: str | None,
+    ) -> dict[str, Any]:
+        if not notification_id:
+            return payload
+
+        normalized = str(notification_id)
+        updated = dict(payload)
+        updated["notification_id"] = normalized
+        updated["url"] = PushDispatchWorker._append_notification_id(
+            str(updated.get("url") or "/app/notifications"),
+            normalized,
+        )
+        return updated
+
+    @staticmethod
+    def _append_notification_id(raw_url: str, notification_id: str) -> str:
+        parsed = urlparse(raw_url)
+        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        query["notification_id"] = notification_id
+        return urlunparse(
+            (
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                urlencode(query),
+                parsed.fragment,
+            )
+        )
 
 
 async def main() -> None:

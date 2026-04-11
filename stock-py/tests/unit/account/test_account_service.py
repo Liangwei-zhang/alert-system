@@ -1,4 +1,5 @@
 import asyncio
+import json
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -63,7 +64,21 @@ class AccountServiceTest(unittest.TestCase):
                 ),
                 "account": SimpleNamespace(total_capital=10000, currency="USD"),
                 "portfolio": [
-                    SimpleNamespace(symbol="AAPL", shares=10, avg_cost=150, total_capital=1500),
+                    SimpleNamespace(
+                        symbol="AAPL",
+                        shares=10,
+                        avg_cost=150,
+                        total_capital=1500,
+                        extra=json.dumps(
+                            {
+                                "sell_plan": {
+                                    "base_shares": 10,
+                                    "stages": [{"id": "tp1", "sell_pct": 0.25}],
+                                },
+                                "sell_progress": {"completed_stage_ids": []},
+                            }
+                        ),
+                    ),
                     SimpleNamespace(symbol="MSFT", shares=5, avg_cost=200, total_capital=1000),
                 ],
                 "watchlist": [
@@ -82,6 +97,8 @@ class AccountServiceTest(unittest.TestCase):
         self.assertEqual(response.watchlist.notify_enabled, 1)
         self.assertEqual(response.portfolio[0].pct, 15.0)
         self.assertEqual(response.portfolio[1].pct, 10.0)
+        self.assertEqual(response.portfolio[0].extra["sell_plan"]["base_shares"], 10)
+        self.assertIsNone(response.portfolio[1].extra)
         self.assertEqual(response.subscription.status, "active")
         self.assertEqual(response.subscription.last_sync_reason, "scanner")
         self.assertTrue(response.subscription.checklist.has_capital)
@@ -244,7 +261,13 @@ class AccountServiceTest(unittest.TestCase):
                 ),
                 "account": SimpleNamespace(total_capital=10000, currency="USD"),
                 "portfolio": [
-                    SimpleNamespace(symbol="AAPL", shares=10, avg_cost=150, total_capital=1500)
+                    SimpleNamespace(
+                        symbol="AAPL",
+                        shares=10,
+                        avg_cost=150,
+                        total_capital=1500,
+                        extra=json.dumps({"sell_progress": {"completed_stage_ids": ["tp1"]}}),
+                    )
                 ],
                 "watchlist": [SimpleNamespace(symbol="AAPL", notify=True)],
             }
@@ -264,6 +287,7 @@ class AccountServiceTest(unittest.TestCase):
         cache_loader.assert_awaited_once()
         self.assertEqual(cache_loader.await_args.args[0], 42)
         self.assertEqual(response.account.portfolio_value, 1500.0)
+        self.assertEqual(response.portfolio[0].extra["sell_progress"]["completed_stage_ids"], ["tp1"])
 
     def test_update_profile_schedules_profile_and_dashboard_invalidation(self) -> None:
         repository = FakeAccountRepository(

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +13,12 @@ from infra.db.models.symbols import SymbolModel
 class PortfolioRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+
+    @staticmethod
+    def _serialize_extra(extra: dict | str | None) -> str | None:
+        if extra is None or isinstance(extra, str):
+            return extra
+        return json.dumps(extra, default=str)
 
     async def list_by_user(self, user_id: int) -> list[PortfolioPositionModel]:
         result = await self.session.execute(
@@ -53,9 +61,11 @@ class PortfolioRepository:
         stop_loss: float,
         notify: bool,
         notes: str | None,
+        extra: dict | str | None = None,
     ) -> PortfolioPositionModel:
         await self.ensure_symbol_exists(symbol)
         total_capital = round(shares * avg_cost, 2)
+        serialized_extra = self._serialize_extra(extra)
         stmt = insert(PortfolioPositionModel).values(
             user_id=user_id,
             symbol=symbol,
@@ -66,6 +76,7 @@ class PortfolioRepository:
             stop_loss=stop_loss,
             notify=notify,
             notes=notes,
+            extra=serialized_extra,
         )
         stmt = stmt.on_conflict_do_update(
             index_elements=[PortfolioPositionModel.user_id, PortfolioPositionModel.symbol],
@@ -77,6 +88,7 @@ class PortfolioRepository:
                 "stop_loss": stop_loss,
                 "notify": notify,
                 "notes": notes,
+                "extra": serialized_extra,
             },
         )
         await self.session.execute(stmt)
@@ -88,6 +100,8 @@ class PortfolioRepository:
 
     async def update(self, item: PortfolioPositionModel, updates: dict) -> PortfolioPositionModel:
         for key, value in updates.items():
+            if key == "extra":
+                value = self._serialize_extra(value)
             setattr(item, key, value)
         if "shares" in updates or "avg_cost" in updates:
             item.total_capital = round(float(item.shares) * float(item.avg_cost), 2)
@@ -125,6 +139,7 @@ class PortfolioRepository:
                 stop_loss=float(item.get("stop_loss", 0.08)),
                 notify=bool(item.get("notify", True)),
                 notes=item.get("notes"),
+                extra=item.get("extra"),
             )
 
         await self.session.flush()

@@ -8,6 +8,7 @@ import logging
 from domains.tradingagents.gateway import TradingAgentsApiError, TradingAgentsGateway
 from domains.tradingagents.projection_mapper import TradingAgentsProjectionMapper
 from domains.tradingagents.repository import TradingAgentsRepository
+from infra.core.config import get_settings
 from infra.db.session import get_session_factory
 from infra.observability.runtime_monitoring import run_runtime_monitored
 
@@ -91,9 +92,6 @@ class TradingAgentsPollingWorker:
             stats["checked"] = len(pending_records)
 
             for record in pending_records:
-                if not record.job_id:
-                    continue
-
                 try:
                     result = await self.process_record(repository, record)
 
@@ -145,17 +143,18 @@ class TradingAgentsPollingWorker:
 
         try:
             # Poll gateway
-            poll_result = await self.gateway.get_stock_result(record.job_id)
+            poll_result = await self.gateway.get_stock_result(
+                request_id=record.request_id,
+                include_full_result_payload=get_settings().tradingagents_poll_include_full_result_payload,
+            )
 
             if not poll_result:
                 return "running"
 
-            status = poll_result.get("status", "unknown")
-
             # Map to projection
             projection = self.mapper.from_poll_response(
                 request_id=record.request_id,
-                job_id=record.job_id,
+                job_id=record.job_id or "",
                 poll_data=poll_result,
             )
 
@@ -170,7 +169,7 @@ class TradingAgentsPollingWorker:
             )
 
             # Handle terminal states
-            if status == "completed":
+            if projection.tradingagents_status == "completed":
                 await repository.mark_completed(
                     request_id=record.request_id,
                     final_action=projection.final_action or "unknown",
@@ -180,20 +179,14 @@ class TradingAgentsPollingWorker:
                 logger.info(f"Job {record.request_id} completed: {projection.final_action}")
                 return "completed"
 
-            elif status == "failed":
+            elif projection.tradingagents_status in {"failed", "timeout"}:
                 await repository.mark_failed(
                     request_id=record.request_id,
-                    error_message=projection.decision_summary or "Job failed",
+                    error_message=projection.decision_summary
+                    or poll_result.get("error_message")
+                    or "Job failed",
                 )
                 logger.warning(f"Job {record.request_id} failed")
-                return "failed"
-
-            elif status == "timeout":
-                await repository.mark_failed(
-                    request_id=record.request_id,
-                    error_message="Job timed out",
-                )
-                logger.warning(f"Job {record.request_id} timed out")
                 return "failed"
 
             return "running"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from domains.account.repository import AccountRepository
+from domains.portfolio.extra_payload import deserialize_portfolio_extra
 from domains.account.schemas import (
     AccountDashboardDetailResponse,
     AccountDashboardResponse,
@@ -82,6 +83,7 @@ class AccountService:
                     if total_capital > 0
                     else 0
                 ),
+                extra=deserialize_portfolio_extra(getattr(item, "extra", None)),
             )
             for item in portfolio_positions
         ]

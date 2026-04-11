@@ -91,8 +91,8 @@ class PushSubscriptionService:
                 },
                 data=json.dumps(
                     {
-                        "title": "Stock 測試推送",
-                        "body": "這台裝置已可接收即時提醒。",
+                        "title": "Stock 测试推送",
+                        "body": "这台设备已可接收实时提醒。",
                         "url": "/app/notifications",
                         "tag": f"push-test-{device.device_id}",
                     }

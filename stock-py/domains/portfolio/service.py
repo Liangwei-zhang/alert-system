@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from domains.portfolio.extra_payload import deserialize_portfolio_extra
 from domains.portfolio.policies import PortfolioPolicy
 from domains.portfolio.repository import PortfolioRepository
 from domains.portfolio.schemas import (
@@ -18,23 +19,25 @@ class PortfolioService:
         self.policy = PortfolioPolicy()
         self.outbox = OutboxPublisher(repository.session)
 
+    @staticmethod
+    def _to_response(item) -> PortfolioItemResponse:
+        return PortfolioItemResponse(
+            id=item.id,
+            symbol=item.symbol,
+            shares=item.shares,
+            avg_cost=float(item.avg_cost),
+            total_capital=float(item.total_capital),
+            target_profit=float(item.target_profit),
+            stop_loss=float(item.stop_loss),
+            notify=item.notify,
+            notes=item.notes,
+            extra=deserialize_portfolio_extra(getattr(item, "extra", None)),
+            updated_at=item.updated_at,
+        )
+
     async def list_positions(self, user_id: int) -> list[PortfolioItemResponse]:
         items = await self.repository.list_by_user(user_id)
-        return [
-            PortfolioItemResponse(
-                id=item.id,
-                symbol=item.symbol,
-                shares=item.shares,
-                avg_cost=float(item.avg_cost),
-                total_capital=float(item.total_capital),
-                target_profit=float(item.target_profit),
-                stop_loss=float(item.stop_loss),
-                notify=item.notify,
-                notes=item.notes,
-                updated_at=item.updated_at,
-            )
-            for item in items
-        ]
+        return [self._to_response(item) for item in items]
 
     async def add_position(
         self, user_id: int, plan: str, request: CreatePortfolioRequest
@@ -62,18 +65,7 @@ class PortfolioService:
             payload={"user_id": user_id, "symbol": symbol, "action": "upsert"},
         )
         schedule_invalidate_account_dashboard(getattr(self.repository, "session", None), user_id)
-        return PortfolioItemResponse(
-            id=item.id,
-            symbol=item.symbol,
-            shares=item.shares,
-            avg_cost=float(item.avg_cost),
-            total_capital=float(item.total_capital),
-            target_profit=float(item.target_profit),
-            stop_loss=float(item.stop_loss),
-            notify=item.notify,
-            notes=item.notes,
-            updated_at=item.updated_at,
-        )
+        return self._to_response(item)
 
     async def update_position(
         self, user_id: int, item_id: int, request: UpdatePortfolioRequest
@@ -93,18 +85,7 @@ class PortfolioService:
             payload={"user_id": user_id, "symbol": item.symbol, "action": "update"},
         )
         schedule_invalidate_account_dashboard(getattr(self.repository, "session", None), user_id)
-        return PortfolioItemResponse(
-            id=item.id,
-            symbol=item.symbol,
-            shares=item.shares,
-            avg_cost=float(item.avg_cost),
-            total_capital=float(item.total_capital),
-            target_profit=float(item.target_profit),
-            stop_loss=float(item.stop_loss),
-            notify=item.notify,
-            notes=item.notes,
-            updated_at=item.updated_at,
-        )
+        return self._to_response(item)
 
     async def delete_position(self, user_id: int, item_id: int) -> None:
         item = await self.repository.get_by_id(item_id)

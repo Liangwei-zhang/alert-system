@@ -11,7 +11,6 @@ class StubScannerWorker(ScannerWorker):
         self.persisted = []
         self.events = []
         self.decisions = []
-        self.recipients = [7, 9]
 
     async def load_market_snapshot(self, symbol, session, *, priority=0):
         del session, priority
@@ -26,19 +25,14 @@ class StubScannerWorker(ScannerWorker):
         self.persisted.append(candidate)
         return 101
 
-    async def resolve_recipients(self, session, *, symbol, score):
-        del session, symbol, score
-        return list(self.recipients)
-
     async def publish_signal_generated(
-        self, session, *, signal_id, candidate, recipient_ids, dedupe_key
+        self, session, *, signal_id, candidate, dedupe_key
     ):
         del session
         self.events.append(
             {
                 "signal_id": signal_id,
                 "symbol": candidate["symbol"],
-                "recipient_ids": recipient_ids,
                 "dedupe_key": dedupe_key,
             }
         )
@@ -89,7 +83,7 @@ class ScannerWorkerTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["status"], "emitted")
         self.assertEqual(len(worker.persisted), 1)
         self.assertEqual(len(worker.events), 1)
-        self.assertEqual(worker.events[0]["recipient_ids"], [7, 9])
+        self.assertEqual(result["recipient_count"], 0)
         self.assertEqual(worker.decisions[-1]["decision"], "emitted")
 
     async def test_process_symbol_records_suppression_without_emitting(self) -> None:
@@ -110,6 +104,35 @@ class ScannerWorkerTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(worker.events, [])
         self.assertEqual(worker.decisions[-1]["decision"], "suppressed")
         self.assertTrue(worker.decisions[-1]["suppressed"])
+
+    async def test_process_symbol_suppresses_candidates_rejected_by_strategy_engine(self) -> None:
+        worker = StubScannerWorker()
+        worker.snapshots["TSLA"] = {
+            "direction": "buy",
+            "price": 250.0,
+            "timeframe": "1d",
+            "market_regime": "trend",
+            "confidence": 40,
+            "probability": 0.4,
+            "analysis": {"setup_quality": 45},
+            "strategy_rankings": [
+                {
+                    "strategy_name": "mean_reversion",
+                    "rank": 1,
+                    "score": 4.0,
+                    "degradation": 14.0,
+                    "symbols_covered": 12,
+                    "evidence": {"stable": False, "best_window_days": 30, "windows": {"30": {}}},
+                }
+            ],
+        }
+
+        result = await worker.process_symbol(object(), run_id=14, symbol="TSLA")
+
+        self.assertEqual(result["status"], "suppressed")
+        self.assertEqual(worker.persisted, [])
+        self.assertEqual(worker.events, [])
+        self.assertIn("strategy-degradation-detected", worker.decisions[-1]["reason"])
 
     async def test_process_symbol_records_skip_when_snapshot_missing(self) -> None:
         worker = StubScannerWorker()

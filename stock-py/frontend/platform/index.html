@@ -1,169 +1,1274 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Platform Ops | Stock-Py</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#6366f1', // Indigo
-                        surface: '#111827', // Gray 900
-                        background: '#030712' // Gray 950
-                    }
-                }
-            }
-        }
-    </script>
+    <title>平台驾驶舱 | Stock-Py</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/tailwind.generated.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
-        .metric-card {
-            background-color: var(--tw-colors-surface);
-            border: 1px solid #1f2937;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            transition: all 150ms ease;
+        :root {
+            --texture: radial-gradient(circle at 20% 20%, rgba(15, 118, 110, 0.11), transparent 40%),
+                radial-gradient(circle at 80% 5%, rgba(245, 158, 11, 0.16), transparent 45%),
+                radial-gradient(circle at 70% 85%, rgba(16, 185, 129, 0.1), transparent 36%);
         }
-        .metric-card:hover {
-            border-color: #374151;
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--texture), #f4efe6;
+            color: #102027;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .grain::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.06;
+            background-image: radial-gradient(#102027 0.55px, transparent 0.55px);
+            background-size: 4px 4px;
+            z-index: 0;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(14px);
+            animation: reveal-in 420ms ease forwards;
+        }
+
+        .reveal:nth-child(2) { animation-delay: 90ms; }
+        .reveal:nth-child(3) { animation-delay: 150ms; }
+        .reveal:nth-child(4) { animation-delay: 210ms; }
+
+        @keyframes reveal-in {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .signal-pulse {
+            animation: pulse-dot 1.6s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.45; }
+        }
+
+        [x-cloak] {
+            display: none !important;
+        }
+
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            border-radius: 9999px;
+            background: rgba(16, 32, 39, 0.22);
+        }
+
+        .funnel-bar {
+            height: 12px;
+            border-radius: 9999px;
+            background: linear-gradient(90deg, #0f766e, #10b981);
+        }
+
+        .metric-tile {
+            border-radius: 1rem;
+            border: 1px solid rgba(16, 32, 39, 0.09);
+            background: rgba(255, 255, 255, 0.72);
+            padding: 0.9rem;
+        }
+
+        .formula-strip {
+            border-radius: 0.9rem;
+            border: 1px dashed rgba(16, 32, 39, 0.2);
+            background: rgba(255, 255, 255, 0.6);
+            padding: 0.75rem;
+        }
+
+        .engine-card {
+            border-radius: 0.9rem;
+            border: 1px solid rgba(16, 32, 39, 0.1);
+            background: rgba(255, 255, 255, 0.76);
+            padding: 0.75rem;
+        }
+
+        .desk-rail {
+            border-radius: 1.5rem;
+            border: 1px solid rgba(16, 32, 39, 0.08);
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 18px 48px rgba(16, 32, 39, 0.08);
+            backdrop-filter: blur(14px);
+        }
+
+        .desk-nav-item {
+            border-radius: 1rem;
+            border: 1px solid rgba(16, 32, 39, 0.08);
+            background: rgba(255, 255, 255, 0.72);
+            transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+        }
+
+        .desk-nav-item:hover {
+            transform: translateY(-1px);
+            border-color: rgba(15, 118, 110, 0.22);
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .desk-command {
+            border-radius: 9999px;
+            border: 1px solid rgba(16, 32, 39, 0.08);
+            background: rgba(255, 255, 255, 0.82);
+            transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+        }
+
+        .desk-command:hover {
+            transform: translateY(-1px);
+            border-color: rgba(15, 118, 110, 0.22);
+            background: rgba(255, 255, 255, 0.96);
+        }
+
+        .command-palette-backdrop {
+            background: rgba(16, 32, 39, 0.32);
+            backdrop-filter: blur(10px);
+        }
+
+        .command-palette-panel {
+            border-radius: 1.75rem;
+            border: 1px solid rgba(16, 32, 39, 0.08);
+            background: rgba(255, 255, 255, 0.78);
+            box-shadow: 0 24px 80px rgba(16, 32, 39, 0.18);
+            backdrop-filter: blur(18px);
+        }
+
+        .command-palette-item {
+            border-radius: 1rem;
+            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.72);
+            transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+        }
+
+        .command-palette-item:hover,
+        .command-palette-item-active {
+            transform: translateY(-1px);
+            border-color: rgba(15, 118, 110, 0.22);
+            background: rgba(255, 255, 255, 0.96);
         }
     </style>
 </head>
-<body class="bg-background text-gray-100 flex h-screen antialiased overflow-hidden">
-    <!-- Slim Sidebar -->
-    <aside class="w-16 md:w-64 border-r border-gray-800 bg-gray-900 flex flex-col transition-all duration-300">
-        <div class="h-16 flex items-center justify-center md:justify-start md:px-6 border-b border-gray-800">
-            <i data-lucide="server" class="w-6 h-6 text-primary md:mr-3"></i>
-            <span class="hidden md:block font-bold truncate">Platform Ops</span>
-        </div>
-        <nav class="flex-1 overflow-y-auto py-4 space-y-2">
-            <a href="#" class="flex items-center justify-center md:justify-start px-0 md:px-4 py-3 text-white bg-gray-800/50 border-r-2 border-primary mx-2 rounded md:rounded-lg">
-                <i data-lucide="activity" class="w-5 h-5 md:mr-3"></i>
-                <span class="hidden md:block font-medium">Metrics</span>
-            </a>
-            <a href="#" class="flex items-center justify-center md:justify-start px-0 md:px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800/50 mx-2 rounded md:rounded-lg transition-colors">
-                <i data-lucide="database" class="w-5 h-5 md:mr-3"></i>
-                <span class="hidden md:block font-medium">Databases</span>
-            </a>
-            <a href="#" class="flex items-center justify-center md:justify-start px-0 md:px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800/50 mx-2 rounded md:rounded-lg transition-colors">
-                <i data-lucide="git-merge" class="w-5 h-5 md:mr-3"></i>
-                <span class="hidden md:block font-medium">Event Pipelines</span>
-            </a>
-            <a href="#" class="flex items-center justify-center md:justify-start px-0 md:px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800/50 mx-2 rounded md:rounded-lg transition-colors">
-                <i data-lucide="layers" class="w-5 h-5 md:mr-3"></i>
-                <span class="hidden md:block font-medium">Workers</span>
-            </a>
-        </nav>
-    </aside>
+<body class="grain min-h-screen" x-data="platformDeck()" x-init="init()" @keydown.window="handleGlobalKeydown($event)">
+    <div class="relative z-10 min-h-screen px-4 py-4 sm:px-6 lg:px-8">
+        <header class="reveal rounded-3xl border border-ink/10 bg-panel/90 shadow-panel backdrop-blur-sm">
+            <div class="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
+                <div class="flex items-center gap-3">
+                    <div class="rounded-2xl bg-tide px-3 py-2 text-panel shadow-lg">
+                        <i data-lucide="radar" class="h-5 w-5"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm uppercase tracking-[0.25em] text-ink/50">平台终端</p>
+                        <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">策略驾驶舱</h1>
+                    </div>
+                </div>
 
-    <main class="flex-1 flex flex-col overflow-y-auto">
-        <!-- Top Nav -->
-        <header class="h-16 border-b border-gray-800 bg-gray-900/50 backdrop-blur sticky top-0 z-10 flex items-center justify-between px-6">
-            <h1 class="text-xl font-semibold">Infrastructure Overview</h1>
-            <div class="flex items-center space-x-3">
-                <span class="flex h-3 w-3 relative">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                </span>
-                <span class="text-sm font-medium text-emerald-400">All Systems Operational</span>
+                <div class="ml-auto flex flex-wrap items-center gap-2 text-sm">
+                    <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1" :class="statusBadgeClass()">
+                        <span class="signal-pulse inline-block h-2 w-2 rounded-full" :class="statusType === 'ok' ? 'bg-mint' : (statusType === 'warn' ? 'bg-sun' : 'bg-tide')"></span>
+                        <span x-text="statusMessage"></span>
+                    </span>
+                    <button @click="focusDesktopAccess()" class="inline-flex items-center gap-2 rounded-full border px-3 py-1 transition hover:bg-white/70" :class="adminSessionBadgeClass()">
+                        <i data-lucide="shield-check" class="h-3.5 w-3.5"></i>
+                        <span x-text="adminSessionBadgeLabel()"></span>
+                    </button>
+                    <span class="mono rounded-full border border-ink/15 bg-white/85 px-3 py-1 text-ink/80" x-text="nowLabel"></span>
+                    <button @click="loadAll()" class="rounded-full border border-ink/20 bg-white/85 px-3 py-1 text-ink/80 transition hover:bg-white">
+                        立即刷新
+                    </button>
+                    <a href="/next/platform/" class="rounded-full bg-ink px-3 py-1 font-semibold text-panel transition hover:bg-ink/85">并行新版</a>
+                    <a href="/ui-versions/" class="rounded-full border border-tide/20 bg-tide/10 px-3 py-1 text-tide transition hover:bg-tide/15">版本切换</a>
+                    <a href="/admin/" class="rounded-full border border-ink/15 bg-white/80 px-3 py-1 text-ink/80 transition hover:bg-white">管理端</a>
+                    <a href="/app/" class="rounded-full border border-ink/15 bg-white/80 px-3 py-1 text-ink/80 transition hover:bg-white">订阅端</a>
+                </div>
             </div>
         </header>
 
-        <!-- Content Grid -->
-        <div class="p-6 md:p-8 space-y-8 max-w-7xl mx-auto w-full">
-            
-            <!-- Quick Stats Row -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                <div class="metric-card">
-                    <p class="text-sm text-gray-400 font-medium">API Requests / sec</p>
-                    <p class="text-3xl font-bold mt-2 font-mono">2,451</p>
+        <section class="reveal mt-4 rounded-3xl border border-tide/20 bg-white/75 p-4 shadow-panel backdrop-blur-sm">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.22em] text-tide/80">Parallel Release</p>
+                    <h2 class="mt-1 text-lg font-semibold text-ink">你当前看到的是稳定版桌面端</h2>
+                    <p class="mt-1 text-sm text-ink/65">这次明显的桌面视觉改动放在并行新版路由下，稳定版继续保留原工作台结构。直接打开并行新版即可对比新的信息架构和操作流。</p>
                 </div>
-                <div class="metric-card">
-                    <p class="text-sm text-gray-400 font-medium">P99 Latency</p>
-                    <p class="text-3xl font-bold mt-2 font-mono">42ms</p>
+                <div class="flex flex-wrap gap-2">
+                    <a href="/next/platform/" class="rounded-full bg-tide px-4 py-2 text-sm font-semibold text-white transition hover:bg-tide/90">打开并行新版平台端</a>
+                    <a href="/next/admin/" class="rounded-full border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-panel">打开并行新版管理端</a>
+                    <a href="/ui-versions/" class="rounded-full border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-panel">查看全部版本入口</a>
                 </div>
-                <div class="metric-card">
-                    <p class="text-sm text-gray-400 font-medium">Active Websockets</p>
-                    <p class="text-3xl font-bold mt-2 font-mono">14,302</p>
+            </div>
+        </section>
+
+        <section id="desktop-access-panel" class="reveal mt-4 rounded-3xl border border-ink/10 bg-panel p-4 shadow-panel">
+            <div class="grid grid-cols-1 gap-4 2xl:grid-cols-[minmax(0,1.2fr)_420px]">
+                <div class="rounded-[1.75rem] border border-ink/10 bg-white/75 p-4">
+                    <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.2em] text-ink/50">Desktop Access</p>
+                            <h2 class="mt-1 text-lg font-semibold">桌面连接与管理员会话</h2>
+                            <p class="mt-1 text-sm text-ink/65">把策略权限验证、连接配置和同步动作都收进同一个桌面接入台，不再依赖手贴 token 才能开工。</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <span class="rounded-full border px-2.5 py-1" :class="adminSessionBadgeClass()" x-text="adminSessionBadgeLabel()"></span>
+                            <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-ink/70" x-text="adminTokenSourceLabel()"></span>
+                            <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-ink/70" x-text="adminSessionScopeLabel()"></span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-12">
+                        <label class="xl:col-span-4">
+                            <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-ink/55">Admin API 地址</span>
+                            <input x-model="config.baseUrl" type="text" class="w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-tide" placeholder="http://localhost:8001">
+                        </label>
+                        <label class="xl:col-span-4">
+                            <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-ink/55">Public API 地址</span>
+                            <input x-model="config.publicBaseUrl" type="text" class="w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-tide" placeholder="http://localhost:8000">
+                        </label>
+                        <label class="xl:col-span-4">
+                            <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-ink/55">Bearer Token（可选手动覆盖）</span>
+                            <input x-model="config.token" type="password" class="mono w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-tide" placeholder="验证码登录会自动写入，也可手动覆盖">
+                        </label>
+                        <label class="xl:col-span-2">
+                            <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-ink/55">回测周期</span>
+                            <input x-model="config.timeframe" type="text" class="w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-tide" placeholder="1d">
+                        </label>
+                        <label class="xl:col-span-2">
+                            <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-ink/55">窗口小时</span>
+                            <input x-model.number="config.windowHours" type="number" min="1" max="8760" class="w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-tide">
+                        </label>
+                        <div class="xl:col-span-4 flex items-end gap-2">
+                            <button @click="saveConfig(); loadAll({ silent: true });" class="w-full rounded-2xl bg-ink px-3 py-2 text-sm font-semibold text-panel transition hover:bg-ink/85">保存连接</button>
+                        </div>
+                        <div class="xl:col-span-4 flex items-end gap-2">
+                            <button @click="loadAll()" class="w-full rounded-2xl border border-ink/15 bg-white/85 px-3 py-2 text-sm font-semibold text-ink transition hover:bg-white">立即同步</button>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                        <div class="rounded-2xl border border-ink/10 bg-white/75 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">策略会话</p>
+                            <p class="mt-1 text-sm font-semibold text-ink" x-text="adminSessionBadgeLabel()"></p>
+                            <p class="mt-1 text-xs text-ink/65" x-text="adminAuth.statusMessage"></p>
+                        </div>
+                        <div class="rounded-2xl border border-ink/10 bg-white/75 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">当前管理员</p>
+                            <p class="mono mt-1 text-sm font-semibold text-ink" x-text="adminSessionEmail()"></p>
+                            <p class="mt-1 text-xs text-ink/65" x-text="adminSessionRoleLabel()"></p>
+                            <p class="mt-2 text-[11px] text-ink/50" x-text="adminSessionVerifiedAtLabel()"></p>
+                        </div>
+                        <div class="rounded-2xl border border-ink/10 bg-white/75 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">会话动作</p>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <button @click="refreshAdminSession()" :disabled="!adminAuth.refreshToken || adminActionBusy()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">续期</button>
+                                <button @click="logoutAdminSession()" :disabled="adminActionBusy()" class="rounded-full border border-coral/20 bg-coral/5 px-3 py-1.5 text-xs text-coral transition hover:bg-coral/10 disabled:cursor-not-allowed disabled:opacity-50">退出 / 清空</button>
+                                <button @click="loadAll()" :disabled="adminActionBusy()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">同步数据</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-ink/60">
+                        <p>最后同步: <span class="mono" x-text="lastUpdatedLabel"></span></p>
+                        <p>自动刷新周期: <span class="mono">45s</span> · TradingAgents 自动轮询: <span class="mono">8s</span> · 会话可通过验证码登录或手动 token 覆盖。</p>
+                    </div>
                 </div>
-                <div class="metric-card">
-                    <p class="text-sm text-gray-400 font-medium">Error Rate</p>
-                    <p class="text-3xl font-bold mt-2 font-mono text-emerald-400">0.01%</p>
+
+                <div class="rounded-[1.75rem] border border-ink/10 bg-ink p-4 text-panel shadow-panel">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-panel/55">Admin Auth Dock</p>
+                            <h3 class="mt-1 text-lg font-semibold">桌面端验证码登录</h3>
+                            <p class="mt-1 text-sm text-panel/70">1 发送验证码，2 验证管理员身份，3 自动把策略会话灌入工作台并开始同步。</p>
+                        </div>
+                        <span class="mono rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[11px] text-panel/70" x-text="adminAuth.timezone"></span>
+                    </div>
+
+                    <div class="mt-4 space-y-3">
+                        <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="text-[11px] uppercase tracking-[0.16em] text-panel/55">Step 1</p>
+                                    <p class="mt-1 text-sm font-semibold text-panel">发送管理验证码</p>
+                                </div>
+                                <button @click="sendAdminCode()" :disabled="adminAuth.sending || adminActionBusy()" class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-panel transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50" x-text="adminAuth.sending ? '发送中...' : '发送验证码'"></button>
+                            </div>
+                            <label class="mt-3 block">
+                                <span class="mb-1 block text-[11px] uppercase tracking-[0.16em] text-panel/55">管理员邮箱</span>
+                                <input x-ref="adminEmailInput" x-model="adminAuth.email" type="email" class="w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm text-panel outline-none placeholder:text-panel/35 focus:border-mint" placeholder="admin@example.com">
+                            </label>
+                            <div x-show="adminAuth.devCode" x-cloak class="mt-3 rounded-2xl border border-mint/20 bg-mint/10 p-3">
+                                <p class="text-[11px] uppercase tracking-[0.16em] text-mint/90">开发验证码</p>
+                                <p class="mono mt-1 text-sm font-semibold text-mint" x-text="adminAuth.devCode"></p>
+                                <p class="mt-1 text-xs text-panel/70">当前环境如果返回 `dev_code`，这里会直接展示并自动填入验证区。</p>
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="text-[11px] uppercase tracking-[0.16em] text-panel/55">Step 2</p>
+                                    <p class="mt-1 text-sm font-semibold text-panel">验证并建立策略会话</p>
+                                </div>
+                                <button @click="verifyAdminCode()" :disabled="adminAuth.verifying || adminActionBusy()" class="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-ink transition hover:bg-panel disabled:cursor-not-allowed disabled:opacity-50" x-text="adminAuth.verifying ? '验证中...' : '验证登录'"></button>
+                            </div>
+                            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <label>
+                                    <span class="mb-1 block text-[11px] uppercase tracking-[0.16em] text-panel/55">验证邮箱</span>
+                                    <input x-ref="adminVerifyEmailInput" x-model="adminAuth.verifyEmail" type="email" class="w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm text-panel outline-none placeholder:text-panel/35 focus:border-sun" placeholder="admin@example.com">
+                                </label>
+                                <label>
+                                    <span class="mb-1 block text-[11px] uppercase tracking-[0.16em] text-panel/55">验证码</span>
+                                    <input x-ref="adminCodeInput" x-model="adminAuth.code" type="text" inputmode="numeric" maxlength="6" class="mono w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm text-panel outline-none placeholder:text-panel/35 focus:border-sun" placeholder="6 位数字验证码">
+                                </label>
+                                <label>
+                                    <span class="mb-1 block text-[11px] uppercase tracking-[0.16em] text-panel/55">Locale</span>
+                                    <input x-model="adminAuth.locale" type="text" class="w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm text-panel outline-none placeholder:text-panel/35 focus:border-sun" placeholder="zh-CN">
+                                </label>
+                                <label>
+                                    <span class="mb-1 block text-[11px] uppercase tracking-[0.16em] text-panel/55">Timezone</span>
+                                    <input x-model="adminAuth.timezone" type="text" class="w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm text-panel outline-none placeholder:text-panel/35 focus:border-sun" placeholder="UTC">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.16em] text-panel/55">Session Pulse</p>
+                            <p class="mt-1 text-sm font-semibold text-panel" x-text="adminAuth.statusMessage"></p>
+                            <div class="mt-3 flex flex-wrap gap-2 text-[11px] text-panel/70">
+                                <span class="rounded-full border border-white/10 bg-white/10 px-2.5 py-1" x-text="adminSessionRoleLabel()"></span>
+                                <span class="rounded-full border border-white/10 bg-white/10 px-2.5 py-1" x-text="adminAuth.refreshToken ? 'Refresh Token 已就绪' : 'Refresh Token 未建立'"></span>
+                                <span class="rounded-full border border-white/10 bg-white/10 px-2.5 py-1" x-text="adminSessionVerifiedAtLabel()"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="reveal mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <article class="rounded-2xl border border-ink/10 bg-panel p-4 shadow-panel">
+                <p class="text-xs uppercase tracking-[0.2em] text-ink/50">活跃信号</p>
+                <p class="mono mt-2 text-2xl font-semibold text-ink" x-text="formatInt(summary.active_signals)"></p>
+                <p class="mt-1 text-xs text-mint">触发中: <span class="mono" x-text="formatInt(summary.triggered_signals)"></span></p>
+            </article>
+            <article class="rounded-2xl border border-ink/10 bg-panel p-4 shadow-panel">
+                <p class="text-xs uppercase tracking-[0.2em] text-ink/50">判定总量</p>
+                <p class="mono mt-2 text-2xl font-semibold text-ink" x-text="formatInt(scannerSummary.total_decisions)"></p>
+                <p class="mt-1 text-xs text-ink/70">发射: <span class="mono" x-text="formatInt(scannerSummary.emitted_decisions)"></span></p>
+            </article>
+            <article class="rounded-2xl border border-ink/10 bg-panel p-4 shadow-panel">
+                <p class="text-xs uppercase tracking-[0.2em] text-ink/50">平均置信度</p>
+                <p class="mono mt-2 text-2xl font-semibold text-ink" x-text="formatPct(summary.avg_confidence, 1)"></p>
+                <p class="mt-1 text-xs text-ink/70">平均概率: <span class="mono" x-text="formatPct((summary.avg_probability || 0) * 100, 1)"></span></p>
+            </article>
+            <article class="rounded-2xl border border-ink/10 bg-panel p-4 shadow-panel">
+                <p class="text-xs uppercase tracking-[0.2em] text-ink/50">最优策略</p>
+                <p class="mt-2 text-sm font-semibold text-ink" x-text="topStrategy() ? strategyLabel(topStrategy().strategy_name) : '--'"></p>
+                <p class="mono mt-1 text-xs text-mint" x-text="topStrategy() ? ('分数 ' + toFixed(topStrategy().score, 2)) : '等待回测数据'"></p>
+            </article>
+        </section>
+
+        <section class="reveal mt-4 rounded-3xl border border-ink/10 bg-panel p-4 shadow-panel">
+            <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.2em] text-ink/50">Desktop Workbench</p>
+                    <h2 class="mt-1 text-lg font-semibold">桌面工作区</h2>
+                    <p class="mt-1 text-sm text-ink/65" x-text="workspaceWorkbenchDescription()"></p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <template x-for="mode in workspaceModes" :key="mode.key">
+                        <button
+                            @click="setWorkspaceMode(mode.key)"
+                            class="rounded-full px-3 py-1.5 text-sm font-medium transition"
+                            :class="workspaceMode === mode.key ? 'bg-ink text-panel shadow-lg' : 'border border-ink/15 bg-white/80 text-ink/70 hover:bg-white'"
+                        >
+                            <span x-text="mode.label"></span>
+                        </button>
+                    </template>
+                    <button @click="openCommandPalette()" class="rounded-full border border-ink/15 bg-white/80 px-3 py-1.5 text-sm font-medium text-ink/75 transition hover:bg-white">
+                        命令面板
+                        <span class="mono ml-2 rounded-full border border-ink/10 bg-ink/5 px-2 py-0.5 text-[11px] text-ink/55">Ctrl/Cmd+K</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- Deep Dive Charts Area -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Workers Topology -->
-                <div class="metric-card h-96 flex flex-col">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-bold">Worker Nodes</h2>
-                        <i data-lucide="hard-drive" class="text-gray-400"></i>
+            <div class="mt-4 rounded-2xl border border-ink/10 bg-white/72 p-4">
+                <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                    <div>
+                        <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">Desktop Launchpad</p>
+                        <h3 class="mt-1 text-sm font-semibold text-ink">首屏下一步</h3>
+                        <p class="mt-1 text-xs text-ink/65">根据会话状态、同步结果和当前焦点，动态给出最合适的首屏落点和下一步动作。</p>
                     </div>
-                    <div class="flex-1 bg-gray-800/30 rounded border border-gray-800 p-4 overflow-y-auto space-y-3">
-                        <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                                <span class="font-medium text-sm">market_data_ingest_1</span>
-                            </div>
-                            <span class="text-xs text-gray-400 font-mono">CPU: 14% | RAM: 2.1GB</span>
-                        </div>
-                        <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                                <span class="font-medium text-sm">backtest_engine_pool</span>
-                            </div>
-                            <span class="text-xs text-gray-400 font-mono">CPU: 88% | RAM: 14GB</span>
-                        </div>
-                        <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                <span class="font-medium text-sm">event_pipeline_consumer</span>
-                            </div>
-                            <span class="text-xs text-gray-400 font-mono">Lag: 450 msg</span>
-                        </div>
+                    <div class="flex flex-wrap gap-2 text-xs text-ink/60">
+                        <template x-for="badge in workspaceReadinessBadges()" :key="badge">
+                            <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1" x-text="badge"></span>
+                        </template>
                     </div>
                 </div>
 
-                <!-- Database Metrics -->
-                <div class="metric-card h-96 flex flex-col">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-bold">ClickHouse & Cache</h2>
-                        <i data-lucide="database" class="text-gray-400"></i>
+                <div class="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-3">
+                    <template x-for="card in workspaceLaunchpadCards()" :key="card.id">
+                        <article class="rounded-2xl border p-4" :class="card.panelClass">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45" x-text="card.eyebrow"></p>
+                                    <h3 class="mt-1 text-sm font-semibold text-ink" x-text="card.title"></h3>
+                                </div>
+                                <span class="rounded-full px-2.5 py-1 text-[11px] font-medium" :class="card.badgeClass" x-text="card.status"></span>
+                            </div>
+                            <p class="mt-2 text-sm text-ink/65" x-text="card.body"></p>
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                <button @click="runDeskAction(card.actionId)" class="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-panel transition hover:bg-ink/85" x-text="card.actionLabel"></button>
+                                <button x-show="card.secondaryActionLabel" x-cloak @click="runDeskAction(card.secondaryActionId)" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white" x-text="card.secondaryActionLabel"></button>
+                            </div>
+                        </article>
+                    </template>
+                </div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+                <div class="rounded-2xl border border-ink/10 bg-white/75 p-3">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">当前工作区</p>
+                    <p class="mt-1 text-sm font-semibold text-ink" x-text="currentWorkspaceMeta().label"></p>
+                    <p class="mt-1 text-xs text-ink/65" x-text="currentWorkspaceMeta().description"></p>
+                </div>
+                <div class="rounded-2xl border border-ink/10 bg-white/75 p-3">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">当前聚焦标的</p>
+                    <p class="mono mt-1 text-sm font-semibold text-ink" x-text="selectedSignal() ? selectedSignal().symbol : '--'"></p>
+                    <p class="mt-1 text-xs text-ink/65" x-text="selectedSignal() ? (selectedSignal().strategy + ' · 来源 ' + executionContextSourceLabel()) : '从盯盘雷达选择标的后联动退出策略和判定流' "></p>
+                </div>
+                <div class="rounded-2xl border border-ink/10 bg-white/75 p-3">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">当前主策略</p>
+                    <p class="mt-1 text-sm font-semibold text-ink" x-text="topStrategy() ? strategyLabel(topStrategy().strategy_name) : '--'"></p>
+                    <p class="mt-1 text-xs text-ink/65" x-text="topStrategy() ? ('最新分数 ' + toFixed(topStrategy().score, 2)) : '等待回测刷新' "></p>
+                </div>
+            </div>
+
+            <div class="mt-4 rounded-2xl border border-coral/20 bg-coral/5 p-3">
+                <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                    <div class="min-w-0">
+                        <p class="text-[11px] uppercase tracking-[0.18em] text-coral">Execution Relay</p>
+                        <template x-if="selectedSignal()">
+                            <div>
+                                <h3 class="mt-1 text-sm font-semibold text-ink" x-text="selectedSignal().symbol + ' 已进入执行接力'">--</h3>
+                                <p class="mt-1 text-xs text-ink/70" x-text="latestDecisionForSymbol() ? latestDecisionForSymbol().reason : '已接过当前标的，可继续送往退出策略、回测或 TradingAgents。'"></p>
+                            </div>
+                        </template>
+                        <template x-if="!selectedSignal()">
+                            <div>
+                                <h3 class="mt-1 text-sm font-semibold text-ink">等待接力标的</h3>
+                                <p class="mt-1 text-xs text-ink/70">从盯盘雷达、命令面板或判定流聚焦标的后，这里会显示执行接力和研究交接入口。</p>
+                            </div>
+                        </template>
                     </div>
-                    <div class="flex-1 flex flex-col justify-center items-center space-y-6">
-                        <div class="w-full max-w-sm space-y-2">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-300">ClickHouse Storage</span>
-                                <span class="text-gray-400 font-mono">4.2 TB / 10 TB</span>
-                            </div>
-                            <div class="w-full bg-gray-800 rounded-full h-2">
-                                <div class="bg-primary h-2 rounded-full" style="width: 42%"></div>
-                            </div>
+                    <div class="flex flex-wrap gap-2 text-xs">
+                        <span class="rounded-full border border-coral/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="selectedSignal() ? ('来源 ' + executionContextSourceLabel()) : '来源 --'"></span>
+                        <span class="rounded-full border border-coral/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="selectedSignal() ? backtestPresetStatus() : '回测待预填'"></span>
+                        <span class="rounded-full border border-coral/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="selectedSignal() ? tradingAgentsPresetStatus() : 'TradingAgents 待预填'"></span>
+                    </div>
+                </div>
+                <div x-show="selectedSignal()" x-cloak class="mt-3 flex flex-wrap gap-2">
+                    <button @click="handoffToExecution(selectedSignal().symbol, { source: 'workspace-relay', announce: true })" class="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-panel transition hover:bg-ink/85">打开执行台</button>
+                    <button @click="handoffSelectedToBacktest()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">预填回测</button>
+                    <button @click="handoffSelectedToTradingAgents()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">交给 TradingAgents</button>
+                    <button @click="focusSection('decision-tape-panel', 'signals')" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">回到判定流</button>
+                </div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div class="rounded-2xl border border-ink/10 bg-white/75 p-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">Quick Actions</p>
+                            <h3 class="mt-1 text-sm font-semibold text-ink">桌面快捷动作</h3>
                         </div>
-                        <div class="w-full max-w-sm space-y-2">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-300">Redis Cache Hit Rate</span>
-                                <span class="text-emerald-400 font-mono">98.5%</span>
-                            </div>
-                            <div class="w-full bg-gray-800 rounded-full h-2">
-                                <div class="bg-emerald-500 h-2 rounded-full" style="width: 98.5%"></div>
-                            </div>
-                        </div>
+                        <button @click="focusSection(activeDesktopSectionId)" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1 text-xs text-ink/70 transition hover:bg-white">
+                            回到当前面板
+                        </button>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <template x-for="action in workspaceQuickActions()" :key="action.id">
+                            <button
+                                @click="focusSection(action.sectionId, action.mode)"
+                                class="desk-command px-3 py-2 text-left"
+                            >
+                                <span class="text-sm font-semibold text-ink" x-text="action.label"></span>
+                                <span class="ml-2 text-xs text-ink/60" x-text="action.meta"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl border border-ink/10 bg-white/75 p-3">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">Workspace Pulse</p>
+                    <p class="mt-1 text-sm font-semibold text-ink" x-text="activeSectionMeta().label"></p>
+                    <p class="mt-1 text-xs text-ink/65" x-text="activeSectionMeta().meta"></p>
+                    <div class="mt-3 flex flex-wrap gap-2 text-xs text-ink/60">
+                        <span class="rounded-full border border-ink/10 bg-white/80 px-2.5 py-1" x-text="'可见面板 ' + formatInt(workspaceVisibleSections().length)"></span>
+                        <span class="rounded-full border border-ink/10 bg-white/80 px-2.5 py-1" x-text="'模式 ' + currentWorkspaceMeta().label"></span>
+                        <span class="rounded-full border border-ink/10 bg-white/80 px-2.5 py-1" x-text="'聚焦标的 ' + (selectedSignal() ? selectedSignal().symbol : '--')"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 xl:hidden">
+                <div class="overflow-x-auto pb-1">
+                    <div class="flex min-w-max gap-2">
+                        <template x-for="section in workspaceVisibleSections()" :key="section.id">
+                            <button
+                                @click="focusSection(section.id, section.mode)"
+                                class="desk-nav-item px-3 py-2 text-left"
+                                :class="activeDesktopSectionId === section.id ? 'ring-2 ring-tide/35' : ''"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-semibold text-ink" x-text="section.label"></span>
+                                    <span class="rounded-full px-2 py-0.5 text-[11px]" :class="sectionChipClass(section.mode)" x-text="section.modeLabel"></span>
+                                </div>
+                                <p class="mt-1 text-xs text-ink/60" x-text="section.meta"></p>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div x-show="commandPaletteOpen" x-cloak class="fixed inset-0 z-50 px-4 py-6 sm:px-6" x-transition.opacity>
+            <div class="command-palette-backdrop absolute inset-0" @click="closeCommandPalette()"></div>
+            <div class="relative mx-auto mt-[6vh] w-full max-w-3xl">
+                <div class="command-palette-panel overflow-hidden p-3" @click.stop>
+                    <div class="flex items-center gap-2 rounded-2xl border border-ink/10 bg-white/85 px-3 py-2">
+                        <i data-lucide="command" class="h-4 w-4 text-ink/45"></i>
+                        <input
+                            x-ref="commandPaletteInput"
+                            x-model="commandPaletteQuery"
+                            @input="syncCommandPaletteSelection()"
+                            type="text"
+                            class="w-full bg-transparent text-sm outline-none placeholder:text-ink/35"
+                            placeholder="输入工作区、面板、标的或动作"
+                        >
+                        <span class="mono rounded-full border border-ink/10 bg-ink/5 px-2 py-0.5 text-[11px] text-ink/50">Esc</span>
+                    </div>
+
+                    <div class="mt-3 max-h-[420px] overflow-y-auto pr-1">
+                        <template x-if="!filteredCommandPaletteItems().length">
+                            <div class="rounded-2xl border border-ink/10 bg-white/70 p-4 text-sm text-ink/60">没有匹配项，试试输入工作区、面板名称、Ticker 或刷新动作。</div>
+                        </template>
+                        <template x-for="(item, index) in filteredCommandPaletteItems()" :key="item.id">
+                            <button
+                                @click="runCommandPaletteItem(item)"
+                                class="command-palette-item mb-2 w-full p-3 text-left"
+                                :class="index === commandPaletteActiveIndex ? 'command-palette-item-active' : ''"
+                            >
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="text-[11px] uppercase tracking-[0.16em] text-ink/45" x-text="item.group"></p>
+                                        <p class="mt-1 text-sm font-semibold text-ink" x-text="item.label"></p>
+                                        <p class="mt-1 text-xs text-ink/60" x-text="item.meta"></p>
+                                    </div>
+                                    <span x-show="item.hint" class="mono rounded-full border border-ink/10 bg-white/85 px-2 py-0.5 text-[11px] text-ink/55" x-text="item.hint"></span>
+                                </div>
+                            </button>
+                        </template>
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-ink/10 pt-3 text-[11px] text-ink/55">
+                        <span>命令台支持工作区、面板、Ticker 和常用动作检索。</span>
+                        <span class="mono">Alt+1/2/3/4 切工作区 · Shift+R 刷新</span>
                     </div>
                 </div>
             </div>
         </div>
-    </main>
 
-    <script>
-        lucide.createIcons();
-    </script>
+        <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[260px_minmax(0,1fr)]">
+            <aside class="hidden xl:block">
+                <div class="desk-rail sticky top-4 p-4">
+                    <div class="mb-4">
+                        <p class="text-xs uppercase tracking-[0.18em] text-ink/45">Panel Router</p>
+                        <h3 class="mt-1 text-base font-semibold">桌面导航轨</h3>
+                        <p class="mt-1 text-xs text-ink/60">按职责跳到对应工作区，自动记住上次桌面模式。</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <template x-for="section in desktopSections()" :key="section.id">
+                            <button
+                                @click="focusSection(section.id, section.mode)"
+                                class="desk-nav-item w-full p-3 text-left"
+                                :class="activeDesktopSectionId === section.id ? 'ring-2 ring-tide/35' : ''"
+                            >
+                                <div class="flex items-center justify-between gap-2">
+                                    <p class="text-sm font-semibold text-ink" x-text="section.label"></p>
+                                    <span class="rounded-full px-2 py-0.5 text-[11px]" :class="sectionChipClass(section.mode)" x-text="section.modeLabel"></span>
+                                </div>
+                                <p class="mt-1 text-xs text-ink/65" x-text="section.meta"></p>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="grid grid-cols-1 gap-4 lg:grid-cols-12">
+            <section id="trading-agents-panel" x-show="sectionVisible(['overview', 'research'])" x-cloak class="reveal rounded-3xl border border-ink/10 bg-panel p-4 shadow-panel lg:col-span-12">
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h2 class="text-lg font-semibold">TradingAgents 异步分析台</h2>
+                        <p class="mt-1 text-xs text-ink/60">提交 -> 按 request_id 轮询 stock-result -> 终态展示 report_uri / result_uri。</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                        <span class="mono rounded-full border border-ink/15 bg-white/80 px-3 py-1 text-ink/70" x-text="'任务 ' + formatInt(tradingAgentsRuns.length)"></span>
+                        <button @click="refreshTradingAgentsAnalyses()" class="rounded-full border border-ink/20 bg-white/80 px-3 py-1 text-ink/70 transition hover:bg-white">
+                            同步分析列表
+                        </button>
+                        <button @click="pollPendingTradingAgentsRuns(true)" :disabled="tradingAgentsPolling" class="rounded-full border border-ink/20 bg-ink px-3 py-1 text-panel transition hover:bg-ink/85" x-text="tradingAgentsPolling ? '轮询中...' : '轮询运行中'"></button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12">
+                    <label class="xl:col-span-2">
+                        <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-ink/55">Ticker</span>
+                        <input x-model="tradingAgentsDraft.ticker" type="text" class="mono w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm uppercase outline-none transition focus:border-tide" placeholder="AAPL">
+                    </label>
+                    <label class="xl:col-span-2">
+                        <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-ink/55">Analysis Date</span>
+                        <input x-model="tradingAgentsDraft.analysisDate" type="date" class="w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-tide">
+                    </label>
+                    <label class="xl:col-span-2">
+                        <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-ink/55">Trigger Type</span>
+                        <select x-model="tradingAgentsDraft.triggerType" class="w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-tide">
+                            <option value="manual">manual</option>
+                            <option value="scanner">scanner</option>
+                            <option value="position_review">position_review</option>
+                            <option value="scheduled">scheduled</option>
+                        </select>
+                    </label>
+                    <label class="xl:col-span-2">
+                        <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-ink/55">Source</span>
+                        <input x-model="tradingAgentsDraft.source" type="text" class="w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-tide" placeholder="platform">
+                    </label>
+                    <label class="xl:col-span-2">
+                        <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-ink/55">Run ID (可选)</span>
+                        <input x-model="tradingAgentsDraft.runId" type="text" class="mono w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-tide" placeholder="ui-run-01">
+                    </label>
+                    <label class="xl:col-span-2">
+                        <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-ink/55">Selected Analysts (逗号分隔)</span>
+                        <input x-model="tradingAgentsDraft.selectedAnalysts" type="text" class="mono w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-tide" placeholder="market,news,social">
+                    </label>
+                </div>
+
+                <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-ink/65">
+                    <label class="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-white/75 px-3 py-1.5">
+                        <input x-model="tradingAgentsIncludeFullPayload" @change="persistTradingAgentsOptions()" type="checkbox" class="h-3.5 w-3.5 accent-tide">
+                        <span>轮询包含完整 result payload</span>
+                    </label>
+                    <button @click="submitTradingAgentsAnalysis()" :disabled="tradingAgentsSubmitting" class="rounded-full bg-ink px-3 py-1.5 font-semibold text-panel transition hover:bg-ink/85" x-text="tradingAgentsSubmitting ? '提交中...' : '提交分析任务'"></button>
+                    <span class="mono text-ink/55" x-text="'Public API: ' + (config.publicBaseUrl || '--')"></span>
+                </div>
+                <p class="mt-2 text-xs text-ink/65" x-text="tradingAgentsStatusMessage"></p>
+
+                <div class="mt-3 space-y-2 max-h-[290px] overflow-y-auto pr-1">
+                    <template x-if="!tradingAgentsRuns.length">
+                        <div class="rounded-2xl border border-ink/10 bg-white/70 p-3 text-sm text-ink/60">尚未提交 TradingAgents 任务，可先填写 ticker 并提交。</div>
+                    </template>
+                    <template x-for="run in tradingAgentsRuns" :key="run.request_id">
+                        <article class="rounded-2xl border border-ink/10 bg-white/80 p-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="mono text-xs text-ink/55" x-text="run.request_id"></span>
+                                    <span class="rounded-full border border-ink/15 bg-white px-2 py-0.5 text-[11px]" x-text="run.ticker || '--'"></span>
+                                    <span class="rounded-full px-2 py-0.5 text-[11px]" :class="tradingAgentsStatusClass(run.status)" x-text="tradingAgentsStatusLabel(run.status)"></span>
+                                    <span class="rounded-full bg-ink/8 px-2 py-0.5 text-[11px] text-ink/70" x-show="run.final_action" x-cloak x-text="'动作 ' + tradingAgentsActionLabel(run.final_action)"></span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2 text-[11px]">
+                                    <button @click="pollTradingAgentsResult(run.request_id)" class="rounded-full border border-ink/20 bg-white px-2.5 py-1 text-ink/70 transition hover:bg-ink/5">轮询</button>
+                                    <a x-show="run.report_uri" x-cloak :href="run.report_uri" target="_blank" rel="noopener" class="rounded-full border border-tide/30 bg-tide/10 px-2.5 py-1 text-tide">报告</a>
+                                    <a x-show="run.result_uri" x-cloak :href="run.result_uri" target="_blank" rel="noopener" class="rounded-full border border-mint/30 bg-mint/10 px-2.5 py-1 text-mint">结果 JSON</a>
+                                </div>
+                            </div>
+                            <p class="mt-2 text-sm text-ink/80" x-text="tradingAgentsRunSummary(run)"></p>
+                            <div class="mt-2 flex flex-wrap gap-2 text-[11px] text-ink/55">
+                                <span class="mono rounded-full bg-ink/5 px-2 py-0.5" x-text="'job ' + (run.job_id || '--')"></span>
+                                <span class="mono rounded-full bg-ink/5 px-2 py-0.5" x-text="'poll ' + formatInt(run.poll_count || 0)"></span>
+                                <span class="mono rounded-full bg-ink/5 px-2 py-0.5" x-text="'更新 ' + formatDateTime(run.updated_at)"></span>
+                            </div>
+                        </article>
+                    </template>
+                </div>
+            </section>
+
+            <section id="watchlist-panel" x-show="sectionVisible(['overview', 'signals'])" x-cloak class="reveal rounded-3xl border border-ink/10 bg-panel p-4 shadow-panel lg:col-span-4">
+                <div class="mb-4 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold">盯盘雷达</h2>
+                        <p class="mt-1 text-xs text-ink/60">点击标的会同步判定流，并准备执行台、回测和 TradingAgents 的接力上下文。</p>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <button @click="watchFilter='all'" :class="watchFilter === 'all' ? 'bg-ink text-panel' : 'bg-ink/5 text-ink/60'" class="rounded-full px-3 py-1 transition">全部</button>
+                        <button @click="watchFilter='alert'" :class="watchFilter === 'alert' ? 'bg-coral text-panel' : 'bg-coral/10 text-coral'" class="rounded-full px-3 py-1 transition">预警</button>
+                    </div>
+                </div>
+
+                <div class="max-h-[430px] overflow-y-auto">
+                    <template x-if="!filteredWatchlist().length">
+                        <div class="rounded-2xl border border-ink/10 bg-white/65 p-4">
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">Watchlist Empty</p>
+                            <p class="mt-1 text-sm font-semibold text-ink" x-text="panelEmptyState('watchlist').title"></p>
+                            <p class="mt-1 text-sm text-ink/60" x-text="panelEmptyState('watchlist').body"></p>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <button @click="runDeskAction(panelEmptyState('watchlist').actionId)" class="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-panel transition hover:bg-ink/85" x-text="panelEmptyState('watchlist').actionLabel"></button>
+                                <button x-show="panelEmptyState('watchlist').secondaryActionLabel" x-cloak @click="runDeskAction(panelEmptyState('watchlist').secondaryActionId)" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white" x-text="panelEmptyState('watchlist').secondaryActionLabel"></button>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-for="item in filteredWatchlist()" :key="item.id">
+                        <button @click="focusSymbol(item.symbol, { source: 'watchlist' })" class="mb-2 w-full rounded-2xl border border-ink/10 bg-white/70 p-3 text-left transition hover:bg-white" :class="selectedSymbol === item.symbol ? 'ring-2 ring-tide/35' : ''">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="mono text-sm font-semibold" x-text="item.symbol"></p>
+                                    <p class="text-xs text-ink/60" x-text="item.strategy"></p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="mono text-sm" x-text="toFixed(item.entryPrice, 2)"></p>
+                                    <p class="text-xs" :class="item.target1Pct >= 0 ? 'text-mint' : 'text-coral'" x-text="'目标1 ' + formatPct(item.target1Pct, 2)"></p>
+                                </div>
+                            </div>
+                            <div class="mt-2 flex items-center justify-between text-xs">
+                                <span class="rounded-full px-2 py-0.5" :class="isAlertSignal(item) ? 'bg-coral/15 text-coral' : 'bg-tide/10 text-tide'" x-text="isAlertSignal(item) ? '触发预警' : '监控中'"></span>
+                                <span class="mono text-ink/55" x-text="item.atrLabel"></span>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+            </section>
+
+            <section id="decision-tape-panel" x-show="sectionVisible(['overview', 'signals'])" x-cloak class="reveal rounded-3xl border border-ink/10 bg-panel p-4 shadow-panel lg:col-span-5">
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+                    <h2 class="text-lg font-semibold">实时判定流</h2>
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                        <span class="mono rounded-full border border-ink/15 bg-white/80 px-3 py-1 text-xs text-ink/70">聚焦: <span x-text="selectedSymbol || '全部'">全部</span></span>
+                        <button x-show="selectedSignal()" x-cloak @click="handoffToExecution(selectedSignal().symbol, { source: 'decision-tape', announce: true })" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1 text-ink/70 transition hover:bg-white">送至执行台</button>
+                        <button x-show="selectedSignal()" x-cloak @click="handoffSelectedToBacktest()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1 text-ink/70 transition hover:bg-white">预填回测</button>
+                    </div>
+                </div>
+
+                <div class="space-y-3 max-h-[430px] overflow-y-auto pr-1">
+                    <template x-if="!filteredTape().length">
+                        <div class="rounded-2xl border border-ink/10 bg-white/70 p-4">
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">Decision Tape Empty</p>
+                            <p class="mt-1 text-sm font-semibold text-ink" x-text="panelEmptyState('decision-tape').title"></p>
+                            <p class="mt-1 text-sm text-ink/60" x-text="panelEmptyState('decision-tape').body"></p>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <button @click="runDeskAction(panelEmptyState('decision-tape').actionId)" class="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-panel transition hover:bg-ink/85" x-text="panelEmptyState('decision-tape').actionLabel"></button>
+                                <button x-show="panelEmptyState('decision-tape').secondaryActionLabel" x-cloak @click="runDeskAction(panelEmptyState('decision-tape').secondaryActionId)" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white" x-text="panelEmptyState('decision-tape').secondaryActionLabel"></button>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-for="signal in filteredTape()" :key="signal.id">
+                        <article class="rounded-2xl border border-ink/10 bg-white/75 p-3">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="mono text-xs text-ink/50" x-text="signal.time"></span>
+                                        <span class="mono text-sm font-semibold" x-text="signal.symbol"></span>
+                                        <span class="rounded-full px-2 py-0.5 text-xs" :class="signal.action.startsWith('买') ? 'bg-mint/15 text-mint' : 'bg-coral/15 text-coral'" x-text="signal.action"></span>
+                                        <span class="rounded-full px-2 py-0.5 text-xs" :class="decisionClass(signal.decision, signal.suppressed)" x-text="signal.decisionLabel"></span>
+                                    </div>
+                                    <p class="mt-2 text-sm text-ink/80" x-text="signal.reason"></p>
+                                </div>
+                                <span class="mono rounded-lg bg-ink px-2 py-1 text-xs text-panel" x-text="signal.scoreLabel"></span>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                                <span class="rounded-full bg-ink/5 px-2 py-1 text-ink/70" x-text="'去重键 ' + signal.dedupeKey"></span>
+                                <span class="rounded-full bg-sun/15 px-2 py-1 text-sun" x-text="'流水号 #' + signal.id"></span>
+                                <span class="rounded-full bg-tide/10 px-2 py-1 text-tide" x-text="signal.queue"></span>
+                            </div>
+                        </article>
+                    </template>
+                </div>
+            </section>
+
+            <section id="engine-panel" x-show="sectionVisible(['overview', 'signals'])" x-cloak class="reveal rounded-3xl border border-ink/10 bg-panel p-4 shadow-panel lg:col-span-3">
+                <h2 class="text-lg font-semibold">预警逻辑引擎</h2>
+                <p class="mt-1 text-xs text-ink/60">与 live strategy engine 对齐: 阈值驱动策略选择 + 评分补偿</p>
+
+                <div class="mt-4 space-y-2">
+                    <template x-for="rule in strategyRules" :key="rule.strategy">
+                        <article class="engine-card">
+                            <div class="flex items-center justify-between gap-3">
+                                <p class="text-sm font-semibold" x-text="rule.label"></p>
+                                <span class="mono rounded-full px-2 py-0.5 text-[11px]" :class="ruleClass(rule.strategy)" x-text="rule.when"></span>
+                            </div>
+                            <p class="mt-1 text-xs text-ink/65" x-text="rule.explain"></p>
+                        </article>
+                    </template>
+                </div>
+
+                <div class="mt-4 rounded-2xl border border-ink/10 bg-white/65 p-3">
+                    <p class="text-xs uppercase tracking-[0.2em] text-ink/50">当前策略分布</p>
+                    <template x-if="!strategyMix.length">
+                        <p class="mt-2 text-xs text-ink/60">等待信号数据。</p>
+                    </template>
+                    <div class="mt-2 space-y-2">
+                        <template x-for="item in strategyMix" :key="item.name">
+                            <div>
+                                <div class="mb-1 flex items-center justify-between text-xs">
+                                    <span x-text="item.name"></span>
+                                    <span class="mono" x-text="item.count"></span>
+                                </div>
+                                <div class="h-2 rounded-full bg-ink/10">
+                                    <div class="h-2 rounded-full bg-tide" :style="'width:' + item.ratio + '%'" role="presentation"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="mt-4 rounded-2xl border border-coral/20 bg-coral/5 p-3">
+                    <p class="text-xs uppercase tracking-[0.2em] text-coral">评分主轴</p>
+                    <p class="mt-1 text-sm text-ink/80">基础分 32 + 置信度 + 概率 + RR 奖励 + 量能/趋势确认，扣除 stale 与流动性惩罚。</p>
+                </div>
+            </section>
+
+            <section id="exit-desk-panel" x-show="sectionVisible(['overview', 'execution'])" x-cloak class="reveal rounded-3xl border border-ink/10 bg-panel p-4 shadow-panel lg:col-span-7">
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold">退出策略工作台</h2>
+                    <span class="mono text-xs text-ink/60">ATR 基线止损止盈</span>
+                </div>
+
+                <div x-data="{ sig: null }" x-init="sig = selectedSignal()" x-effect="sig = selectedSignal()">
+                    <template x-if="sig">
+                        <div>
+                            <div class="mb-3 flex flex-wrap items-center gap-2">
+                                <span class="mono rounded-full border border-ink/15 bg-white px-3 py-1 text-xs" x-text="sig.symbol"></span>
+                                <span class="rounded-full px-3 py-1 text-xs" :class="sig.signalType.startsWith('buy') ? 'bg-mint/15 text-mint' : 'bg-coral/15 text-coral'" x-text="signalTypeLabel(sig.signalType)"></span>
+                                <span class="rounded-full border border-ink/15 bg-white px-3 py-1 text-xs" x-text="strategyLabel(sig.strategyCode)"></span>
+                                <span class="rounded-full border border-ink/15 bg-white px-3 py-1 text-xs" x-text="'状态 ' + statusLabel(sig.status)"></span>
+                            </div>
+
+                            <div class="mb-3 rounded-2xl border border-coral/20 bg-coral/5 p-3">
+                                <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                                    <div class="min-w-0">
+                                        <p class="text-[11px] uppercase tracking-[0.18em] text-coral">执行接力状态</p>
+                                        <p class="mt-1 text-sm font-semibold text-ink" x-text="executionContextSourceLabel() + ' -> 退出策略工作台'"></p>
+                                        <p class="mt-1 text-xs text-ink/70" x-text="latestDecisionForSymbol(sig.symbol) ? latestDecisionForSymbol(sig.symbol).reason : '已同步当前标的的退出策略参数，可继续预填回测和研究任务。'"></p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2 text-xs">
+                                        <span class="rounded-full border border-coral/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="backtestPresetStatus(sig.symbol)"></span>
+                                        <span class="rounded-full border border-coral/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="tradingAgentsPresetStatus(sig.symbol)"></span>
+                                        <span class="rounded-full border border-coral/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'更新时间 ' + (executionContextUpdatedAt ? formatTime(executionContextUpdatedAt) : '--')"></span>
+                                    </div>
+                                </div>
+                                <div class="mt-3 flex flex-wrap gap-2">
+                                    <button @click="focusSection('decision-tape-panel', 'signals')" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">判定流</button>
+                                    <button @click="handoffSelectedToBacktest()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">预填回测</button>
+                                    <button @click="handoffSelectedToTradingAgents()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">交给 TradingAgents</button>
+                                    <button @click="focusSection('ops-log-panel', 'execution')" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">执行日志</button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+                                <div class="metric-tile">
+                                    <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">入场价</p>
+                                    <p class="mono mt-1 text-sm font-semibold" x-text="toFixed(sig.entryPrice, 4)"></p>
+                                </div>
+                                <div class="metric-tile">
+                                    <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">止损</p>
+                                    <p class="mono mt-1 text-sm font-semibold" x-text="toFixed(sig.stopLoss, 4)"></p>
+                                </div>
+                                <div class="metric-tile">
+                                    <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">止盈 1</p>
+                                    <p class="mono mt-1 text-sm font-semibold" x-text="toFixed(sig.takeProfit1, 4)"></p>
+                                </div>
+                                <div class="metric-tile">
+                                    <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">止盈 2</p>
+                                    <p class="mono mt-1 text-sm font-semibold" x-text="toFixed(sig.takeProfit2, 4)"></p>
+                                </div>
+                                <div class="metric-tile">
+                                    <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">止盈 3</p>
+                                    <p class="mono mt-1 text-sm font-semibold" x-text="toFixed(sig.takeProfit3, 4)"></p>
+                                </div>
+                                <div class="metric-tile">
+                                    <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">风险收益比</p>
+                                    <p class="mono mt-1 text-sm font-semibold" x-text="toFixed(sig.riskReward, 3)"></p>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <div class="formula-strip">
+                                    <p class="text-xs uppercase tracking-[0.18em] text-ink/45">买入公式</p>
+                                    <p class="mono mt-1 text-xs text-ink/75">SL = P - ATR * 1.5 · TP1 = P + ATR * 2.0 · TP2 = P + ATR * 3.2 · TP3 = P + ATR * 4.4</p>
+                                </div>
+                                <div class="formula-strip">
+                                    <p class="text-xs uppercase tracking-[0.18em] text-ink/45">卖出公式</p>
+                                    <p class="mono mt-1 text-xs text-ink/75">SL = P + ATR * 1.5 · TP1 = P - ATR * 2.0 · TP2 = P - ATR * 3.2 · TP3 = P - ATR * 4.4</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                                <div class="rounded-2xl border border-ink/10 bg-white/70 p-3 text-xs">
+                                    <p class="text-ink/55">ATR 值</p>
+                                    <p class="mono mt-1 text-sm" x-text="toFixed(sig.atrValue, 4)"></p>
+                                </div>
+                                <div class="rounded-2xl border border-ink/10 bg-white/70 p-3 text-xs">
+                                    <p class="text-ink/55">ATR 系数</p>
+                                    <p class="mono mt-1 text-sm" x-text="toFixed(sig.atrMultiplier, 2)"></p>
+                                </div>
+                                <div class="rounded-2xl border border-ink/10 bg-white/70 p-3 text-xs">
+                                    <p class="text-ink/55">信号生成</p>
+                                    <p class="mono mt-1 text-sm" x-text="formatDateTime(sig.generatedAt)"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template x-if="!sig">
+                        <div class="rounded-2xl border border-ink/10 bg-white/70 p-4">
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">Execution Focus Empty</p>
+                            <p class="mt-1 text-sm font-semibold text-ink" x-text="panelEmptyState('exit-desk').title"></p>
+                            <p class="mt-1 text-sm text-ink/60" x-text="panelEmptyState('exit-desk').body"></p>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <button @click="runDeskAction(panelEmptyState('exit-desk').actionId)" class="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-panel transition hover:bg-ink/85" x-text="panelEmptyState('exit-desk').actionLabel"></button>
+                                <button x-show="panelEmptyState('exit-desk').secondaryActionLabel" x-cloak @click="runDeskAction(panelEmptyState('exit-desk').secondaryActionId)" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white" x-text="panelEmptyState('exit-desk').secondaryActionLabel"></button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </section>
+
+            <section id="backtest-panel" x-show="sectionVisible(['overview', 'research'])" x-cloak class="reveal rounded-3xl border border-ink/10 bg-panel p-4 shadow-panel lg:col-span-5">
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold">回测与优化</h2>
+                    <button @click="triggerBacktestRefresh()" :disabled="isRunningBacktest" class="rounded-full px-3 py-1 text-xs font-semibold text-panel transition" :class="isRunningBacktest ? 'bg-ink/40 cursor-not-allowed' : 'bg-ink hover:bg-ink/85'" x-text="isRunningBacktest ? '刷新中...' : '触发回测刷新'"></button>
+                </div>
+
+                <div x-show="selectedResearchSummary()" x-cloak class="mb-3 rounded-2xl border border-sun/20 bg-sun/5 p-3">
+                    <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                        <div>
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-sun">Research Relay</p>
+                            <p class="mt-1 text-sm font-semibold text-ink" x-text="selectedResearchSummary().symbol + ' · ' + selectedResearchSummary().strategyLabel"></p>
+                            <p class="mt-1 text-xs text-ink/70" x-text="selectedResearchSummary().rankingMatch ? ('匹配回测 #' + selectedResearchSummary().rankingMatch.rank + ' · 分数 ' + toFixed(selectedResearchSummary().rankingMatch.score, 2)) : '当前聚焦策略还没有命中的回测排名。'"></p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <span class="rounded-full border border-sun/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="selectedResearchSummary().backtestStatus"></span>
+                            <span class="rounded-full border border-sun/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'最佳窗口 ' + selectedResearchSummary().bestWindowLabel"></span>
+                            <span class="rounded-full border border-sun/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'稳定性 ' + selectedResearchSummary().stabilityLabel"></span>
+                            <span class="rounded-full border border-sun/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'重点标的 ' + selectedResearchSummary().topSymbolsLabel"></span>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button @click="handoffSelectedToBacktest()" class="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-panel transition hover:bg-ink/85">预填回测</button>
+                        <button x-show="selectedResearchSummary() && selectedResearchSummary().rankingMatch" x-cloak @click="applySelectedResearchPreset()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white" x-text="selectedResearchSummary() ? ('带入最佳窗口 ' + selectedResearchSummary().bestWindowLabel) : '带入最佳窗口'"></button>
+                        <button @click="focusSelectedStrategyHealth()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">策略健康</button>
+                        <button @click="handoffSelectedToTradingAgents()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">研究任务</button>
+                    </div>
+                </div>
+
+                <div class="space-y-2 rounded-2xl border border-ink/10 bg-white/70 p-3">
+                    <label class="block text-xs text-ink/60">Symbols（逗号分隔）</label>
+                    <input x-model="runForm.symbols" type="text" class="mono w-full rounded-xl border border-ink/15 bg-white px-3 py-1.5 text-xs outline-none focus:border-tide">
+                    <label class="block text-xs text-ink/60">Strategy Names（逗号分隔）</label>
+                    <input x-model="runForm.strategyNames" type="text" class="mono w-full rounded-xl border border-ink/15 bg-white px-3 py-1.5 text-xs outline-none focus:border-tide">
+                    <label class="block text-xs text-ink/60">Windows（逗号分隔）</label>
+                    <input x-model="runForm.windows" type="text" class="mono w-full rounded-xl border border-ink/15 bg-white px-3 py-1.5 text-xs outline-none focus:border-tide">
+                </div>
+
+                <div class="mt-3 space-y-2 max-h-[316px] overflow-y-auto pr-1">
+                    <template x-if="!rankings.length">
+                        <div class="rounded-2xl border border-ink/10 bg-white/70 p-4">
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">Research Empty</p>
+                            <p class="mt-1 text-sm font-semibold text-ink" x-text="panelEmptyState('backtest').title"></p>
+                            <p class="mt-1 text-sm text-ink/60" x-text="panelEmptyState('backtest').body"></p>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <button @click="runDeskAction(panelEmptyState('backtest').actionId)" class="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-panel transition hover:bg-ink/85" x-text="panelEmptyState('backtest').actionLabel"></button>
+                                <button x-show="panelEmptyState('backtest').secondaryActionLabel" x-cloak @click="runDeskAction(panelEmptyState('backtest').secondaryActionId)" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white" x-text="panelEmptyState('backtest').secondaryActionLabel"></button>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-for="item in researchRankingItems()" :key="item.strategy_name + '-' + item.rank">
+                        <article class="rounded-2xl border border-ink/10 bg-white/80 p-3" :class="researchRankingCardClass(item)">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-sm font-semibold"><span class="mono mr-1" x-text="'#' + item.rank"></span><span x-text="strategyLabel(item.strategy_name)"></span></p>
+                                    <p class="text-xs text-ink/55" x-text="'覆盖标的 ' + formatInt(item.symbols_covered) + ' · 周期 ' + item.timeframe"></p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="mono text-sm" x-text="'分数 ' + toFixed(item.score, 2)"></p>
+                                    <p class="text-xs" :class="item.degradation >= 5 ? 'text-coral' : 'text-mint'" x-text="'退化 ' + toFixed(item.degradation, 2)"></p>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2 text-[11px]">
+                                <span x-show="strategyMatchesFocused(item.strategy_name)" x-cloak class="rounded-full bg-sun/15 px-2 py-0.5 text-sun">当前策略</span>
+                                <span x-show="selectedSignal() && rankingMentionsSymbol(item, selectedSignal().symbol)" x-cloak class="rounded-full bg-coral/15 px-2 py-0.5 text-coral" x-text="'命中 ' + selectedSignal().symbol"></span>
+                                <span class="rounded-full bg-ink/5 px-2 py-0.5 text-ink/65" x-text="'最佳窗口 ' + rankingBestWindowLabel(item)"></span>
+                                <span class="rounded-full bg-ink/5 px-2 py-0.5 text-ink/65" x-text="rankingStabilityLabel(item)"></span>
+                            </div>
+                            <p class="mt-2 text-[11px] text-ink/60" x-show="rankingTopSymbols(item).length" x-cloak x-text="'重点标的 ' + topSymbolsLabel(rankingTopSymbols(item), 4)"></p>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <button @click="applyRankingBacktestPreset(item)" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white" :class="rankingPresetApplied(item) ? 'border-sun/25 bg-sun/10 text-sun' : ''" x-text="rankingPresetApplied(item) ? '已带入回测表单' : ('带入 ' + rankingBestWindowLabel(item))"></button>
+                                <button x-show="selectedSignal() && rankingMentionsSymbol(item, selectedSignal().symbol)" x-cloak @click="handoffSelectedToBacktest()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">带当前标的回测</button>
+                            </div>
+                        </article>
+                    </template>
+                </div>
+            </section>
+
+            <section id="health-panel" x-show="sectionVisible(['overview', 'research'])" x-cloak class="reveal rounded-3xl border border-ink/10 bg-panel p-4 shadow-panel lg:col-span-7">
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold">策略健康视图</h2>
+                    <span class="mono text-xs text-ink/60" x-text="'窗口 ' + formatInt(config.windowHours) + 'h'"></span>
+                </div>
+
+                <div x-show="selectedResearchSummary()" x-cloak class="mb-3 rounded-2xl border border-sun/20 bg-white/75 p-3">
+                    <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                        <div>
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-sun">策略研究接力</p>
+                            <p class="mt-1 text-sm font-semibold text-ink" x-text="selectedResearchSummary().symbol + ' · ' + selectedResearchSummary().strategyLabel"></p>
+                            <p class="mt-1 text-xs text-ink/70" x-text="selectedResearchSummary().healthMatch ? ('健康排名 #' + selectedResearchSummary().healthMatch.rank + ' · ' + (selectedResearchSummary().healthMatch.stable ? '稳定' : '待复核')) : '当前聚焦策略还没有命中的健康卡。'"></p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <span class="rounded-full border border-sun/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'信号状态 ' + selectedResearchSummary().signalStatus"></span>
+                            <span class="rounded-full border border-sun/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'稳定性 ' + selectedResearchSummary().stabilityLabel"></span>
+                            <span class="rounded-full border border-sun/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'重点标的 ' + selectedResearchSummary().topSymbolsLabel"></span>
+                            <span class="rounded-full border border-sun/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="selectedResearchSummary().symbolHit ? ('已命中 ' + selectedResearchSummary().symbol) : '等待命中 top symbols'"></span>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button @click="handoffSelectedToBacktest()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">回到回测</button>
+                        <button @click="handoffToExecution(selectedSignal().symbol, { source: 'research-handoff', announce: true })" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">回到执行台</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <template x-if="!strategyHealth.length">
+                        <div class="rounded-2xl border border-ink/10 bg-white/70 p-4">
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">Health Empty</p>
+                            <p class="mt-1 text-sm font-semibold text-ink" x-text="panelEmptyState('health').title"></p>
+                            <p class="mt-1 text-sm text-ink/60" x-text="panelEmptyState('health').body"></p>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <button @click="runDeskAction(panelEmptyState('health').actionId)" class="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-panel transition hover:bg-ink/85" x-text="panelEmptyState('health').actionLabel"></button>
+                                <button x-show="panelEmptyState('health').secondaryActionLabel" x-cloak @click="runDeskAction(panelEmptyState('health').secondaryActionId)" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white" x-text="panelEmptyState('health').secondaryActionLabel"></button>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-for="item in researchHealthItems()" :key="item.strategy_name + '-' + item.rank">
+                        <article class="rounded-2xl border border-ink/10 bg-white/75 p-3" :class="researchHealthCardClass(item)">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-sm font-semibold"><span class="mono mr-1" x-text="'#' + item.rank"></span><span x-text="strategyLabel(item.strategy_name)"></span></p>
+                                    <div class="mt-2 flex flex-wrap gap-2 text-[11px]">
+                                        <span x-show="strategyMatchesFocused(item.strategy_name)" x-cloak class="rounded-full bg-sun/15 px-2 py-0.5 text-sun">当前策略</span>
+                                        <span x-show="selectedSignal() && healthMentionsSymbol(item, selectedSignal().symbol)" x-cloak class="rounded-full bg-coral/15 px-2 py-0.5 text-coral" x-text="'命中 ' + selectedSignal().symbol"></span>
+                                        <span class="rounded-full bg-ink/5 px-2 py-0.5 text-ink/65" x-text="'重点标的 ' + topSymbolsLabel(healthTopSymbols(item), 3)"></span>
+                                    </div>
+                                </div>
+                                <span class="rounded-full px-2 py-0.5 text-xs" :class="item.stable ? 'bg-mint/15 text-mint' : 'bg-coral/15 text-coral'" x-text="item.stable ? '稳定' : '不稳定'"></span>
+                            </div>
+                            <div class="mt-2 grid grid-cols-2 gap-2 text-xs text-ink/70 mono">
+                                <span x-text="'分数 ' + toFixed(item.score, 2)"></span>
+                                <span x-text="'退化 ' + toFixed(item.degradation, 2)"></span>
+                                <span x-text="'覆盖 ' + formatInt(item.symbols_covered)"></span>
+                                <span x-text="'信号 ' + formatInt(item.signals_generated)"></span>
+                            </div>
+                            <p class="mt-2 text-xs text-ink/70" x-text="strategyAdvice(item)"></p>
+                        </article>
+                    </template>
+                </div>
+            </section>
+
+            <section id="ops-log-panel" x-show="sectionVisible(['overview', 'execution'])" x-cloak class="reveal rounded-3xl border border-ink/10 bg-panel p-4 shadow-panel lg:col-span-5">
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold">执行与日志</h2>
+                    <span class="mono text-xs text-ink/60">Focused + Global</span>
+                </div>
+
+                <div class="mb-3 rounded-2xl border border-coral/20 bg-coral/5 p-3">
+                    <template x-if="selectedExecutionSummary()">
+                        <div>
+                            <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                                <div>
+                                    <p class="text-[11px] uppercase tracking-[0.18em] text-coral">聚焦执行摘要</p>
+                                    <p class="mt-1 text-sm font-semibold text-ink" x-text="selectedExecutionSummary().symbol + ' · ' + selectedExecutionSummary().strategy"></p>
+                                    <p class="mt-1 text-xs text-ink/70" x-text="'来源 ' + executionContextSourceLabel() + ' · 状态 ' + selectedExecutionSummary().statusLabel"></p>
+                                </div>
+                                <div class="flex flex-wrap gap-2 text-xs">
+                                    <span class="rounded-full border border-coral/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'判定 ' + formatInt(selectedExecutionSummary().decisionCount)"></span>
+                                    <span class="rounded-full border border-coral/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'发射 ' + formatInt(selectedExecutionSummary().emittedCount)"></span>
+                                    <span class="rounded-full border border-coral/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'回测 ' + formatInt(selectedExecutionSummary().backtestCount)"></span>
+                                    <span class="rounded-full border border-coral/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'TradingAgents ' + formatInt(selectedExecutionSummary().tradingAgentsCount)"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="!selectedExecutionSummary()">
+                        <p class="text-sm text-ink/65">选中标的后，这里会展示该标的的执行轨迹、相关运行记录和聚焦日志。</p>
+                    </template>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                    <div class="rounded-2xl border border-ink/10 bg-white/75 p-3">
+                        <div class="mb-3 flex items-center justify-between gap-2">
+                            <p class="text-xs uppercase tracking-[0.18em] text-ink/45">聚焦执行轨迹</p>
+                            <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-[11px] text-ink/55" x-text="selectedSignal() ? selectedSignal().symbol : '未聚焦'"></span>
+                        </div>
+                        <div class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                            <template x-if="selectedSignal() && !selectedExecutionItems().length">
+                                <div class="rounded-2xl border border-ink/10 bg-white/80 p-3 text-sm text-ink/60">当前标的还没有关联的回测或 TradingAgents 运行记录。</div>
+                            </template>
+                            <template x-if="!selectedSignal() && !backtestRuns.length && !tradingAgentsRuns.length">
+                                <div class="rounded-2xl border border-ink/10 bg-white/80 p-3 text-sm text-ink/60">暂无执行记录。</div>
+                            </template>
+                            <template x-for="item in selectedSignal() ? selectedExecutionItems() : []" :key="item.id">
+                                <article class="rounded-2xl border border-ink/10 bg-white/80 p-3">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <span class="rounded-full border border-ink/15 bg-white px-2 py-0.5 text-[11px] text-ink/60" x-text="item.kind === 'backtest' ? '回测' : 'TradingAgents'"></span>
+                                                <span class="rounded-full px-2 py-0.5 text-[11px]" :class="executionStatusClass(item.status, item.kind)" x-text="item.statusLabel"></span>
+                                            </div>
+                                            <p class="mt-2 text-sm font-semibold text-ink" x-text="item.title"></p>
+                                            <p class="mt-1 text-xs text-ink/65" x-text="item.meta"></p>
+                                            <p class="mono mt-2 text-[11px] text-ink/50" x-text="item.detail"></p>
+                                        </div>
+                                        <span class="mono text-[11px] text-ink/50" x-text="item.timestampLabel"></span>
+                                    </div>
+                                </article>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl bg-ink p-3 text-xs text-panel/85">
+                        <div class="mb-3 flex items-center justify-between gap-2">
+                            <p class="text-xs uppercase tracking-[0.18em] text-panel/45">聚焦日志</p>
+                            <span class="rounded-full border border-panel/10 bg-panel/5 px-2.5 py-1 text-[11px] text-panel/55" x-text="selectedSignal() ? ('Ticker ' + selectedSignal().symbol) : '最近日志'"></span>
+                        </div>
+                        <div class="h-[220px] overflow-y-auto pr-1">
+                            <template x-if="selectedSignal() && !focusedConsoleLines().length">
+                                <p class="text-panel/60">当前标的还没有命中日志行。继续执行回测接力或 TradingAgents 提交后，这里会开始收敛相关日志。</p>
+                            </template>
+                            <template x-if="!selectedSignal() && !consoleLines.length">
+                                <p class="text-panel/60">暂无平台日志。</p>
+                            </template>
+                            <template x-for="line in selectedSignal() ? focusedConsoleLines() : consoleLines.slice(0, 10)" :key="line.id">
+                                <p class="mb-1" :class="line.level === 'warn' ? 'text-sun' : (line.level === 'ok' ? 'text-mint' : 'text-panel/80')">
+                                    <span class="text-panel/45" x-text="line.time"></span>
+                                    <span x-text="line.text"></span>
+                                </p>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 rounded-2xl border border-ink/10 bg-white/75 p-3">
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                        <p class="text-xs uppercase tracking-[0.18em] text-ink/45">系统回测运行</p>
+                        <span class="mono text-[11px] text-ink/55" x-text="formatInt(backtestRuns.length) + ' 条'"></span>
+                    </div>
+                    <div class="space-y-2 max-h-[120px] overflow-y-auto pr-1">
+                        <template x-if="!backtestRuns.length">
+                            <p class="text-xs text-ink/60">暂无回测任务记录。</p>
+                        </template>
+                        <template x-for="run in backtestRuns.slice(0, 4)" :key="run.id">
+                            <div class="flex items-center justify-between gap-2 border-b border-ink/8 pb-2 text-xs last:border-b-0 last:pb-0">
+                                <div>
+                                    <p class="font-semibold text-ink" x-text="strategyLabel(run.strategy_name)"></p>
+                                    <p class="mono text-ink/60" x-text="(run.symbol || '--') + ' · ' + formatDateTime(run.started_at)"></p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="mono" x-text="'ID ' + run.id"></p>
+                                    <p :class="executionStatusClass(run.status, 'backtest')" x-text="run.status"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </section>
+
+            <section id="funnel-panel" x-show="sectionVisible(['overview', 'execution'])" x-cloak class="reveal rounded-3xl border border-ink/10 bg-panel p-4 shadow-panel lg:col-span-12">
+                <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold">分发漏斗</h2>
+                        <p class="mt-1 text-xs text-ink/60">聚焦当前标的的执行漏斗，同时保留平台全局扫描漏斗。</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2" x-show="selectedSignal()" x-cloak>
+                        <button @click="focusSection('decision-tape-panel', 'signals')" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">判定流</button>
+                        <button @click="handoffSelectedToBacktest()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">预填回测</button>
+                        <button @click="handoffSelectedToTradingAgents()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">交给 TradingAgents</button>
+                    </div>
+                </div>
+
+                <div class="mt-4 rounded-2xl border border-coral/20 bg-white/75 p-3">
+                    <template x-if="selectedSignal()">
+                        <div>
+                            <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                                <div>
+                                    <p class="text-[11px] uppercase tracking-[0.18em] text-coral">当前标的漏斗</p>
+                                    <p class="mt-1 text-sm font-semibold text-ink" x-text="selectedSignal().symbol + ' · ' + selectedSignal().strategy"></p>
+                                    <p class="mt-1 text-xs text-ink/65" x-text="latestDecisionForSymbol() ? latestDecisionForSymbol().reason : '等待新的判定或执行动作。'"></p>
+                                </div>
+                                <div class="flex flex-wrap gap-2 text-xs">
+                                    <span class="rounded-full border border-coral/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'来源 ' + executionContextSourceLabel()"></span>
+                                    <span class="rounded-full border border-coral/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'更新 ' + (executionContextUpdatedAt ? formatTime(executionContextUpdatedAt) : '--')"></span>
+                                </div>
+                            </div>
+                            <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                                <template x-for="stage in selectedFunnelCards()" :key="stage.id">
+                                    <article class="rounded-2xl border border-ink/10 bg-panel/80 p-3">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45" x-text="stage.label"></p>
+                                            <span class="rounded-full px-2 py-0.5 text-[11px]" :class="stage.className" x-text="stage.value"></span>
+                                        </div>
+                                        <p class="mt-2 text-xs text-ink/70" x-text="stage.meta"></p>
+                                    </article>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="!selectedSignal()">
+                        <p class="text-sm text-ink/65">从盯盘雷达、命令面板或判定流聚焦标的后，这里会切换成该标的的执行漏斗。</p>
+                    </template>
+                </div>
+
+                <div class="mt-4">
+                    <p class="text-xs uppercase tracking-[0.18em] text-ink/45">平台全局漏斗</p>
+                    <p class="mt-1 text-xs text-ink/60">来源: /v1/admin/scanner/observability.summary</p>
+                </div>
+                <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <template x-for="stage in funnelStages" :key="stage.name">
+                        <div>
+                            <div class="mb-1 flex items-center justify-between text-xs">
+                                <span class="text-ink/70" x-text="stage.name"></span>
+                                <span class="mono text-ink/70" x-text="stage.value"></span>
+                            </div>
+                            <div class="h-3 rounded-full bg-ink/10">
+                                <div class="funnel-bar" :style="'width:' + stage.progress + '%'" role="presentation"></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </section>
+            </main>
+        </div>
+    </div>
+
+    <script src="./js/platform-deck-constants.js"></script>
+    <script src="./js/platform-deck-utils.js"></script>
+    <script src="./js/platform-deck-tradingagents.js"></script>
+    <script src="./js/platform-deck-workspace.js"></script>
+    <script src="./js/platform-deck.js"></script>
 </body>
 </html>

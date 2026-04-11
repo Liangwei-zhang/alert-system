@@ -42,12 +42,23 @@ class TradingAgentsWebhookService:
             Response dict with status
         """
         try:
+            # TradingAgents may send either direct projection payload or
+            # an envelope payload: {"event": "job_terminal", "projection": {...}}.
+            if isinstance(payload.get("projection"), dict):
+                if payload.get("event") not in {None, "job_terminal"}:
+                    raise ValueError(f"Unsupported TradingAgents event: {payload.get('event')}")
+                event_payload = dict(payload["projection"])
+                if payload.get("delivered_at") and "delivered_at" not in event_payload:
+                    event_payload["delivered_at"] = payload.get("delivered_at")
+            else:
+                event_payload = payload
+
             # Parse and validate payload
-            event = TradingAgentsJobTerminalEvent(**payload)
+            event = TradingAgentsJobTerminalEvent(**event_payload)
 
             logger.info(
                 f"Received terminal event for request_id={event.request_id}, "
-                f"job_id={event.job_id}, status={event.status}"
+                f"job_id={event.job_id}, status={event.tradingagents_status or event.status}"
             )
 
             # Map to projection
@@ -63,8 +74,8 @@ class TradingAgentsWebhookService:
                 result_payload=projection.result_payload,
             )
 
-            # Mark as completed/failed based on status
-            if event.status == "completed":
+            # Mark as completed/failed based on mapped internal status.
+            if projection.tradingagents_status == "completed":
                 await self.repository.mark_completed(
                     request_id=event.request_id,
                     final_action=projection.final_action or "unknown",
@@ -73,33 +84,41 @@ class TradingAgentsWebhookService:
                 )
                 logger.info(f"Marked {event.request_id} as completed")
 
-            elif event.status == "failed":
+            elif projection.tradingagents_status in {"failed", "timeout"}:
+                if projection.tradingagents_status == "timeout":
+                    terminal_error_message = projection.decision_summary or "Job timed out"
+                else:
+                    terminal_error_message = projection.decision_summary or "Job failed"
                 await self.repository.mark_failed(
                     request_id=event.request_id,
-                    error_message=projection.decision_summary or "Job failed",
+                    error_message=terminal_error_message,
                 )
-                logger.warning(f"Marked {event.request_id} as failed")
-
-            elif event.status == "timeout":
-                await self.repository.mark_failed(
-                    request_id=event.request_id,
-                    error_message="Job timed out",
+                logger.warning(
+                    "Marked %s as %s",
+                    event.request_id,
+                    projection.tradingagents_status,
                 )
-                logger.warning(f"Marked {event.request_id} as timeout")
 
             # Mark webhook received
             await self.repository.mark_webhook_received(event.request_id)
             record = await self.repository.get_by_request_id(event.request_id)
+            status_for_event = str(
+                event.tradingagents_status
+                or event.status
+                or projection.tradingagents_status
+                or "unknown"
+            ).lower()
             await OutboxPublisher(self.session).publish_after_commit(
                 topic="tradingagents.terminal",
                 key=event.request_id,
                 payload={
                     "request_id": event.request_id,
                     "job_id": event.job_id,
-                    "ticker": getattr(record, "ticker", None),
-                    "status": event.status,
+                    "ticker": getattr(record, "ticker", None) or event_payload.get("ticker"),
+                    "status": status_for_event,
                     "final_action": projection.final_action,
                     "decision_summary": projection.decision_summary,
+                    "result_payload": projection.result_payload,
                     "submitted_at": getattr(record, "submitted_at", None),
                     "completed_at": getattr(record, "completed_at", None),
                 },
@@ -131,18 +150,20 @@ class TradingAgentsWebhookService:
         try:
             request_id = payload.get("request_id")
             job_id = payload.get("job_id")
-            status = payload.get("status")
+            status = payload.get("tradingagents_status") or payload.get("status")
 
             if not request_id or not job_id:
                 raise ValueError("Missing request_id or job_id in payload")
 
             logger.info(f"Status update for {request_id}: {status}")
 
+            mapped_status = self.mapper.to_internal_status(status)
+
             # Update status
             await self.repository.update_projection(
                 request_id=request_id,
                 job_id=job_id,
-                tradingagents_status=status,
+                tradingagents_status=mapped_status,
             )
 
             return {

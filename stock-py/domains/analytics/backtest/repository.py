@@ -26,6 +26,8 @@ class BacktestRepository:
         offset: int = 0,
         status: str | None = None,
         strategy_name: str | None = None,
+        experiment_name: str | None = None,
+        run_key: str | None = None,
         timeframe: str | None = None,
         symbol: str | None = None,
     ) -> list[BacktestRunModel]:
@@ -36,6 +38,12 @@ class BacktestRepository:
             )
         if strategy_name:
             statement = statement.where(BacktestRunModel.strategy_name == strategy_name.strip())
+        if experiment_name:
+            statement = statement.where(
+                BacktestRunModel.experiment_name == experiment_name.strip()
+            )
+        if run_key:
+            statement = statement.where(BacktestRunModel.run_key == run_key.strip())
         if timeframe:
             statement = statement.where(BacktestRunModel.timeframe == timeframe.strip().lower())
         if symbol:
@@ -52,6 +60,8 @@ class BacktestRepository:
         *,
         status: str | None = None,
         strategy_name: str | None = None,
+        experiment_name: str | None = None,
+        run_key: str | None = None,
         timeframe: str | None = None,
         symbol: str | None = None,
     ) -> int:
@@ -62,6 +72,12 @@ class BacktestRepository:
             )
         if strategy_name:
             statement = statement.where(BacktestRunModel.strategy_name == strategy_name.strip())
+        if experiment_name:
+            statement = statement.where(
+                BacktestRunModel.experiment_name == experiment_name.strip()
+            )
+        if run_key:
+            statement = statement.where(BacktestRunModel.run_key == run_key.strip())
         if timeframe:
             statement = statement.where(BacktestRunModel.timeframe == timeframe.strip().lower())
         if symbol:
@@ -103,6 +119,8 @@ class BacktestRepository:
     async def save_run(self, payload: dict[str, Any]) -> BacktestRunModel:
         record = BacktestRunModel(
             strategy_name=str(payload.get("strategy_name") or "ranking_refresh"),
+            experiment_name=payload.get("experiment_name"),
+            run_key=payload.get("run_key"),
             symbol=payload.get("symbol"),
             timeframe=str(payload.get("timeframe") or "1d"),
             window_days=int(payload.get("window_days") or 0),
@@ -110,8 +128,12 @@ class BacktestRepository:
                 str(payload.get("status") or BacktestRunStatus.PENDING.value).lower()
             ),
             summary=self._dump(payload.get("summary")),
+            config=self._dump(payload.get("config")),
             metrics=self._dump(payload.get("metrics")),
             evidence=self._dump(payload.get("evidence")),
+            artifacts=self._dump(payload.get("artifacts")),
+            code_version=payload.get("code_version"),
+            dataset_fingerprint=payload.get("dataset_fingerprint"),
             error_message=payload.get("error_message"),
             started_at=payload.get("started_at") or utcnow(),
             completed_at=payload.get("completed_at"),
@@ -128,10 +150,22 @@ class BacktestRepository:
             raise ValueError("backtest run not found")
         if results.get("status") is not None:
             record.status = BacktestRunStatus(str(results["status"]).lower())
-        record.summary = self._dump(results.get("summary"))
-        record.metrics = self._dump(results.get("metrics"))
-        record.evidence = self._dump(results.get("evidence"))
-        record.error_message = results.get("error_message")
+        if "summary" in results:
+            record.summary = self._dump(results.get("summary"))
+        if "config" in results:
+            record.config = self._dump(results.get("config"))
+        if "metrics" in results:
+            record.metrics = self._dump(results.get("metrics"))
+        if "evidence" in results:
+            record.evidence = self._dump(results.get("evidence"))
+        if "artifacts" in results:
+            record.artifacts = self._dump(results.get("artifacts"))
+        if "code_version" in results:
+            record.code_version = results.get("code_version")
+        if "dataset_fingerprint" in results:
+            record.dataset_fingerprint = results.get("dataset_fingerprint")
+        if "error_message" in results:
+            record.error_message = results.get("error_message")
         if record.status in {BacktestRunStatus.COMPLETED, BacktestRunStatus.FAILED}:
             record.completed_at = results.get("completed_at") or utcnow()
         await self.session.flush()
@@ -167,13 +201,26 @@ class BacktestRepository:
         window_days: int,
         timeframe: str = "1d",
     ) -> list[dict[str, Any]]:
-        cutoff = utcnow() - timedelta(days=window_days)
+        normalized_symbol = symbol.strip().upper()
+        normalized_timeframe = timeframe.strip().lower()
+        latest_bar_result = await self.session.execute(
+            select(func.max(OhlcvModel.bar_time)).where(
+                OhlcvModel.symbol == normalized_symbol,
+                OhlcvModel.timeframe == normalized_timeframe,
+            )
+        )
+        latest_bar_time = latest_bar_result.scalar_one_or_none()
+        if latest_bar_time is None:
+            return []
+
+        cutoff = latest_bar_time - timedelta(days=window_days)
         result = await self.session.execute(
             select(OhlcvModel)
             .where(
-                OhlcvModel.symbol == symbol.strip().upper(),
-                OhlcvModel.timeframe == timeframe.strip().lower(),
+                OhlcvModel.symbol == normalized_symbol,
+                OhlcvModel.timeframe == normalized_timeframe,
                 OhlcvModel.bar_time >= cutoff,
+                OhlcvModel.bar_time <= latest_bar_time,
             )
             .order_by(OhlcvModel.bar_time.asc())
         )

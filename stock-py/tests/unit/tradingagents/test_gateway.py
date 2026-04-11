@@ -63,11 +63,19 @@ class TradingAgentsGatewayTest(unittest.IsolatedAsyncioTestCase):
         with patch("domains.tradingagents.gateway.get_http_client_factory", return_value=factory):
             result = await gateway.submit_job(request)
 
-        self.assertEqual(result, {"success": True, "job_id": "job-123", "status": "submitted"})
+        self.assertEqual(
+            result,
+            {
+                "success": True,
+                "job_id": "job-123",
+                "status": "submitted",
+                "http_status": 200,
+            },
+        )
         self.assertEqual(factory.external_requests, 1)
         method, url, kwargs = client.calls[0]
         self.assertEqual(method, "post")
-        self.assertEqual(url, "https://tradingagents.example/v1/jobs/submit")
+        self.assertEqual(url, "https://tradingagents.example/jobs")
         self.assertEqual(kwargs["timeout"], 12)
         self.assertEqual(kwargs["headers"]["Authorization"], "Bearer secret-key")
         self.assertEqual(kwargs["json"]["ticker"], "AAPL")
@@ -79,13 +87,17 @@ class TradingAgentsGatewayTest(unittest.IsolatedAsyncioTestCase):
         gateway = TradingAgentsGateway(base_url="https://tradingagents.example")
 
         with patch("domains.tradingagents.gateway.get_http_client_factory", return_value=factory):
-            result = await gateway.get_stock_result("job-missing")
+            result = await gateway.get_stock_result("req-missing")
 
         self.assertIsNone(result)
         self.assertEqual(factory.external_requests, 1)
         method, url, kwargs = client.calls[0]
         self.assertEqual(method, "get")
-        self.assertEqual(url, "https://tradingagents.example/v1/jobs/job-missing/result")
+        self.assertEqual(
+            url,
+            "https://tradingagents.example/jobs/by-request/req-missing/stock-result",
+        )
+        self.assertEqual(kwargs["params"], {"include_full_result_payload": "false"})
         self.assertIn("headers", kwargs)
 
 

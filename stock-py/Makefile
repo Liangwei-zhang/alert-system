@@ -13,6 +13,12 @@ LOAD_FIXTURE_JSON_FILE ?= ops/reports/load/$(LOAD_RUN_ID)/fixtures.json
 LOAD_PUBLIC_HEALTH_URL ?= $(LOAD_TEST_HOST)/health
 LOAD_PUBLIC_METRICS_URL ?= $(LOAD_TEST_HOST)/api/monitoring/metrics
 LOAD_PUBLIC_METRICS_TOKEN ?=
+PUBLIC_API_PORT ?= 7070
+ADMIN_API_PORT ?= 8001
+PLATFORM_SMOKE_PUBLIC_BASE_URL ?= http://127.0.0.1:8000
+PLATFORM_SMOKE_ADMIN_BASE_URL ?= http://127.0.0.1:8001
+PLATFORM_SMOKE_EMAIL ?=
+PLATFORM_SMOKE_TIMEOUT ?= 20
 CUTOVER_ENVIRONMENT ?= staging
 CUTOVER_RUN_ID ?= $(shell date -u +%Y%m%dT%H%M%SZ)
 CUTOVER_REPORT_DIR ?= ops/reports/cutover/$(CUTOVER_RUN_ID)
@@ -68,7 +74,7 @@ BACKEND_OWNER ?=
 ON_CALL_REVIEWER ?=
 BACKUP_DIR ?=
 
-.PHONY: install format lint test test-unit test-integration test-contract test-e2e test-qa test-load-import qa-ci load-check-env load-help load-bootstrap-fixtures load-report-init load-report-finalize load-report-capture load-baseline cutover-bootstrap-fixtures cutover-report-init cutover-evidence-capture cutover-shadow-read cutover-dual-write cutover-rollback-verify cutover-signoff cutover-threshold-calibrate cutover-k8s-overlay cutover-openapi-diff migrate migrate-down migration-revision run-public-api run-admin-api run-scheduler ops-stack-up ops-compose-load-baseline ops-compose-cutover-rehearsal ops-k8s-validate ops-backup-baseline ops-restore-baseline
+.PHONY: install format lint test test-unit test-integration test-contract test-e2e test-qa test-load-import qa-ci smoke-platform-workbench smoke-platform-workbench-interaction load-check-env load-help load-bootstrap-fixtures load-report-init load-report-finalize load-report-capture load-baseline cutover-bootstrap-fixtures cutover-report-init cutover-evidence-capture cutover-shadow-read cutover-dual-write cutover-rollback-verify cutover-signoff cutover-threshold-calibrate cutover-k8s-overlay cutover-openapi-diff migrate migrate-down migration-revision run-public-api run-admin-api run-scheduler ops-stack-up ops-compose-load-baseline ops-compose-cutover-rehearsal ops-real-cutover-validation ops-real-k8s-runtime-validation ops-k8s-validate ops-backup-baseline ops-restore-baseline
 
 install:
 	$(PIP) install -r requirements.txt
@@ -102,6 +108,12 @@ test-qa:
 test-load-import:
 	$(PYTHON) -m compileall -q tests/load
 	$(PYTHON) -c "import tests.load.locustfile"
+
+smoke-platform-workbench:
+	$(PYTHON) run_platform_workbench_smoke.py --public-base-url "$(PLATFORM_SMOKE_PUBLIC_BASE_URL)" --admin-base-url "$(PLATFORM_SMOKE_ADMIN_BASE_URL)" --timeout "$(PLATFORM_SMOKE_TIMEOUT)" $(if $(strip $(PLATFORM_SMOKE_EMAIL)),--email "$(PLATFORM_SMOKE_EMAIL)",)
+
+smoke-platform-workbench-interaction:
+	node run_platform_workbench_interaction_smoke.cjs --public-base-url "$(PLATFORM_SMOKE_PUBLIC_BASE_URL)" --admin-base-url "$(PLATFORM_SMOKE_ADMIN_BASE_URL)" --timeout "$(PLATFORM_SMOKE_TIMEOUT)" $(if $(strip $(PLATFORM_SMOKE_EMAIL)),--email "$(PLATFORM_SMOKE_EMAIL)",)
 
 qa-ci: test-unit test-integration test-qa test-load-import
 
@@ -174,10 +186,10 @@ migration-revision:
 	$(ALEMBIC) revision -m "$(message)"
 
 run-public-api:
-	$(PYTHON) -m uvicorn apps.public_api.main:app --reload --host 0.0.0.0 --port 8000
+	$(PYTHON) -m uvicorn apps.public_api.main:app --reload --host 0.0.0.0 --port $(PUBLIC_API_PORT)
 
 run-admin-api:
-	$(PYTHON) -m uvicorn apps.admin_api.main:app --reload --host 0.0.0.0 --port 8001
+	$(PYTHON) -m uvicorn apps.admin_api.main:app --reload --host 0.0.0.0 --port $(ADMIN_API_PORT)
 
 run-scheduler:
 	$(PYTHON) -m apps.scheduler.main
@@ -190,6 +202,14 @@ ops-compose-load-baseline:
 
 ops-compose-cutover-rehearsal:
 	./ops/bin/compose-cutover-rehearsal.sh
+
+ops-real-cutover-validation:
+	@test -n "$(CUTOVER_ENV_FILE)" || (echo "Usage: make ops-real-cutover-validation CUTOVER_ENV_FILE=ops/reports/cutover/real-cutover.env" && exit 1)
+	CUTOVER_ENV_FILE="$(CUTOVER_ENV_FILE)" ./ops/bin/real-cutover-validation.sh
+
+ops-real-k8s-runtime-validation:
+	@test -n "$(CUTOVER_ENV_FILE)" || (echo "Usage: make ops-real-k8s-runtime-validation CUTOVER_ENV_FILE=ops/reports/cutover/real-cutover.env" && exit 1)
+	RUN_LOAD_BASELINE=false RUN_SHADOW_READ=false RUN_DUAL_WRITE=false RUN_ROLLBACK_VERIFY=false CUTOVER_ENV_FILE="$(CUTOVER_ENV_FILE)" ./ops/bin/real-cutover-validation.sh
 
 ops-k8s-validate:
 	OUTPUT_DIR="$(K8S_VALIDATION_DIR)" KUSTOMIZE_PATH="$(K8S_KUSTOMIZE_PATH)" ./ops/bin/k8s-validate.sh

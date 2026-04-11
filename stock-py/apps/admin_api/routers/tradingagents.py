@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.admin_api.dependencies import get_tradingagents_read_model_service
 from domains.analytics.tradingagents_read_model_service import TradingAgentsReadModelService
+from domains.tradingagents.projection_mapper import TradingAgentsProjectionMapper
 from domains.tradingagents.repository import TradingAgentsRepository
 from domains.tradingagents.schemas import (
     ReconcileDelayedResponse,
@@ -180,35 +181,40 @@ async def reconcile_delayed(
         from domains.tradingagents.gateway import TradingAgentsGateway
 
         gateway = TradingAgentsGateway()
+        mapper = TradingAgentsProjectionMapper()
 
         for record in delayed_records:
-            if not record.job_id:
-                continue
-
             processed_count += 1
 
             try:
-                # Poll for status
-                result = await gateway.get_stock_result(record.job_id)
+                # Poll by request_id per SYSTEM_INTEGRATION_GUIDE.
+                result = await gateway.get_stock_result(record.request_id)
 
                 if result:
-                    status = result.get("status")
+                    projection = mapper.from_poll_response(
+                        request_id=record.request_id,
+                        job_id=record.job_id,
+                        poll_data=result,
+                    )
 
-                    if status == "completed":
+                    if projection.tradingagents_status == "completed":
                         # Mark as completed
-                        final_action = result.get("final_action", "unknown")
+                        final_action = projection.final_action or "unknown"
                         await repository.mark_completed(
                             request_id=record.request_id,
                             final_action=final_action,
-                            decision_summary=result.get("decision_summary"),
-                            result_payload=result,
+                            decision_summary=projection.decision_summary,
+                            result_payload=projection.result_payload,
                         )
                         reconciled_count += 1
 
-                    elif status == "failed":
+                    elif projection.tradingagents_status in {"failed", "timeout"}:
                         await repository.mark_failed(
                             request_id=record.request_id,
-                            error_message=result.get("error", "Job failed"),
+                            error_message=projection.decision_summary
+                            or result.get("error_message")
+                            or result.get("error")
+                            or "Job failed",
                         )
                         reconciled_count += 1
 

@@ -122,6 +122,24 @@ make ops-compose-cutover-rehearsal
 compose baseline 也會自動設定本地 `INTERNAL_SIDECAR_SECRET`，並把同一個 token 傳給 public monitoring metrics scrape，避免 evidence capture 被 `/api/monitoring/metrics` 鑑權擋下。
 `ops/bin/compose-cutover-rehearsal.sh` 會自動 bootstrap admin runtime token、抓 public health 與 admin runtime metrics / alerts、寫入 `ops/reports/cutover/<UTC timestamp>/evidence/cutover-validation.json`，再輸出 `runtime-alert-thresholds.env` / `.json`、`k8s/overlays/<environment>/summary.json` 與 `k8s/validation/summary.json`。
 
+若要跑真實 `staging` / `canary` 驗證，先複製 `ops/reports/cutover/real-cutover.env.template` 到私有 env 檔並填入真實值，再執行：
+
+```bash
+make ops-real-cutover-validation CUTOVER_ENV_FILE=/absolute/path/to/real-cutover.env
+```
+
+若只想先推進 K8s/runtime lane，不等 load fixtures，可直接用：
+
+```bash
+make ops-real-k8s-runtime-validation CUTOVER_ENV_FILE=/absolute/path/to/real-cutover.env
+```
+
+這個入口會串起 real load baseline、cutover evidence、shadow-read、dual-write、rollback verification、runtime threshold calibration、K8s overlay validation，以及可選的 live `kubectl diff` / `apply` / `rollout undo`。
+模板預設只開 read-only 路徑：load baseline、cutover evidence、shadow-read、offline K8s overlay/validation、以及可選的 live `kubectl diff`。`RUN_DUAL_WRITE`、`RUN_ROLLBACK_VERIFY`、`RUN_K8S_APPLY`、`RUN_K8S_ROLLBACK` 都需要顯式改成 `true` 才會執行。
+如果真實 load fixtures / token 還沒就緒，但你已經有 admin runtime token 與 cluster context，可以先把 `RUN_LOAD_BASELINE=false`、`RUN_SHADOW_READ=false`，先推進 runtime 指標抓取、threshold calibration、overlay render、offline validation，以及 live `kubectl diff` 這條 K8s/runtime lane。
+注意：`load-bootstrap-fixtures` / `cutover-bootstrap-fixtures` 只適用於本地 compose rehearsal，因為它們會直連本地資料庫建立 disposable fixtures；真實環境必須由外部預先提供可用的測試 token、trade fixture 與備份目錄。
+真實環境所需的分階段輸入清單整理在 `ops/reports/cutover/real-env-required-inputs.md`。
+
 若要單獨重跑 K8s handoff 資產，可以直接執行：
 
 ```bash

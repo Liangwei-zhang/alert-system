@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Push / Devices - Stock-py Admin</title>
+  <link href="../../dist/css/tabler.css" rel="stylesheet" />
+  <link href="../../dist/css/tabler-vendors.css" rel="stylesheet" />
+  <script src="../../dist/js/tabler-theme.min.js"></script>
+  <style>
+    @import url("https://rsms.me/inter/inter.css");
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Sidebar -->
+    <aside class="sidebar sidebar-dark d-none d-md-block" style="position: fixed; left: 0; top: 0; bottom: 0; width: 260px; z-index: 1000;">
+      <div class="sidebar-brand p-3 text-center">
+        <a href="/pages/dashboard.html" class="text-white text-decoration-none">
+          <svg xmlns="http://www.w3.org/2000/svg" width="120" height="32" viewBox="0 0 232 68">
+            <path d="M64.6 16.2C63 9.9 58.1 5 51.8 3.4 40 1.5 28 1.5 16.2 3.4 9.9 5 5 9.9 3.4 16.2 1.5 28 1.5 40 3.4 51.8 5 58.1 9.9 63 16.2 64.6c11.8 1.9 23.8 1.9 35.6 0C58.1 63 63 58.1 64.6 51.8c1.9-11.8 1.9-23.8 0-35.6z" fill="#066fd1"/>
+            <path d="M105 40l5-5 5 5 10-10-5-5 5-5-10-10-5 5-5-5-10 10 5 5-5 5 10 10zm20-15l5-5-5-5-5 5z" fill="#fff"/>
+          </svg>
+        </a>
+        <div class="text-muted small mt-1">Admin Panel</div>
+      </div>
+      <ul class="nav nav-vertical py-2">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="users.html">Users</a></li>
+        <li class="nav-item"><a class="nav-link" href="subscriptions.html">Subscriptions</a></li>
+        <li class="nav-item"><a class="nav-link" href="tasks.html">Tasks</a></li>
+        <li class="nav-item"><a class="nav-link" href="audit.html">Audit Logs</a></li>
+        <li class="nav-item"><a class="nav-link active" href="push.html">Push / Devices</a></li>
+        <li class="nav-item mt-4"><a class="nav-link text-muted" href="/pages/dashboard.html">← Back to App</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main -->
+    <div class="page-main" style="margin-left: 260px;">
+      <header class="navbar navbar-expand-md d-print-none border-bottom">
+        <div class="container-xl">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="navbar-nav"><span class="text-muted">Push / Devices</span></div>
+        </div>
+      </header>
+
+      <div class="container-xl py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1 class="mb-0">Push Notifications & Devices</h1>
+          <button class="btn btn-primary" onclick="sendTestNotification()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            Send Test
+          </button>
+        </div>
+
+        <!-- Stats -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="card">
+              <div class="card-body text-center">
+                <div class="h3 mb-0" id="stat-total">-</div>
+                <div class="text-muted">Total Devices</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card">
+              <div class="card-body text-center">
+                <div class="h3 mb-0" id="stat-active">-</div>
+                <div class="text-muted">Active</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card">
+              <div class="card-body text-center">
+                <div class="h3 mb-0" id="stat-webpush">-</div>
+                <div class="text-muted">WebPush</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <input type="text" class="form-control" id="search-input" placeholder="Search by user ID or endpoint..." />
+              </div>
+              <div class="col-md-3">
+                <select class="form-select" id="platform-filter">
+                  <option value="">All Platforms</option>
+                  <option value="webpush">WebPush</option>
+                  <option value="ios">iOS</option>
+                  <option value="android">Android</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <select class="form-select" id="status-filter">
+                  <option value="">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Devices Table -->
+        <div class="card">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>User ID</th>
+                  <th>Platform</th>
+                  <th>Status</th>
+                  <th>Endpoint</th>
+                  <th>Last Used</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="devices-tbody">
+                <tr><td colspan="8" class="text-center py-4">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Send Notification Modal -->
+  <div class="modal fade" id="notifyModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Send Notification</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">User ID</label>
+            <input type="number" class="form-control" id="notify-user-id" placeholder="Enter user ID" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" class="form-control" id="notify-title" value="Test Notification" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Body</label>
+            <textarea class="form-control" id="notify-body" rows="3">This is a test notification from Stock-py Admin.</textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">URL (optional)</label>
+            <input type="text" class="form-control" id="notify-url" placeholder="/" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="sendNotification()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../dist/js/tabler.min.js"></script>
+  <script>
+    async function fetchJSON(url, opts = {}) {
+      try { const res = await fetch(url, opts); if (!res.ok) throw new Error(res.status); return await res.json(); } 
+      catch (e) { console.error(e); return null; }
+    }
+
+    // Mock device data (replace with actual API)
+    const mockDevices = [
+      { id: 1, user_id: 1, platform: 'webpush', is_active: true, endpoint: 'https://fcm.googleapis.com/...', last_used: '2026-04-04T10:30:00Z', created: '2026-04-01T08:00:00Z' },
+      { id: 2, user_id: 2, platform: 'webpush', is_active: true, endpoint: 'https://fcm.googleapis.com/...', last_used: '2026-04-04T09:15:00Z', created: '2026-03-28T14:30:00Z' },
+      { id: 3, user_id: 3, platform: 'ios', is_active: false, endpoint: 'apns://device-token-xxx', last_used: '2026-04-02T16:45:00Z', created: '2026-03-15T10:00:00Z' },
+      { id: 4, user_id: 1, platform: 'android', is_active: true, endpoint: 'fcm://token-xxx', last_used: '2026-04-04T11:00:00Z', created: '2026-03-20T12:00:00Z' },
+    ];
+
+    function renderDevices(devices) {
+      const tbody = document.getElementById('devices-tbody');
+      if (!devices.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4">No devices found</td></tr>';
+        return;
+      }
+      tbody.innerHTML = devices.map(d => `
+        <tr>
+          <td>${d.id}</td>
+          <td>${d.user_id}</td>
+          <td><span class="badge bg-${d.platform === 'webpush' ? 'info' : d.platform === 'ios' ? 'dark' : 'success'}">${d.platform}</span></td>
+          <td><span class="badge bg-${d.is_active ? 'success' : 'light'}">${d.is_active ? 'Active' : 'Inactive'}</span></td>
+          <td><code class="text-truncate" style="max-width: 200px; display: inline-block;" title="${d.endpoint}">${d.endpoint.substring(0, 30)}...</code></td>
+          <td>${d.last_used ? new Date(d.last_used).toLocaleDateString() : '-'}</td>
+          <td>${new Date(d.created).toLocaleDateString()}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary" onclick="showNotifyModal(${d.user_id})">Notify</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteDevice(${d.id})">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+
+      // Update stats
+      document.getElementById('stat-total').textContent = mockDevices.length;
+      document.getElementById('stat-active').textContent = mockDevices.filter(d => d.is_active).length;
+      document.getElementById('stat-webpush').textContent = mockDevices.filter(d => d.platform === 'webpush').length;
+    }
+
+    function loadDevices() {
+      renderDevices(mockDevices);
+    }
+
+    function showNotifyModal(userId) {
+      document.getElementById('notify-user-id').value = userId;
+      new bootstrap.Modal(document.getElementById('notifyModal')).show();
+    }
+
+    async function sendNotification() {
+      const userId = document.getElementById('notify-user-id').value;
+      const title = document.getElementById('notify-title').value;
+      const body = document.getElementById('notify-body').value;
+      const url = document.getElementById('notify-url').value;
+
+      alert('Notification sent to user ' + userId + ': ' + title);
+      bootstrap.Modal.getInstance(document.getElementById('notifyModal')).hide();
+    }
+
+    async function sendTestNotification() {
+      const res = await fetchJSON('/api/webpush/test', { method: 'POST' });
+      alert(res?.status === 'ok' ? 'Test notification sent!' : 'Failed to send notification');
+    }
+
+    async function deleteDevice(id) {
+      if (!confirm('Delete this device?')) return;
+      alert('Device deleted (mock)');
+      loadDevices();
+    }
+
+    loadDevices();
+  </script>
+</body>
+</html>

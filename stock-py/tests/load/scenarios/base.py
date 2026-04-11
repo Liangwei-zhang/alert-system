@@ -66,6 +66,9 @@ class ApiUser(HttpUser):
                 response.failure(
                     f"unexpected status {response.status_code}, expected {tuple(ok_statuses)}: {response.text[:300]}"
                 )
+            else:
+                response.success()
+            return response
 
     def get_json(
         self,
@@ -75,8 +78,8 @@ class ApiUser(HttpUser):
         ok_statuses: Sequence[int] = (200,),
         headers: Mapping[str, str] | None = None,
         params: Mapping[str, Any] | None = None,
-    ) -> None:
-        self._request(
+    ):
+        return self._request(
             "get",
             path,
             name=name,
@@ -94,8 +97,8 @@ class ApiUser(HttpUser):
         headers: Mapping[str, str] | None = None,
         params: Mapping[str, Any] | None = None,
         json: Any = None,
-    ) -> None:
-        self._request(
+    ):
+        return self._request(
             "post",
             path,
             name=name,

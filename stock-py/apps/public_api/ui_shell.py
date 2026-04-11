@@ -12,6 +12,9 @@ _PAGE_TEMPLATE = """<!DOCTYPE html>
     <meta charset=\"UTF-8\">
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
     <title>__TITLE__</title>
+    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">
+    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>
+    <link href=\"https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap\" rel=\"stylesheet\">
     <style>
         :root {
             color-scheme: light;
@@ -67,7 +70,7 @@ _PAGE_TEMPLATE = """<!DOCTYPE html>
             gap: 16px;
             align-items: center;
             margin-bottom: 20px;
-            padding: 18px 22px;
+            padding: 24px 28px;
             border-radius: var(--radius-xl);
             background: rgba(255, 253, 248, 0.8);
             border: 1px solid rgba(24, 35, 33, 0.08);
@@ -488,6 +491,994 @@ _PAGE_TEMPLATE = """<!DOCTYPE html>
                 justify-content: center;
             }
         }
+
+        :root {
+            --bg: #f6f1e8;
+            --panel: rgba(255, 252, 247, 0.84);
+            --panel-strong: rgba(255, 255, 255, 0.94);
+            --ink: #182623;
+            --muted: #62716d;
+            --line: rgba(24, 38, 35, 0.12);
+            --line-strong: rgba(24, 38, 35, 0.22);
+            --accent: #0f7a68;
+            --accent-strong: #0a5f52;
+            --accent-soft: rgba(15, 122, 104, 0.14);
+            --warm: #cc8e47;
+            --danger: #a4463b;
+            --danger-soft: rgba(164, 70, 59, 0.12);
+            --success-soft: rgba(15, 122, 104, 0.12);
+            --shadow: 0 26px 60px rgba(24, 38, 35, 0.10);
+            --shadow-soft: 0 14px 30px rgba(24, 38, 35, 0.07);
+            --radius-xl: 30px;
+            --radius-lg: 24px;
+            --radius-md: 18px;
+            --radius-sm: 14px;
+        }
+
+        body[data-surface="platform"] {
+            --accent: #1f6ea9;
+            --accent-strong: #174f7b;
+            --accent-soft: rgba(31, 110, 169, 0.14);
+            --warm: #d4a14e;
+        }
+
+        body[data-surface="admin"] {
+            --accent: #b15d40;
+            --accent-strong: #8e4630;
+            --accent-soft: rgba(177, 93, 64, 0.14);
+            --warm: #b7833a;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            background:
+                radial-gradient(circle at top left, rgba(15, 122, 104, 0.12), transparent 28%),
+                radial-gradient(circle at top right, rgba(204, 142, 71, 0.16), transparent 32%),
+                linear-gradient(180deg, #fcfaf5 0%, var(--bg) 100%);
+        }
+
+        body {
+            position: relative;
+            overflow-x: hidden;
+            font-family: "Space Grotesk", "Segoe UI", sans-serif;
+            color: var(--ink);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 12% 14%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 24%),
+                radial-gradient(circle at 88% 10%, rgba(204, 142, 71, 0.18), transparent 20%),
+                radial-gradient(circle at 82% 78%, color-mix(in srgb, var(--accent) 10%, white), transparent 24%);
+            opacity: 0.9;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(24, 38, 35, 0.028) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(24, 38, 35, 0.028) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent 88%);
+        }
+
+        .page-shell {
+            position: relative;
+            z-index: 1;
+            max-width: 1380px;
+            padding: 24px 24px 64px;
+        }
+
+        .masthead {
+            position: sticky;
+            top: 18px;
+            z-index: 20;
+            margin-bottom: 24px;
+            padding: 18px 20px;
+            border-radius: 26px;
+            background: rgba(255, 252, 247, 0.68);
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            box-shadow: var(--shadow-soft);
+            backdrop-filter: blur(20px) saturate(1.08);
+        }
+
+        .brand-mark {
+            width: 52px;
+            height: 52px;
+            border-radius: 18px;
+            background:
+                linear-gradient(145deg, var(--accent) 0%, var(--accent-strong) 60%, rgba(20, 34, 31, 0.96) 100%);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.24),
+                0 14px 32px color-mix(in srgb, var(--accent) 28%, transparent);
+            font-family: "IBM Plex Mono", monospace;
+            font-size: 1rem;
+        }
+
+        .brand-copy h1,
+        .panel h2,
+        .hero-copy h2,
+        .hero-aside h3,
+        .panel h3 {
+            font-family: "Fraunces", Georgia, serif;
+        }
+
+        .brand-copy h1 {
+            font-size: 1.45rem;
+            letter-spacing: -0.04em;
+            line-height: 1;
+        }
+
+        .brand-copy p {
+            margin-top: 6px;
+            max-width: 34rem;
+            color: var(--muted);
+        }
+
+        .nav-row {
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .nav-chip {
+            min-height: 42px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.62);
+            border: 1px solid rgba(24, 38, 35, 0.08);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+        }
+
+        .nav-chip:hover {
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 12px 24px rgba(24, 38, 35, 0.08);
+        }
+
+        .nav-chip.active {
+            background: linear-gradient(135deg, var(--ink) 0%, rgba(24, 38, 35, 0.92) 100%);
+            color: #fffaf2;
+            box-shadow: 0 16px 30px rgba(24, 38, 35, 0.16);
+        }
+
+        .hero {
+            gap: 20px;
+            margin-bottom: 22px;
+            align-items: stretch;
+        }
+
+        .hero-card,
+        .hero-aside,
+        .panel {
+            border: 1px solid rgba(255, 255, 255, 0.42);
+            border-radius: var(--radius-xl);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.90) 0%, rgba(255, 252, 247, 0.70) 100%);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(20px) saturate(1.04);
+        }
+
+        .hero-card {
+            min-height: 330px;
+            padding: 34px;
+        }
+
+        .hero-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), rgba(255, 255, 255, 0));
+        }
+
+        .hero-card::after {
+            inset: auto -12% -30% 40%;
+            height: 240px;
+            background:
+                radial-gradient(circle, color-mix(in srgb, var(--accent) 16%, transparent), transparent 66%),
+                radial-gradient(circle at 68% 40%, rgba(204, 142, 71, 0.18), transparent 50%);
+        }
+
+        .hero-kicker {
+            padding: 8px 12px;
+            border: 1px solid rgba(15, 122, 104, 0.14);
+            background: var(--accent-soft);
+            color: var(--accent-strong);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+        }
+
+        .hero-copy h2 {
+            margin: 18px 0 12px;
+            font-size: clamp(2.4rem, 5vw, 4.4rem);
+            letter-spacing: -0.05em;
+            line-height: 0.96;
+            max-width: 11ch;
+        }
+
+        .hero-copy p {
+            max-width: 62ch;
+            color: var(--muted);
+            font-size: 1rem;
+        }
+
+        .hero-grid {
+            gap: 14px;
+            margin-top: 26px;
+        }
+
+        .hero-stat {
+            position: relative;
+            overflow: hidden;
+            padding: 16px 16px 18px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(248, 243, 235, 0.88) 100%);
+            border: 1px solid rgba(24, 38, 35, 0.08);
+        }
+
+        .hero-stat::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), rgba(255, 255, 255, 0));
+            opacity: 0.8;
+        }
+
+        .hero-stat strong {
+            font-family: "IBM Plex Mono", monospace;
+            font-size: 1.02rem;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-stat span {
+            margin-top: 8px;
+            line-height: 1.55;
+        }
+
+        .hero-aside {
+            padding: 28px 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-aside::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(204, 142, 71, 0.8), rgba(255, 255, 255, 0));
+        }
+
+        .hero-aside h3 {
+            margin-bottom: 14px;
+            font-size: 1.18rem;
+            letter-spacing: -0.03em;
+            text-transform: none;
+            color: var(--ink);
+        }
+
+        .hero-aside ul {
+            padding-left: 20px;
+            line-height: 1.75;
+        }
+
+        .hero-aside li + li {
+            margin-top: 8px;
+        }
+
+        .surface-grid {
+            gap: 20px;
+            align-items: start;
+        }
+
+        .surface-grid > .panel {
+            animation: shell-rise 440ms ease both;
+        }
+
+        .surface-grid > .panel:nth-child(1) { animation-delay: 30ms; }
+        .surface-grid > .panel:nth-child(2) { animation-delay: 80ms; }
+        .surface-grid > .panel:nth-child(3) { animation-delay: 130ms; }
+        .surface-grid > .panel:nth-child(4) { animation-delay: 180ms; }
+        .surface-grid > .panel:nth-child(5) { animation-delay: 230ms; }
+        .surface-grid > .panel:nth-child(6) { animation-delay: 280ms; }
+        .surface-grid > .panel:nth-child(7) { animation-delay: 330ms; }
+        .surface-grid > .panel:nth-child(8) { animation-delay: 380ms; }
+
+        .panel {
+            position: relative;
+            overflow: hidden;
+            padding: 24px;
+            border-radius: 28px;
+        }
+
+        .panel::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), rgba(255, 255, 255, 0));
+        }
+
+        .panel::after {
+            content: "";
+            position: absolute;
+            inset: auto -10% -28% auto;
+            width: 180px;
+            height: 180px;
+            border-radius: 999px;
+            background: radial-gradient(circle, color-mix(in srgb, var(--accent) 8%, transparent), transparent 68%);
+            pointer-events: none;
+        }
+
+        .panel.wide {
+            grid-column: span 12;
+        }
+
+        .panel-header {
+            margin-bottom: 16px;
+            gap: 14px;
+            align-items: flex-start;
+        }
+
+        .panel-header h2 {
+            font-size: 1.58rem;
+            letter-spacing: -0.04em;
+            line-height: 1.02;
+        }
+
+        .pill {
+            padding: 7px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            background: var(--accent-soft);
+            color: var(--accent-strong);
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .panel-copy,
+        .panel-note,
+        .helper,
+        .token-note {
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .panel-note code,
+        .panel-copy code,
+        .helper code,
+        .hero-aside code {
+            padding: 2px 6px;
+            border-radius: 8px;
+            background: rgba(24, 38, 35, 0.06);
+            font-family: "IBM Plex Mono", monospace;
+            font-size: 0.84em;
+        }
+
+        .field-grid {
+            gap: 14px;
+            margin: 16px 0;
+        }
+
+        label {
+            gap: 8px;
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        input,
+        textarea,
+        select {
+            border: 1px solid rgba(24, 38, 35, 0.10);
+            border-radius: 16px;
+            padding: 13px 14px;
+            background: rgba(255, 255, 255, 0.74);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48);
+            color: var(--ink);
+            font-family: "Space Grotesk", "Segoe UI", sans-serif;
+            transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+        }
+
+        textarea {
+            min-height: 128px;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: color-mix(in srgb, var(--accent) 72%, white);
+            box-shadow: 0 0 0 4px var(--accent-soft);
+            background: rgba(255, 255, 255, 0.96);
+        }
+
+        .inline-check {
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.64);
+            border: 1px solid rgba(24, 38, 35, 0.08);
+        }
+
+        .button-row {
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        button {
+            min-height: 44px;
+            padding: 11px 18px;
+            border-radius: 999px;
+            font-family: "Space Grotesk", "Segoe UI", sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+            box-shadow: 0 16px 26px color-mix(in srgb, var(--accent) 26%, transparent);
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 92%, white), var(--accent-strong));
+        }
+
+        button.secondary {
+            background: rgba(24, 38, 35, 0.08);
+            color: var(--ink);
+            border: 1px solid rgba(24, 38, 35, 0.10);
+            box-shadow: none;
+        }
+
+        button.ghost {
+            background: rgba(255, 255, 255, 0.62);
+            color: var(--muted);
+            border: 1px solid rgba(24, 38, 35, 0.12);
+            box-shadow: none;
+        }
+
+        .status {
+            margin-top: 14px;
+            min-height: 0;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(24, 38, 35, 0.05);
+            border: 1px solid rgba(24, 38, 35, 0.08);
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .status[data-tone="success"] {
+            background: var(--success-soft);
+            border-color: rgba(15, 122, 104, 0.16);
+            color: var(--accent-strong);
+        }
+
+        .status[data-tone="error"] {
+            background: var(--danger-soft);
+            border-color: rgba(164, 70, 59, 0.18);
+            color: var(--danger);
+        }
+
+        .json-output {
+            margin-top: 16px;
+            min-height: 180px;
+            padding: 16px 18px;
+            border-radius: 20px;
+            background: linear-gradient(180deg, #10201d 0%, #172d29 100%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: #e9f4f0;
+            font-family: "IBM Plex Mono", Consolas, monospace;
+            font-size: 0.84rem;
+            line-height: 1.65;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .table-wrap {
+            margin-top: 16px;
+            border-radius: 22px;
+            border: 1px solid rgba(24, 38, 35, 0.08);
+            background: rgba(255, 255, 255, 0.74);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.44);
+        }
+
+        table {
+            min-width: 620px;
+        }
+
+        th,
+        td {
+            padding: 13px 16px;
+            border-bottom: 1px solid rgba(24, 38, 35, 0.07);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: rgba(24, 38, 35, 0.04);
+            color: var(--muted);
+            font-family: "IBM Plex Mono", monospace;
+            font-size: 0.73rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        tbody tr:hover {
+            background: rgba(15, 122, 104, 0.04);
+        }
+
+        .empty-state {
+            margin: 0;
+            padding: 18px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.62);
+            border: 1px dashed rgba(24, 38, 35, 0.14);
+            color: var(--muted);
+        }
+
+        .panel[id] {
+            scroll-margin-top: 110px;
+        }
+
+        .section-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .section-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.66);
+            border: 1px solid rgba(24, 38, 35, 0.08);
+            color: var(--ink);
+            font-size: 0.88rem;
+            font-weight: 700;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+            transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+        }
+
+        .section-link:hover {
+            transform: translateY(-1px);
+            border-color: color-mix(in srgb, var(--accent) 22%, white);
+            background: rgba(255, 255, 255, 0.92);
+        }
+
+        .journey-strip,
+        .ops-grid {
+            display: grid;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .journey-strip {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .ops-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .command-strip {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .journey-step,
+        .ops-card,
+        .command-card,
+        .subpanel {
+            position: relative;
+            overflow: hidden;
+            padding: 16px 18px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.68);
+            border: 1px solid rgba(24, 38, 35, 0.08);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.46);
+        }
+
+        .journey-step::before,
+        .ops-card::before,
+        .command-card::before,
+        .subpanel::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), rgba(255, 255, 255, 0));
+            opacity: 0.8;
+        }
+
+        .journey-step small,
+        .ops-card small,
+        .command-card small {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--accent-strong);
+            font-family: "IBM Plex Mono", monospace;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .journey-step strong,
+        .ops-card strong,
+        .command-card strong,
+        .subpanel h3,
+        .phone-shell h3 {
+            display: block;
+            margin: 0;
+            color: var(--ink);
+            font-family: "Fraunces", Georgia, serif;
+            font-size: 1.08rem;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+        }
+
+        .journey-step span,
+        .ops-card span,
+        .command-card span,
+        .subpanel p {
+            display: block;
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.65;
+        }
+
+        .split-shell {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .stack-flow {
+            display: grid;
+            gap: 14px;
+        }
+
+        .micro-list {
+            margin: 14px 0 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 10px;
+        }
+
+        .micro-list li {
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.58);
+            border: 1px solid rgba(24, 38, 35, 0.08);
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .phone-shell {
+            position: relative;
+            overflow: hidden;
+            padding: 20px;
+            border-radius: 28px;
+            background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 76%, #18302b) 0%, #10201d 100%);
+            color: #eef6f3;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 18px 40px color-mix(in srgb, var(--accent) 24%, transparent);
+        }
+
+        .phone-shell::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 24%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 40%);
+            pointer-events: none;
+        }
+
+        .phone-shell h3,
+        .phone-shell strong {
+            color: #f7fbf9;
+        }
+
+        .phone-shell p {
+            margin: 8px 0 0;
+            color: rgba(238, 246, 243, 0.76);
+            line-height: 1.7;
+        }
+
+        .phone-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 14px 0 18px;
+        }
+
+        .phone-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            font-size: 0.8rem;
+            color: #eef6f3;
+        }
+
+        .phone-shell .table-wrap {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.14);
+            box-shadow: none;
+        }
+
+        .phone-shell .empty-state {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.16);
+            color: rgba(238, 246, 243, 0.82);
+        }
+
+        .phone-shell .status {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.12);
+            color: rgba(238, 246, 243, 0.82);
+        }
+
+        .panel.span-4 {
+            grid-column: span 4;
+        }
+
+        .panel.span-5 {
+            grid-column: span 5;
+        }
+
+        .panel.span-7 {
+            grid-column: span 7;
+        }
+
+        .panel.span-8 {
+            grid-column: span 8;
+        }
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        body[data-surface="app"] .page-shell {
+            max-width: 780px;
+            padding-bottom: 92px;
+        }
+
+        body[data-surface="app"] .hero {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        body[data-surface="app"] .hero-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        body[data-surface="app"] .surface-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        body[data-surface="app"] .panel {
+            grid-column: span 12;
+        }
+
+        body[data-surface="app"] .field-grid,
+        body[data-surface="app"] .split-shell,
+        body[data-surface="app"] .journey-strip {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        body[data-surface="app"] .button-row {
+            align-items: stretch;
+        }
+
+        body[data-surface="app"] .button-row button {
+            flex: 1 1 100%;
+        }
+
+        body[data-surface="platform"] .page-shell {
+            max-width: 1600px;
+        }
+
+        body[data-surface="platform"] .surface-grid {
+            gap: 14px;
+        }
+
+        body[data-surface="platform"] .panel {
+            padding: 20px;
+            border-radius: 24px;
+        }
+
+        body[data-surface="platform"] .panel-header h2 {
+            font-size: 1.3rem;
+        }
+
+        body[data-surface="platform"] label {
+            font-size: 0.72rem;
+        }
+
+        body[data-surface="platform"] .field-grid:not(.single) {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        body[data-surface="platform"] input,
+        body[data-surface="platform"] textarea,
+        body[data-surface="platform"] select {
+            padding: 10px 12px;
+            border-radius: 14px;
+        }
+
+        body[data-surface="platform"] textarea {
+            min-height: 104px;
+        }
+
+        body[data-surface="platform"] button {
+            min-height: 40px;
+            padding: 9px 14px;
+            font-size: 0.88rem;
+        }
+
+        body[data-surface="platform"] .json-output {
+            min-height: 150px;
+            max-height: 360px;
+        }
+
+        body[data-surface="admin"] .page-shell {
+            max-width: 1540px;
+        }
+
+        body[data-surface="admin"] .surface-grid {
+            gap: 16px;
+        }
+
+        body[data-surface="admin"] .panel {
+            padding: 21px;
+            border-radius: 24px;
+        }
+
+        body[data-surface="admin"] .panel-header h2 {
+            font-size: 1.34rem;
+        }
+
+        body[data-surface="admin"] label {
+            font-size: 0.72rem;
+        }
+
+        body[data-surface="admin"] .field-grid:not(.single) {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        body[data-surface="admin"] input,
+        body[data-surface="admin"] textarea,
+        body[data-surface="admin"] select {
+            padding: 10px 12px;
+            border-radius: 14px;
+        }
+
+        body[data-surface="admin"] button {
+            min-height: 40px;
+            padding: 9px 14px;
+            font-size: 0.88rem;
+        }
+
+        body[data-surface="admin"] .json-output {
+            min-height: 150px;
+            max-height: 360px;
+        }
+
+        @keyframes shell-rise {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .masthead {
+                position: static;
+            }
+
+            .hero-copy h2 {
+                max-width: none;
+            }
+
+            .ops-grid,
+            .journey-strip,
+            .command-strip,
+            .split-shell {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .panel.span-4,
+            .panel.span-5,
+            .panel.span-7,
+            .panel.span-8 {
+                grid-column: span 12;
+            }
+
+            body[data-surface="platform"] .field-grid:not(.single),
+            body[data-surface="admin"] .field-grid:not(.single) {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 720px) {
+            .page-shell {
+                padding: 16px 14px 40px;
+            }
+
+            .masthead,
+            .hero-card,
+            .hero-aside,
+            .panel {
+                border-radius: 22px;
+            }
+
+            .hero-card,
+            .hero-aside,
+            .panel {
+                padding: 18px;
+            }
+
+            .hero-copy h2 {
+                font-size: clamp(2rem, 10vw, 3rem);
+            }
+
+            .hero-grid,
+            .ops-grid,
+            .journey-strip,
+            .command-strip,
+            .split-shell,
+            .field-grid,
+            body[data-surface="platform"] .field-grid:not(.single),
+            body[data-surface="admin"] .field-grid:not(.single) {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .section-link,
+            .button-row button {
+                width: 100%;
+            }
+
+            .table-wrap {
+                border-radius: 18px;
+            }
+        }
     </style>
 </head>
 <body data-surface=\"__SURFACE__\">
@@ -497,7 +1488,7 @@ _PAGE_TEMPLATE = """<!DOCTYPE html>
                 <div class=\"brand-mark\">SP</div>
                 <div class=\"brand-copy\">
                     <h1>__BRAND__</h1>
-                    <p>订阅端、桌面端与管理端的统一入口。</p>
+                    <p>__BRAND_COPY__</p>
                 </div>
             </div>
             <nav class=\"nav-row\">__NAV__</nav>
@@ -506,34 +1497,16 @@ _PAGE_TEMPLATE = """<!DOCTYPE html>
         <section class=\"hero\">
             <div class=\"hero-card\">
                 <div class=\"hero-copy\">
-                    <span class=\"hero-kicker\">股票订阅系统三端入口</span>
+                    <span class=\"hero-kicker\">__HERO_KICKER__</span>
                     <h2>__HERO_TITLE__</h2>
                     <p>__HERO_COPY__</p>
                 </div>
-                <div class=\"hero-grid\">
-                    <div class=\"hero-stat\">
-                        <strong>/app</strong>
-                        <span>邮箱登录、本地草稿、订阅股票、持仓与一键开始订阅。</span>
-                    </div>
-                    <div class=\"hero-stat\">
-                        <strong>/platform</strong>
-                        <span>桌面监控核心，承载研究、信号判断与交易查询。</span>
-                    </div>
-                    <div class=\"hero-stat\">
-                        <strong>/admin</strong>
-                        <span>内部运营与风控控制面，负责用户、任务与验收。</span>
-                    </div>
-                </div>
+                <div class="hero-grid">__HERO_STATS__</div>
             </div>
 
             <aside class=\"hero-aside\">
-                <h3>产品说明</h3>
-                <ul>
-                    <li>`/app` 以离线优先为目标，大部分录入先保存在当前浏览器。</li>
-                    <li>`/platform` 是监控与信号核心，用于处理观察列表、策略与预警分发。</li>
-                    <li>`/admin` 是内部控制面，用于运营、风控、审计与任务回补。</li>
-                    <li>三端页面都由 Python 直接提供，不依赖额外前端构建流程。</li>
-                </ul>
+                <h3>__HERO_ASIDE_TITLE__</h3>
+                <ul>__HERO_ASIDE_ITEMS__</ul>
             </aside>
         </section>
 
@@ -583,7 +1556,17 @@ const stockPyUi = (() => {
 
     function fallbackBaseUrl(kind) {
         const configured = kind === "admin" ? pageConfig.adminApiBaseUrl : pageConfig.publicApiBaseUrl;
-        return normalizeBaseUrl(configured) || window.location.origin;
+        const normalized = normalizeBaseUrl(configured);
+        if (normalized) {
+            return normalized;
+        }
+        if (kind === "admin") {
+            const port = window.location.port;
+            if (port === "7070" || port === "8000") {
+                return `${window.location.protocol}//${window.location.hostname}:8001`;
+            }
+        }
+        return window.location.origin;
     }
 
     function getBaseUrl(kind) {
@@ -916,6 +1899,7 @@ const stockPyUi = (() => {
                 );
                 renderSessionSnapshot("session-output");
                 renderSessionSnapshot("platform-session-output");
+                renderSessionSnapshot("platform-admin-session-output");
                 renderSessionSnapshot("admin-session-output");
             });
         }
@@ -1846,6 +2830,7 @@ window.addEventListener("DOMContentLoaded", () => {
             path,
             title,
             auth: options.auth || "none",
+            base: options.base || "public",
             notes: options.notes || "",
             pathParams: options.pathParams || null,
             query: options.query || null,
@@ -2070,6 +3055,85 @@ window.addEventListener("DOMContentLoaded", () => {
                 actual_shares: 10,
                 actual_price: 150
             }
+        }),
+        endpoint("GET", "/v1/admin/analytics/overview", "读取策略总览", {
+            base: "admin",
+            auth: "admin-bearer",
+            notes: "桌面端策略实验总览。",
+            query: {
+                window_hours: 24
+            }
+        }),
+        endpoint("GET", "/v1/admin/analytics/strategy-health", "读取策略健康度", {
+            base: "admin",
+            auth: "admin-bearer",
+            notes: "桌面端直接查看策略健康度。",
+            query: {
+                window_hours: 24
+            }
+        }),
+        endpoint("GET", "/v1/admin/signal-stats/summary", "读取信号摘要", {
+            base: "admin",
+            auth: "admin-bearer",
+            notes: "桌面端快速查看信号生成状态。",
+            query: {
+                window_hours: 24
+            }
+        }),
+        endpoint("GET", "/v1/admin/scanner/observability", "读取扫描器可观测性", {
+            base: "admin",
+            auth: "admin-bearer",
+            notes: "平台端直接查看 scanner 运行概览。",
+            query: {
+                status: "",
+                symbol: "",
+                decision: "",
+                limit: 25,
+                decision_limit: 25
+            }
+        }),
+        endpoint("GET", "/v1/admin/scanner/live-decision", "读取扫描器实时决策", {
+            base: "admin",
+            auth: "admin-bearer",
+            notes: "从平台端下钻到最近实时决策。",
+            query: {
+                symbol: "",
+                decision: "",
+                suppressed: "",
+                limit: 25
+            }
+        }),
+        endpoint("GET", "/v1/admin/backtests/runs", "读取回测运行列表", {
+            base: "admin",
+            auth: "admin-bearer",
+            notes: "桌面端实验工作台的回测运行列表。",
+            query: {
+                status: "",
+                strategy_name: "",
+                timeframe: "1d",
+                symbol: "",
+                limit: 25
+            }
+        }),
+        endpoint("GET", "/v1/admin/backtests/rankings/latest", "读取最新回测排名", {
+            base: "admin",
+            auth: "admin-bearer",
+            notes: "直接在桌面端查看策略排名。",
+            query: {
+                timeframe: "1d",
+                limit: 20
+            }
+        }),
+        endpoint("POST", "/v1/admin/backtests/runs", "触发回测排名刷新", {
+            base: "admin",
+            auth: "admin-bearer",
+            notes: "从平台端直接触发新的回测刷新任务。",
+            body: {
+                symbols: ["AAPL", "MSFT"],
+                strategy_names: ["momentum"],
+                windows: [30, 90, 180],
+                timeframe: "1d"
+            }
         })
     ];
 
@@ -2078,6 +3142,9 @@ window.addEventListener("DOMContentLoaded", () => {
     function authLabel(auth) {
         if (auth === "bearer") {
             return "Bearer";
+        }
+        if (auth === "admin-bearer") {
+            return "Admin Bearer";
         }
         if (auth === "public-token") {
             return "公开 Token";
@@ -2090,10 +3157,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
     function scopeLabel(path) {
         const segments = String(path || "").split("/").filter(Boolean);
-        if (segments.length < 2) {
-            return "misc";
+        if (segments[0] === "v1" && segments[1] === "admin" && segments[2]) {
+            return segments[2];
         }
-        return segments[1];
+        if (segments[0] === "v1" && segments[1]) {
+            return segments[1];
+        }
+        return segments[0] || "misc";
     }
 
     function parseJsonInput(id, label) {
@@ -2202,6 +3272,8 @@ window.addEventListener("DOMContentLoaded", () => {
         if (tokenInput && !tokenInput.value) {
             if (spec.auth === "bearer") {
                 tokenInput.placeholder = "留空则自动使用共享会话 access token";
+            } else if (spec.auth === "admin-bearer") {
+                tokenInput.placeholder = "留空则自动使用已保存的管理 Bearer Token";
             } else if (spec.auth === "optional") {
                 tokenInput.placeholder = "可选：只在需要时填写 Bearer Token";
             } else {
@@ -2361,9 +3433,446 @@ window.addEventListener("DOMContentLoaded", () => {
         return null;
     }
 
+    function parseCommaSeparated(raw) {
+        return String(raw || "")
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean);
+    }
+
+    function parsePositiveIntegers(raw) {
+        return [...new Set(
+            parseCommaSeparated(raw)
+                .map((value) => Number(value))
+                .filter((value) => Number.isInteger(value) && value > 0)
+        )];
+    }
+
+    function readPlatformWindowHours() {
+        return ui.readNumber("platform-strategy-window-hours", 24);
+    }
+
+    function syncPlatformAdminFields() {
+        const storedAdmin = ui.getAdminStoredUser();
+        const email = storedAdmin && storedAdmin.email ? String(storedAdmin.email) : "";
+        const authEmail = ui.byId("platform-admin-auth-email");
+        const verifyEmail = ui.byId("platform-admin-verify-email");
+        const tokenInput = ui.byId("platform-admin-token");
+        if (authEmail && !authEmail.value && email) {
+            authEmail.value = email;
+        }
+        if (verifyEmail && !verifyEmail.value && email) {
+            verifyEmail.value = email;
+        }
+        if (tokenInput) {
+            tokenInput.value = ui.getAdminToken();
+        }
+    }
+
+    function setPlatformHtml(id, html) {
+        const node = ui.byId(id);
+        if (node) {
+            node.innerHTML = html;
+        }
+    }
+
+    function formatMetric(value, digits = 0) {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) {
+            return "--";
+        }
+        return new Intl.NumberFormat("zh-CN", {
+            minimumFractionDigits: digits,
+            maximumFractionDigits: digits,
+        }).format(numeric);
+    }
+
+    function formatPercent(value, digits = 1) {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) {
+            return "--";
+        }
+        return `${formatMetric(numeric, digits)}%`;
+    }
+
+    function formatDateTime(value) {
+        if (!value) {
+            return "--";
+        }
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+            return String(value);
+        }
+        return parsed.toLocaleString("zh-CN", { hour12: false });
+    }
+
+    function metricCard(label, value) {
+        return `
+            <div class="hero-stat">
+                <strong>${ui.escapeHtml(String(value))}</strong>
+                <span>${ui.escapeHtml(label)}</span>
+            </div>
+        `;
+    }
+
+    function renderStrategyView(kind, payload) {
+        if (!payload) {
+            return;
+        }
+        if (kind === "health") {
+            const strategies = Array.isArray(payload.strategies) ? payload.strategies : [];
+            const leader = strategies[0] || null;
+            const cards = [
+                metricCard("策略数量", formatMetric(strategies.length)),
+                metricCard("当前第一", leader ? leader.strategy_name : "--"),
+                metricCard("最高分", leader ? formatMetric(leader.score, 2) : "--"),
+                metricCard("刷新时间", formatDateTime(payload.refreshed_at)),
+            ].join("");
+            const rows = strategies.map((item) => `
+                <tr>
+                    <td>${ui.escapeHtml(String(item.rank ?? "--"))}</td>
+                    <td><strong>${ui.escapeHtml(item.strategy_name || "--")}</strong></td>
+                    <td>${ui.escapeHtml(item.timeframe || "--")}</td>
+                    <td>${ui.escapeHtml(formatMetric(item.score, 2))}</td>
+                    <td>${ui.escapeHtml(formatMetric(item.degradation, 2))}</td>
+                    <td>${ui.escapeHtml(formatMetric(item.symbols_covered || 0))}</td>
+                    <td>${ui.escapeHtml(formatMetric(item.signals_generated || 0))}</td>
+                    <td>${ui.escapeHtml(item.stable ? "稳定" : "待复核")}</td>
+                </tr>
+            `).join("");
+            setPlatformHtml(
+                "platform-strategy-view",
+                `
+                    <div class="hero-grid">${cards}</div>
+                    ${strategies.length ? `
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>排名</th>
+                                    <th>策略</th>
+                                    <th>周期</th>
+                                    <th>得分</th>
+                                    <th>退化</th>
+                                    <th>覆盖标的</th>
+                                    <th>信号数</th>
+                                    <th>状态</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    ` : '<div class="empty-state">当前窗口内还没有策略健康度记录。</div>'}
+                `
+            );
+            return;
+        }
+
+        if (kind === "signal-summary") {
+            const topSymbols = Array.isArray(payload.top_symbols) ? payload.top_symbols : [];
+            const cards = [
+                metricCard("信号总数", formatMetric(payload.total_signals || 0)),
+                metricCard("待触发", formatMetric(payload.pending_signals || 0)),
+                metricCard("平均置信度", formatPercent(payload.avg_confidence || 0, 1)),
+                metricCard("平均概率", formatPercent((payload.avg_probability || 0) * 100, 1)),
+            ].join("");
+            const rows = topSymbols.map((item) => `
+                <tr>
+                    <td><strong>${ui.escapeHtml(item.symbol || "--")}</strong></td>
+                    <td>${ui.escapeHtml(formatMetric(item.count || 0))}</td>
+                </tr>
+            `).join("");
+            setPlatformHtml(
+                "platform-strategy-view",
+                `
+                    <div class="hero-grid">${cards}</div>
+                    <div class="split-shell">
+                        <div class="table-wrap">
+                            <table>
+                                <tbody>
+                                    <tr><th>生成起点</th><td>${ui.escapeHtml(formatDateTime(payload.generated_after))}</td></tr>
+                                    <tr><th>买入信号</th><td>${ui.escapeHtml(formatMetric(payload.buy_signals || 0))}</td></tr>
+                                    <tr><th>卖出信号</th><td>${ui.escapeHtml(formatMetric(payload.sell_signals || 0))}</td></tr>
+                                    <tr><th>活跃 / 已触发</th><td>${ui.escapeHtml(`${formatMetric(payload.active_signals || 0)} / ${formatMetric(payload.triggered_signals || 0)}`)}</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="table-wrap">
+                            ${topSymbols.length ? `
+                                <table>
+                                    <thead><tr><th>热门标的</th><th>信号数</th></tr></thead>
+                                    <tbody>${rows}</tbody>
+                                </table>
+                            ` : '<div class="empty-state">当前窗口内没有热门标的统计。</div>'}
+                        </div>
+                    </div>
+                `
+            );
+            return;
+        }
+
+        if (kind === "overview") {
+            const cards = [
+                metricCard("生成信号", formatMetric(payload.generated_signals || 0)),
+                metricCard("扫描决策", formatMetric(payload.scanner_decisions || 0)),
+                metricCard("通知投递", formatMetric(payload.delivered_notifications || 0)),
+                metricCard("交易动作", formatMetric(payload.trade_actions || 0)),
+            ].join("");
+            setPlatformHtml(
+                "platform-strategy-view",
+                `
+                    <div class="hero-grid">${cards}</div>
+                    <table>
+                        <tbody>
+                            <tr><th>通知请求</th><td>${ui.escapeHtml(formatMetric(payload.notification_requests || 0))}</td></tr>
+                            <tr><th>已确认通知</th><td>${ui.escapeHtml(formatMetric(payload.acknowledged_notifications || 0))}</td></tr>
+                            <tr><th>启动订阅</th><td>${ui.escapeHtml(formatMetric(payload.subscriptions_started || 0))}</td></tr>
+                            <tr><th>TradingAgents 终端</th><td>${ui.escapeHtml(formatMetric(payload.tradingagents_terminals || 0))}</td></tr>
+                            <tr><th>最新事件时间</th><td>${ui.escapeHtml(formatDateTime(payload.latest_event_at))}</td></tr>
+                        </tbody>
+                    </table>
+                `
+            );
+            return;
+        }
+
+        if (kind === "backtest-rankings") {
+            const rankings = Array.isArray(payload.data) ? payload.data : [];
+            const leader = rankings[0] || null;
+            const rows = rankings.map((item) => {
+                const evidence = item.evidence && typeof item.evidence === "object" ? item.evidence : null;
+                const bestWindow = evidence && evidence.best_window_days ? `${evidence.best_window_days}d` : "--";
+                const stable = evidence && typeof evidence.stable === "boolean" ? (evidence.stable ? "稳定" : "波动") : "--";
+                return `
+                    <tr>
+                        <td>${ui.escapeHtml(String(item.rank ?? "--"))}</td>
+                        <td><strong>${ui.escapeHtml(item.strategy_name || "--")}</strong></td>
+                        <td>${ui.escapeHtml(item.timeframe || "--")}</td>
+                        <td>${ui.escapeHtml(formatMetric(item.score, 2))}</td>
+                        <td>${ui.escapeHtml(formatMetric(item.degradation, 2))}</td>
+                        <td>${ui.escapeHtml(formatMetric(item.symbols_covered || 0))}</td>
+                        <td>${ui.escapeHtml(bestWindow)}</td>
+                        <td>${ui.escapeHtml(stable)}</td>
+                    </tr>
+                `;
+            }).join("");
+            const cards = [
+                metricCard("排名数量", formatMetric(rankings.length)),
+                metricCard("第一策略", leader ? leader.strategy_name : "--"),
+                metricCard("最高分", leader ? formatMetric(leader.score, 2) : "--"),
+                metricCard("统计时间", formatDateTime(payload.as_of_date)),
+            ].join("");
+            setPlatformHtml(
+                "platform-strategy-view",
+                `
+                    <div class="hero-grid">${cards}</div>
+                    ${rankings.length ? `
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>排名</th>
+                                    <th>策略</th>
+                                    <th>周期</th>
+                                    <th>得分</th>
+                                    <th>退化</th>
+                                    <th>覆盖标的</th>
+                                    <th>最佳窗口</th>
+                                    <th>稳定性</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    ` : '<div class="empty-state">当前还没有回测排名。</div>'}
+                `
+            );
+        }
+    }
+
+    function renderScannerView(kind, payload) {
+        if (!payload) {
+            return;
+        }
+        if (kind === "observability") {
+            const summary = payload.summary || {};
+            const runs = Array.isArray(payload.runs) ? payload.runs : [];
+            const decisions = Array.isArray(payload.recent_decisions) ? payload.recent_decisions : [];
+            const runRows = runs.map((item) => `
+                <tr>
+                    <td>${ui.escapeHtml(String(item.id ?? "--"))}</td>
+                    <td>${ui.escapeHtml(String(item.bucket_id ?? "--"))}</td>
+                    <td>${ui.escapeHtml(item.status || "--")}</td>
+                    <td>${ui.escapeHtml(`${formatMetric(item.scanned_count || 0)} / ${formatMetric(item.emitted_count || 0)} / ${formatMetric(item.suppressed_count || 0)}`)}</td>
+                    <td>${ui.escapeHtml(item.duration_seconds == null ? "--" : `${formatMetric(item.duration_seconds, 3)}s`)}</td>
+                    <td>${ui.escapeHtml(formatDateTime(item.started_at))}</td>
+                </tr>
+            `).join("");
+            const decisionRows = decisions.map((item) => `
+                <tr>
+                    <td><strong>${ui.escapeHtml(item.symbol || "--")}</strong></td>
+                    <td>${ui.escapeHtml(item.decision || "--")}</td>
+                    <td>${ui.escapeHtml(item.signal_type || "--")}</td>
+                    <td>${ui.escapeHtml(item.score == null ? "--" : formatMetric(item.score, 1))}</td>
+                    <td>${ui.escapeHtml(item.reason || "--")}</td>
+                </tr>
+            `).join("");
+            setPlatformHtml(
+                "platform-scanner-view",
+                `
+                    <div class="hero-grid">
+                        ${metricCard("总运行", formatMetric(summary.total_runs || 0))}
+                        ${metricCard("已完成", formatMetric(summary.completed_runs || 0))}
+                        ${metricCard("总决策", formatMetric(summary.total_decisions || 0))}
+                        ${metricCard("已发出", formatMetric(summary.emitted_decisions || 0))}
+                    </div>
+                    <div class="split-shell">
+                        <div class="table-wrap">
+                            ${runs.length ? `
+                                <table>
+                                    <thead><tr><th>运行 ID</th><th>分桶</th><th>状态</th><th>扫描/发出/抑制</th><th>耗时</th><th>开始时间</th></tr></thead>
+                                    <tbody>${runRows}</tbody>
+                                </table>
+                            ` : '<div class="empty-state">当前筛选条件下没有 scanner 运行。</div>'}
+                        </div>
+                        <div class="table-wrap">
+                            ${decisions.length ? `
+                                <table>
+                                    <thead><tr><th>代码</th><th>决策</th><th>信号</th><th>分数</th><th>原因</th></tr></thead>
+                                    <tbody>${decisionRows}</tbody>
+                                </table>
+                            ` : '<div class="empty-state">当前筛选条件下没有最近决策。</div>'}
+                        </div>
+                    </div>
+                `
+            );
+            return;
+        }
+
+        if (kind === "live") {
+            const decisions = Array.isArray(payload.data) ? payload.data : [];
+            const rows = decisions.map((item) => `
+                <tr>
+                    <td>${ui.escapeHtml(String(item.id ?? "--"))}</td>
+                    <td><strong>${ui.escapeHtml(item.symbol || "--")}</strong></td>
+                    <td>${ui.escapeHtml(item.decision || "--")}</td>
+                    <td>${ui.escapeHtml(item.signal_type || "--")}</td>
+                    <td>${ui.escapeHtml(item.score == null ? "--" : formatMetric(item.score, 1))}</td>
+                    <td>${ui.escapeHtml(item.suppressed ? "是" : "否")}</td>
+                    <td>${ui.escapeHtml(item.reason || "--")}</td>
+                </tr>
+            `).join("");
+            setPlatformHtml(
+                "platform-scanner-view",
+                `
+                    <div class="hero-grid">
+                        ${metricCard("返回条数", formatMetric(decisions.length))}
+                        ${metricCard("总数", formatMetric(payload.total || 0))}
+                        ${metricCard("当前偏移", formatMetric(payload.offset || 0))}
+                        ${metricCard("更多结果", payload.has_more ? "是" : "否")}
+                    </div>
+                    ${decisions.length ? `
+                        <table>
+                            <thead><tr><th>ID</th><th>代码</th><th>决策</th><th>信号</th><th>分数</th><th>已抑制</th><th>原因</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    ` : '<div class="empty-state">当前筛选条件下没有实时决策。</div>'}
+                `
+            );
+        }
+    }
+
+    function renderBacktestView(kind, payload) {
+        if (!payload) {
+            return;
+        }
+        if (kind === "runs") {
+            const runs = Array.isArray(payload.data) ? payload.data : [];
+            const completed = runs.filter((item) => item.status === "completed").length;
+            const failed = runs.filter((item) => item.status === "failed").length;
+            const rows = runs.map((item) => {
+                const summary = item.summary && typeof item.summary === "object" ? item.summary : null;
+                const summaryText = summary
+                    ? [
+                        summary.ranking_count ? `${summary.ranking_count} 条排名` : null,
+                        summary.top_strategy ? `Top ${summary.top_strategy}` : null,
+                    ].filter(Boolean).join(" · ")
+                    : "--";
+                return `
+                    <tr>
+                        <td>${ui.escapeHtml(String(item.id ?? "--"))}</td>
+                        <td><strong>${ui.escapeHtml(item.strategy_name || "--")}</strong></td>
+                        <td>${ui.escapeHtml(item.symbol || "*")}</td>
+                        <td>${ui.escapeHtml(item.status || "--")}</td>
+                        <td>${ui.escapeHtml(`${item.timeframe || "--"} / ${formatMetric(item.window_days || 0)}d`)}</td>
+                        <td>${ui.escapeHtml(summaryText || "--")}</td>
+                        <td>${ui.escapeHtml(formatDateTime(item.started_at))}</td>
+                    </tr>
+                `;
+            }).join("");
+            setPlatformHtml(
+                "platform-backtests-view",
+                `
+                    <div class="hero-grid">
+                        ${metricCard("总运行", formatMetric(payload.total || runs.length))}
+                        ${metricCard("当前载入", formatMetric(runs.length))}
+                        ${metricCard("已完成", formatMetric(completed))}
+                        ${metricCard("失败", formatMetric(failed))}
+                    </div>
+                    ${runs.length ? `
+                        <table>
+                            <thead><tr><th>ID</th><th>策略</th><th>标的</th><th>状态</th><th>周期 / 窗口</th><th>摘要</th><th>开始时间</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    ` : '<div class="empty-state">当前筛选条件下没有回测运行。</div>'}
+                `
+            );
+            return;
+        }
+
+        if (kind === "refresh") {
+            const rankings = Array.isArray(payload.rankings) ? payload.rankings : [];
+            const rows = rankings.map((item) => `
+                <tr>
+                    <td>${ui.escapeHtml(String(item.rank ?? "--"))}</td>
+                    <td><strong>${ui.escapeHtml(item.strategy_name || "--")}</strong></td>
+                    <td>${ui.escapeHtml(item.timeframe || "--")}</td>
+                    <td>${ui.escapeHtml(formatMetric(item.score, 2))}</td>
+                    <td>${ui.escapeHtml(formatMetric(item.degradation, 2))}</td>
+                    <td>${ui.escapeHtml(formatMetric(item.symbols_covered || 0))}</td>
+                </tr>
+            `).join("");
+            setPlatformHtml(
+                "platform-backtests-view",
+                `
+                    <div class="hero-grid">
+                        ${metricCard("新运行 ID", formatMetric(payload.run_id || 0))}
+                        ${metricCard("实验名", payload.experiment_name || "--")}
+                        ${metricCard("排名数量", formatMetric(payload.ranking_count || rankings.length))}
+                        ${metricCard("代码版本", payload.code_version || "--")}
+                    </div>
+                    ${rankings.length ? `
+                        <table>
+                            <thead><tr><th>排名</th><th>策略</th><th>周期</th><th>得分</th><th>退化</th><th>覆盖标的</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    ` : '<div class="empty-state">回测刷新已触发，但当前返回里没有排名数据。</div>'}
+                `
+            );
+        }
+    }
+
+    function currentPlatformAdminToken() {
+        const inlineToken = ui.readValue("platform-admin-token");
+        return inlineToken || ui.requireAdminToken();
+    }
+
     async function requestProtected(method, path, options = {}) {
         return await ui.requestJson(method, ui.publicApi(path), {
             token: ui.requireAccessToken(),
+            body: options.body
+        });
+    }
+
+    async function requestStrategyAdmin(method, path, options = {}) {
+        return await ui.requestJson(method, ui.adminApi(path), {
+            token: currentPlatformAdminToken(),
             body: options.body
         });
     }
@@ -2372,6 +3881,19 @@ window.addEventListener("DOMContentLoaded", () => {
         ui.setStatus(statusId, "正在加载...");
         try {
             const payload = await requestProtected("GET", path);
+            ui.renderJson(outputId, payload);
+            ui.setStatus(statusId, "加载成功。", "success");
+            return payload;
+        } catch (error) {
+            ui.setStatus(statusId, error.message, "error");
+            return null;
+        }
+    }
+
+    async function loadStrategyAdminJson(path, outputId, statusId) {
+        ui.setStatus(statusId, "正在加载...");
+        try {
+            const payload = await requestStrategyAdmin("GET", path);
             ui.renderJson(outputId, payload);
             ui.setStatus(statusId, "加载成功。", "success");
             return payload;
@@ -2686,6 +4208,296 @@ window.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    syncPlatformAdminFields();
+
+    const platformAdminSendCodeForm = ui.byId("platform-admin-send-code-form");
+    if (platformAdminSendCodeForm) {
+        platformAdminSendCodeForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            ui.setStatus("platform-admin-token-status", "正在发送管理验证码...");
+            try {
+                const payload = await ui.requestJson("POST", ui.publicApi("/v1/admin-auth/send-code"), {
+                    body: { email: ui.readValue("platform-admin-auth-email") }
+                });
+                if (ui.byId("platform-admin-verify-email")) {
+                    ui.byId("platform-admin-verify-email").value = ui.readValue("platform-admin-auth-email");
+                }
+                ui.renderJson("platform-admin-session-output", payload);
+                ui.setStatus("platform-admin-token-status", payload.message || "管理验证码已发送。", "success");
+            } catch (error) {
+                ui.setStatus("platform-admin-token-status", error.message, "error");
+            }
+        });
+    }
+
+    const platformAdminVerifyForm = ui.byId("platform-admin-verify-form");
+    if (platformAdminVerifyForm) {
+        platformAdminVerifyForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            ui.setStatus("platform-admin-token-status", "正在验证管理验证码...");
+            try {
+                const payload = await ui.requestJson("POST", ui.publicApi("/v1/admin-auth/verify"), {
+                    body: {
+                        email: ui.readValue("platform-admin-verify-email"),
+                        code: ui.readValue("platform-admin-verify-code"),
+                        locale: ui.readValue("platform-admin-verify-locale"),
+                        timezone: ui.readValue("platform-admin-verify-timezone")
+                    }
+                });
+                ui.setAdminSession(payload);
+                syncPlatformAdminFields();
+                ui.renderSessionSnapshot("platform-admin-session-output");
+                ui.setStatus("platform-admin-token-status", "策略权限会话已保存。", "success");
+            } catch (error) {
+                ui.setStatus("platform-admin-token-status", error.message, "error");
+            }
+        });
+    }
+
+    const refreshPlatformAdminSessionButton = ui.byId("platform-refresh-admin-session");
+    if (refreshPlatformAdminSessionButton) {
+        refreshPlatformAdminSessionButton.addEventListener("click", async () => {
+            ui.setStatus("platform-admin-token-status", "正在刷新策略会话...");
+            try {
+                const refreshToken = ui.getAdminRefreshToken();
+                if (!refreshToken) {
+                    throw new Error("请先完成管理员验证码验证，或提供可用的刷新令牌。");
+                }
+                const payload = await ui.requestJson("POST", ui.publicApi("/v1/admin-auth/refresh"), {
+                    body: { refresh_token: refreshToken }
+                });
+                ui.setAdminSession(payload);
+                syncPlatformAdminFields();
+                ui.renderSessionSnapshot("platform-admin-session-output");
+                ui.setStatus("platform-admin-token-status", "策略权限会话已刷新。", "success");
+            } catch (error) {
+                ui.setStatus("platform-admin-token-status", error.message, "error");
+            }
+        });
+    }
+
+    const savePlatformAdminTokenButton = ui.byId("platform-save-admin-token");
+    if (savePlatformAdminTokenButton) {
+        savePlatformAdminTokenButton.addEventListener("click", () => {
+            ui.clearAdminSession();
+            const token = ui.setAdminToken(ui.readValue("platform-admin-token"));
+            ui.renderSessionSnapshot("platform-admin-session-output");
+            ui.setStatus(
+                "platform-admin-token-status",
+                token ? "策略权限令牌已保存。" : "已清空策略权限令牌。",
+                token ? "success" : "info"
+            );
+        });
+    }
+
+    const showPlatformAdminSessionButton = ui.byId("platform-show-admin-session");
+    if (showPlatformAdminSessionButton) {
+        showPlatformAdminSessionButton.addEventListener("click", () => {
+            ui.renderSessionSnapshot("platform-admin-session-output");
+            ui.setStatus("platform-admin-token-status", "已显示当前策略权限状态。", "success");
+        });
+    }
+
+    const clearPlatformAdminTokenButton = ui.byId("platform-clear-admin-token");
+    if (clearPlatformAdminTokenButton) {
+        clearPlatformAdminTokenButton.addEventListener("click", () => {
+            ui.clearAdminSession();
+            syncPlatformAdminFields();
+            ui.renderSessionSnapshot("platform-admin-session-output");
+            ui.setStatus("platform-admin-token-status", "已清除策略权限会话。", "success");
+        });
+    }
+
+    const loadPlatformStrategyHealthButton = ui.byId("platform-load-strategy-health");
+    if (loadPlatformStrategyHealthButton) {
+        loadPlatformStrategyHealthButton.addEventListener("click", async () => {
+            const payload = await loadStrategyAdminJson(
+                `/v1/admin/analytics/strategy-health?window_hours=${readPlatformWindowHours()}`,
+                "platform-strategy-output",
+                "platform-strategy-status"
+            );
+            if (payload) {
+                renderStrategyView("health", payload);
+            } else {
+                setPlatformHtml("platform-strategy-view", '<div class="empty-state">策略健康度加载失败，请确认高权限策略凭证有效后重试。</div>');
+            }
+        });
+    }
+
+    const loadPlatformSignalSummaryButton = ui.byId("platform-load-signal-summary");
+    if (loadPlatformSignalSummaryButton) {
+        loadPlatformSignalSummaryButton.addEventListener("click", async () => {
+            const payload = await loadStrategyAdminJson(
+                `/v1/admin/signal-stats/summary?window_hours=${readPlatformWindowHours()}`,
+                "platform-strategy-output",
+                "platform-strategy-status"
+            );
+            if (payload) {
+                renderStrategyView("signal-summary", payload);
+            } else {
+                setPlatformHtml("platform-strategy-view", '<div class="empty-state">信号摘要加载失败，请检查策略会话或筛选参数。</div>');
+            }
+        });
+    }
+
+    const loadPlatformAnalyticsOverviewButton = ui.byId("platform-load-analytics-overview");
+    if (loadPlatformAnalyticsOverviewButton) {
+        loadPlatformAnalyticsOverviewButton.addEventListener("click", async () => {
+            const payload = await loadStrategyAdminJson(
+                `/v1/admin/analytics/overview?window_hours=${readPlatformWindowHours()}`,
+                "platform-strategy-output",
+                "platform-strategy-status"
+            );
+            if (payload) {
+                renderStrategyView("overview", payload);
+            } else {
+                setPlatformHtml("platform-strategy-view", '<div class="empty-state">策略总览加载失败，请确认管理员会话仍然有效。</div>');
+            }
+        });
+    }
+
+    const loadPlatformBacktestRankingsButton = ui.byId("platform-load-backtest-rankings");
+    if (loadPlatformBacktestRankingsButton) {
+        loadPlatformBacktestRankingsButton.addEventListener("click", async () => {
+            const query = buildQueryString({
+                timeframe: ui.readValue("platform-backtests-rankings-timeframe") || "1d",
+                limit: ui.readNumber("platform-backtests-rankings-limit", 20)
+            });
+            const payload = await loadStrategyAdminJson(
+                `/v1/admin/backtests/rankings/latest${query ? `?${query}` : ""}`,
+                "platform-strategy-output",
+                "platform-strategy-status"
+            );
+            if (payload) {
+                renderStrategyView("backtest-rankings", payload);
+            } else {
+                setPlatformHtml("platform-strategy-view", '<div class="empty-state">回测排名加载失败，请稍后重试或检查回测服务状态。</div>');
+            }
+        });
+    }
+
+    const loadPlatformScannerObservabilityButton = ui.byId("platform-load-scanner-observability");
+    if (loadPlatformScannerObservabilityButton) {
+        loadPlatformScannerObservabilityButton.addEventListener("click", async () => {
+            try {
+                const query = buildQueryString({
+                    status: ui.readValue("platform-scanner-status"),
+                    bucket_id: readOptionalPositiveInteger("platform-scanner-bucket-id", "扫描器分桶 ID"),
+                    symbol: ui.readValue("platform-scanner-symbol"),
+                    decision: ui.readValue("platform-scanner-decision"),
+                    limit: ui.readNumber("platform-scanner-limit", 25),
+                    decision_limit: ui.readNumber("platform-scanner-decision-limit", 25)
+                });
+                const payload = await loadStrategyAdminJson(
+                    `/v1/admin/scanner/observability${query ? `?${query}` : ""}`,
+                    "platform-scanner-output",
+                    "platform-scanner-status-output"
+                );
+                if (payload) {
+                    renderScannerView("observability", payload);
+                } else {
+                    setPlatformHtml("platform-scanner-view", '<div class="empty-state">扫描器总览加载失败，请确认策略权限和查询条件。</div>');
+                }
+            } catch (error) {
+                setPlatformHtml("platform-scanner-view", '<div class="empty-state">扫描器参数校验失败，请修正查询条件后重试。</div>');
+                ui.setStatus("platform-scanner-status-output", error.message, "error");
+            }
+        });
+    }
+
+    const loadPlatformScannerLiveDecisionsButton = ui.byId("platform-load-scanner-live-decisions");
+    if (loadPlatformScannerLiveDecisionsButton) {
+        loadPlatformScannerLiveDecisionsButton.addEventListener("click", async () => {
+            const query = buildQueryString({
+                symbol: ui.readValue("platform-scanner-symbol"),
+                decision: ui.readValue("platform-scanner-decision"),
+                limit: ui.readNumber("platform-scanner-decision-limit", 25)
+            });
+            const payload = await loadStrategyAdminJson(
+                `/v1/admin/scanner/live-decision${query ? `?${query}` : ""}`,
+                "platform-scanner-output",
+                "platform-scanner-status-output"
+            );
+            if (payload) {
+                renderScannerView("live", payload);
+            } else {
+                setPlatformHtml("platform-scanner-view", '<div class="empty-state">实时决策加载失败，请检查筛选条件或管理员会话。</div>');
+            }
+        });
+    }
+
+    const loadPlatformBacktestRunsButton = ui.byId("platform-load-backtest-runs");
+    if (loadPlatformBacktestRunsButton) {
+        loadPlatformBacktestRunsButton.addEventListener("click", async () => {
+            const query = buildQueryString({
+                status: ui.readValue("platform-backtests-status"),
+                strategy_name: ui.readValue("platform-backtests-strategy"),
+                timeframe: ui.readValue("platform-backtests-timeframe") || "1d",
+                symbol: ui.readValue("platform-backtests-symbol"),
+                limit: ui.readNumber("platform-backtests-limit", 25)
+            });
+            const payload = await loadStrategyAdminJson(
+                `/v1/admin/backtests/runs${query ? `?${query}` : ""}`,
+                "platform-backtests-output",
+                "platform-backtests-status-output"
+            );
+            if (payload) {
+                renderBacktestView("runs", payload);
+            } else {
+                setPlatformHtml("platform-backtests-view", '<div class="empty-state">回测运行加载失败，请确认回测接口可用。</div>');
+            }
+        });
+    }
+
+    const triggerPlatformBacktestRefreshButton = ui.byId("platform-trigger-backtest-refresh");
+    if (triggerPlatformBacktestRefreshButton) {
+        triggerPlatformBacktestRefreshButton.addEventListener("click", async () => {
+            const confirmInput = ui.byId("platform-backtests-refresh-confirm");
+            const isConfirmed = confirmInput instanceof HTMLInputElement ? confirmInput.checked : false;
+            if (!isConfirmed) {
+                ui.setStatus("platform-backtests-status-output", "请先勾选高权限确认，再触发回测排名刷新。", "error");
+                return;
+            }
+            try {
+                const symbols = parseCommaSeparated(ui.readValue("platform-backtests-refresh-symbols"));
+                const strategyNames = parseCommaSeparated(ui.readValue("platform-backtests-refresh-strategies"));
+                const windows = parsePositiveIntegers(ui.readValue("platform-backtests-refresh-windows"));
+                const timeframe = ui.readValue("platform-backtests-timeframe") || "1d";
+                const scopeSummary = [
+                    `周期：${timeframe}`,
+                    `标的：${symbols.length ? symbols.join(", ") : "全部"}`,
+                    `策略：${strategyNames.length ? strategyNames.join(", ") : "全部"}`,
+                    `窗口：${windows.length ? windows.join(", ") : "默认"}`,
+                ].join("\n");
+                if (!window.confirm(`即将触发高权限回测刷新：\n${scopeSummary}\n\n请确认这些范围无误。`)) {
+                    ui.setStatus("platform-backtests-status-output", "已取消回测刷新。", "info");
+                    return;
+                }
+                triggerPlatformBacktestRefreshButton.disabled = true;
+                ui.setStatus("platform-backtests-status-output", "正在触发回测刷新...");
+                const payload = await requestStrategyAdmin("POST", "/v1/admin/backtests/runs", {
+                    body: {
+                        symbols: symbols.length > 0 ? symbols : null,
+                        strategy_names: strategyNames.length > 0 ? strategyNames : null,
+                        windows: windows.length > 0 ? windows : null,
+                        timeframe,
+                    }
+                });
+                ui.renderJson("platform-backtests-output", payload);
+                renderBacktestView("refresh", payload);
+                ui.setStatus("platform-backtests-status-output", "已触发回测刷新。", "success");
+                if (confirmInput instanceof HTMLInputElement) {
+                    confirmInput.checked = false;
+                }
+            } catch (error) {
+                setPlatformHtml("platform-backtests-view", '<div class="empty-state">回测刷新触发失败，请检查策略凭证和输入参数。</div>');
+                ui.setStatus("platform-backtests-status-output", error.message, "error");
+            } finally {
+                triggerPlatformBacktestRefreshButton.disabled = false;
+            }
+        });
+    }
+
     const endpointFilterInput = ui.byId("platform-endpoint-filter");
     if (endpointFilterInput) {
         endpointFilterInput.addEventListener("input", () => {
@@ -2733,14 +4545,19 @@ window.addEventListener("DOMContentLoaded", () => {
 
                 const resolvedPath = applyPathParams(spec.path, pathParams);
                 const queryString = buildQueryString(queryParams);
-                const url = queryString
-                    ? `${ui.publicApi(resolvedPath)}?${queryString}`
+                const requestBase = spec.base === "admin"
+                    ? ui.adminApi(resolvedPath)
                     : ui.publicApi(resolvedPath);
+                const url = queryString
+                    ? `${requestBase}?${queryString}`
+                    : requestBase;
 
                 const manualToken = ui.readValue("platform-endpoint-token");
                 const requestOptions = { headers };
                 if (spec.auth === "bearer") {
                     requestOptions.token = manualToken || ui.requireAccessToken();
+                } else if (spec.auth === "admin-bearer") {
+                    requestOptions.token = manualToken || currentPlatformAdminToken();
                 } else if (manualToken) {
                     requestOptions.token = manualToken;
                 }
@@ -2781,6 +4598,7 @@ window.addEventListener("DOMContentLoaded", () => {
     fillEndpointConsole(currentEndpointSpec());
 
     ui.renderSessionSnapshot("platform-session-output");
+    ui.renderSessionSnapshot("platform-admin-session-output");
 });
 """
 
@@ -3610,14 +5428,15 @@ window.addEventListener("DOMContentLoaded", () => {
 """
 
 _BASE_CONNECTION_PANEL = """
-<section class=\"panel\">
+<section class=\"panel span-4 surface-connection\" id=\"surface-connection\">
     <div class=\"panel-header\">
         <div>
-            <h2>接口地址配置</h2>
-            <p class=\"panel-copy\">此页面由 Python 直接渲染。如果你不是通过 nginx 访问，而是直连 public-api，请在这里更新接口地址。</p>
+            <h2>环境与接口地址</h2>
+            <p class=\"panel-copy\">并行版页面由 Python 直接渲染。若你绕过 nginx、直接命中 public-api，请先在这里校准 public / admin 两套接口基址。</p>
         </div>
-        <span class=\"pill\">纯 HTML + Python</span>
+        <span class=\"pill\">环境配置</span>
     </div>
+    <p class=\"panel-note\">保存后会写入当前浏览器本地存储，便于在不同端口或反向代理入口之间快速切换。</p>
     <div class=\"field-grid\">
         <label>
             Public API 基础地址
@@ -3636,206 +5455,320 @@ _BASE_CONNECTION_PANEL = """
 """
 
 _APP_BODY = """
-<section class=\"panel\">
+<section class=\"panel wide app-overview\" id=\"app-overview\">
     <div class=\"panel-header\">
         <div>
-            <h2>订阅登录</h2>
-            <p class=\"panel-copy\">普通用户只需要用邮箱验证码登录。登录后，本地草稿可反复修改，只有点击“开始订阅”时才会把关键数据同步到服务端。</p>
+            <h2>移动订阅流程</h2>
+            <p class=\"panel-copy\">next/app 现在更像正式移动投资产品：流程短、动作少、优先单用户资产录入，最后再一次性启动订阅。</p>
         </div>
-        <span class=\"pill\">/v1/auth/*</span>
+        <span class=\"pill\">正式移动产品</span>
     </div>
-    <form id=\"send-code-form\">
-        <div class=\"field-grid single\">
-            <label>
-                邮箱
-                <input id=\"auth-email\" type=\"email\" placeholder=\"user@example.com\" required>
-            </label>
-        </div>
-        <div class=\"button-row\">
-            <button type=\"submit\">发送验证码</button>
-        </div>
-    </form>
-    <form id=\"verify-form\">
-        <div class=\"field-grid\">
-            <label>
-                验证邮箱
-                <input id=\"verify-email\" type=\"email\" placeholder=\"user@example.com\" required>
-            </label>
-            <label>
-                6 位验证码
-                <input id=\"verify-code\" type=\"text\" maxlength=\"6\" placeholder=\"123456\" required>
-            </label>
-            <label>
-                语言地区
-                <input id=\"verify-locale\" type=\"text\" placeholder=\"zh-CN\">
-            </label>
-            <label>
-                时区
-                <input id=\"verify-timezone\" type=\"text\" placeholder=\"Asia/Shanghai\">
-            </label>
-        </div>
-        <div class=\"button-row\">
-            <button type=\"submit\">验证并保存会话</button>
-            <button type=\"button\" class=\"secondary\" id=\"refresh-session\">刷新令牌</button>
-            <button type=\"button\" class=\"ghost\" id=\"logout-session\">退出登录</button>
-        </div>
-    </form>
-    <div class=\"button-row\">
-        <button type=\"button\" class=\"secondary\" id=\"restore-remote-draft\">从云端恢复资料</button>
+    <div class=\"journey-strip\">
+        <article class=\"journey-step\">
+            <small>Step 01</small>
+            <strong>登录设备</strong>
+            <span>邮箱验证码完成登录，保存会话后可继续回到本地草稿，不会打断录入。</span>
+        </article>
+        <article class=\"journey-step\">
+            <small>Step 02</small>
+            <strong>整理资产草稿</strong>
+            <span>先录入订阅股票、已持仓和现金，再由系统校验同步前置条件。</span>
+        </article>
+        <article class=\"journey-step\">
+            <small>Step 03</small>
+            <strong>启动订阅</strong>
+            <span>确认无误后，把这次监控快照一次性同步到服务端，供桌面端和策略端消费。</span>
+        </article>
     </div>
-    <div class=\"status\" id=\"auth-status\"></div>
-    <div class=\"table-wrap\" id=\"subscriber-session-panel\"><div class=\"empty-state\">登录后，这里会显示当前账号、方案和最近一次订阅状态。</div></div>
+    <div class=\"section-nav\">
+        <a class=\"section-link\" href=\"#app-account\">账户与设备</a>
+        <a class=\"section-link\" href=\"#app-draft\">资产草稿</a>
+        <a class=\"section-link\" href=\"#app-watchlist\">订阅股票</a>
+        <a class="section-link" href="#platform-console">策略实验</a>
+        <a class=\"section-link\" href=\"#app-launch\">开始订阅</a>
+    </div>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel wide\" id=\"app-account\">
     <div class=\"panel-header\">
         <div>
-            <h2>本地订阅草稿</h2>
-            <p class=\"panel-copy\">订阅股票、已持仓和现金会优先保存在本机浏览器。你可以离线整理草稿，准备好后再统一开始订阅。</p>
+            <h2>账户与当前设备</h2>
+            <p class=\"panel-copy\">把登录动作收敛成移动端常见的两步：先发送验证码，再验证并保留会话。登录成功后，这个设备上的本地草稿和云端状态会在同一视图里汇总。</p>
         </div>
+        <span class=\"pill\">账户接入</span>
     </div>
-    <div class=\"hero-grid\">
-        <div class=\"hero-stat\">
-            <strong id=\"draft-watchlist-count\">0</strong>
-            <span>订阅股票</span>
+    <div class=\"split-shell\">
+        <div class=\"stack-flow\">
+            <div class=\"subpanel\">
+                <h3>发送验证码</h3>
+                <p>普通用户只需邮箱验证码即可登录，不要求复杂密码流。</p>
+                <form id=\"send-code-form\">
+                    <div class=\"field-grid single\">
+                        <label>
+                            邮箱
+                            <input id=\"auth-email\" type=\"email\" placeholder=\"user@example.com\" required>
+                        </label>
+                    </div>
+                            <input id="platform-endpoint-filter" type="text" placeholder="例如：scanner, backtests, trades">
+                        <button type=\"submit\">发送验证码</button>
+                    </div>
+                </form>
+            </div>
+            <div class=\"subpanel\">
+                <h3>验证并保存会话</h3>
+                <p>验证通过后写入本地会话，后续恢复云端草稿或开始订阅都复用这份会话。</p>
+                <form id=\"verify-form\">
+                    <div class=\"field-grid\">
+                        <label>
+                            验证邮箱
+                            <input id=\"verify-email\" type=\"email\" placeholder=\"user@example.com\" required>
+                        </label>
+                        <label>
+                            6 位验证码
+                            <input id=\"verify-code\" type=\"text\" maxlength=\"6\" placeholder=\"123456\" required>
+                        </label>
+                        <label>
+                            语言地区
+                            <input id=\"verify-locale\" type=\"text\" placeholder=\"zh-CN\">
+                        </label>
+                        <label>
+                            时区
+                            <input id=\"verify-timezone\" type=\"text\" placeholder=\"Asia/Shanghai\">
+                        </label>
+                    </div>
+                    <div class=\"button-row\">
+                        <button type=\"submit\">验证并保存会话</button>
+                        <button type=\"button\" class=\"secondary\" id=\"refresh-session\">刷新令牌</button>
+                        <button type=\"button\" class=\"ghost\" id=\"logout-session\">退出登录</button>
+                    </div>
+                </form>
+                <div class=\"button-row\">
+                    <button type=\"button\" class=\"secondary\" id=\"restore-remote-draft\">从云端恢复资料</button>
+                </div>
+                <div class=\"status\" id=\"auth-status\"></div>
+            </div>
         </div>
-        <div class=\"hero-stat\">
-            <strong id=\"draft-portfolio-count\">0</strong>
-            <span>已持仓股票</span>
-        </div>
-        <div class=\"hero-stat\">
-            <strong id=\"draft-cash-amount\">0</strong>
-            <span>现金</span>
-        </div>
-        <div class=\"hero-stat\">
-            <strong id=\"draft-total-assets\">0</strong>
-            <span>估算总资产</span>
-        </div>
+        <aside class=\"phone-shell\">
+            <h3>设备侧会话卡片</h3>
+            <p>把当前账号、订阅状态和最近一次同步结果放进更像移动 app 的设备视图里，方便在窄屏下快速确认。</p>
+            <div class=\"phone-chip-row\">
+                <span class=\"phone-chip\">邮箱验证码登录</span>
+                <span class=\"phone-chip\">本地草稿常驻</span>
+                <span class=\"phone-chip\">支持云端恢复</span>
+            </div>
+            <div class=\"table-wrap\" id=\"subscriber-session-panel\"><div class=\"empty-state\">登录后，这里会显示当前账号、方案和最近一次订阅状态。</div></div>
+        </aside>
     </div>
-    <p class=\"token-note\" id=\"draft-sync-note\">浏览器会自动保留草稿；只有“开始订阅”时才会把监控快照同步到服务端。</p>
-    <div class=\"button-row\">
-        <button type=\"button\" class=\"secondary\" id=\"save-local-draft\">手动保存草稿</button>
-        <button type=\"button\" class=\"ghost\" id=\"clear-local-draft\">清空本地草稿</button>
-    </div>
-    <div class=\"status\" id=\"draft-status\"></div>
-    <div class=\"table-wrap\" id=\"draft-summary-panel\"><div class=\"empty-state\">登录后录入订阅股票、持仓和现金，这里会显示同步准备状态。</div></div>
 </section>
 
-<section class=\"panel\">
+<section class=\"panel wide\" id=\"app-draft\">
+    <div class=\"panel-header\">
+        <div>
+            <h2>资产草稿总览</h2>
+            <p class=\"panel-copy\">这部分像移动投资产品里的资产准备页：先看总览，再决定是否继续修改 watchlist、持仓或现金。</p>
+        </div>
+    </div>
+    <div class=\"split-shell\">
+        <div>
+            <div class=\"hero-grid\">
+                <div class=\"hero-stat\">
+                    <strong id=\"draft-watchlist-count\">0</strong>
+                    <span>订阅股票</span>
+                </div>
+                <div class=\"hero-stat\">
+                    <strong id=\"draft-portfolio-count\">0</strong>
+                    <span>已持仓股票</span>
+                </div>
+                <div class=\"hero-stat\">
+                    <strong id=\"draft-cash-amount\">0</strong>
+                    <span>现金</span>
+                </div>
+                <div class=\"hero-stat\">
+                    <strong id=\"draft-total-assets\">0</strong>
+                    <span>估算总资产</span>
+                </div>
+            </div>
+            <p class=\"token-note\" id=\"draft-sync-note\">浏览器会自动保留草稿；只有“开始订阅”时才会把监控快照同步到服务端。</p>
+            <div class=\"button-row\">
+                <button type=\"button\" class=\"secondary\" id=\"save-local-draft\">手动保存草稿</button>
+                <button type=\"button\" class=\"ghost\" id=\"clear-local-draft\">清空本地草稿</button>
+            </div>
+            <div class=\"status\" id=\"draft-status\"></div>
+        </div>
+        <div class=\"subpanel\">
+            <h3>同步前检查</h3>
+            <p>把同步门槛明确告诉用户，避免在最后一步才发现缺少持仓或现金。</p>
+            <ul class=\"micro-list\">
+                <li>先确定订阅股票数量与最低分数，避免一开始监控范围过宽。</li>
+                <li>如果当前持有仓位，请在这里录入数量、成本和止盈止损阈值。</li>
+                <li>同步前确认现金与币种，便于桌面端估算总资产与风控空间。</li>
+            </ul>
+            <div class=\"table-wrap\" id=\"draft-summary-panel\"><div class=\"empty-state\">登录后录入订阅股票、持仓和现金，这里会显示同步准备状态。</div></div>
+        </div>
+    </div>
+</section>
+
+<section class=\"panel wide\" id=\"app-watchlist\">
     <div class=\"panel-header\">
         <div>
             <h2>订阅股票</h2>
-            <p class=\"panel-copy\">请输入你希望桌面端持续监控的股票代码。支持用逗号、空格或换行一次录入多只股票。</p>
+            <p class=\"panel-copy\">把关注标的组织成正式产品里的 watchlist 编辑器。输入支持批量粘贴，右侧持续展示当前草稿。</p>
         </div>
         <span class=\"pill\">本地草稿</span>
     </div>
-    <form id=\"draft-watchlist-form\">
-        <div class=\"field-grid\">
-            <label>
-                股票代码
-                <textarea id=\"draft-watchlist-symbols\" placeholder=\"AAPL, TSLA, NVDA\" required></textarea>
-            </label>
-            <label>
-                默认过滤分数
-                <input id=\"draft-watchlist-score\" type=\"number\" min=\"0\" max=\"100\" value=\"65\">
-            </label>
+    <div class=\"split-shell\">
+        <div class=\"subpanel\">
+            <h3>添加监控标的</h3>
+            <p>支持逗号、空格或换行批量录入；移动端优先减少切换页面次数。</p>
+            <form id=\"draft-watchlist-form\">
+                <div class=\"field-grid\">
+                    <label>
+                        股票代码
+                        <textarea id=\"draft-watchlist-symbols\" placeholder=\"AAPL, TSLA, NVDA\" required></textarea>
+                    </label>
+                    <label>
+                        默认过滤分数
+                        <input id=\"draft-watchlist-score\" type=\"number\" min=\"0\" max=\"100\" value=\"65\">
+                    </label>
+                </div>
+                <label class=\"inline-check\">
+                    <input id=\"draft-watchlist-notify\" type=\"checkbox\" checked>
+                    新信号触发时通知我
+                </label>
+                <div class=\"button-row\">
+                    <button type=\"submit\">加入订阅草稿</button>
+                </div>
+            </form>
+            <div class=\"status\" id=\"watchlist-draft-status\"></div>
         </div>
-        <label class=\"inline-check\">
-            <input id=\"draft-watchlist-notify\" type=\"checkbox\" checked>
-            新信号触发时通知我
-        </label>
-        <div class=\"button-row\">
-            <button type=\"submit\">加入订阅草稿</button>
+        <div class=\"subpanel\">
+            <h3>当前订阅列表</h3>
+            <p>这里持续显示当前已准备同步的标的清单，方便在移动端单页完成确认。</p>
+            <div class=\"table-wrap\" id=\"draft-watchlist-table\"><div class=\"empty-state\">还没有订阅股票。加入后，桌面端会把它们作为监控候选列表。</div></div>
         </div>
-    </form>
-    <div class=\"status\" id=\"watchlist-draft-status\"></div>
-    <div class=\"table-wrap\" id=\"draft-watchlist-table\"><div class=\"empty-state\">还没有订阅股票。加入后，桌面端会把它们作为监控候选列表。</div></div>
+    </div>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel wide\" id=\"app-portfolio\">
     <div class=\"panel-header\">
         <div>
             <h2>已持仓股票</h2>
-            <p class=\"panel-copy\">请录入你当前已经持有的股票与成本。系统会将“现金 + 已持仓股票”合并计算为订阅启动时的总资产。</p>
+            <p class=\"panel-copy\">像成熟券商 app 一样把当前持仓放在独立步骤里，强调仓位成本、盈亏阈值与备注，不把风控字段藏在次级页面。</p>
         </div>
         <span class=\"pill\">本地草稿</span>
     </div>
-    <form id=\"draft-portfolio-form\">
-        <div class=\"field-grid\">
-            <label>
-                股票代码
-                <input id=\"draft-portfolio-symbol\" type=\"text\" placeholder=\"AAPL\" required>
-            </label>
-            <label>
-                持股数量
-                <input id=\"draft-portfolio-shares\" type=\"number\" min=\"1\" step=\"1\" value=\"10\" required>
-            </label>
-            <label>
-                持仓均价
-                <input id=\"draft-portfolio-cost\" type=\"number\" min=\"0.01\" step=\"0.01\" value=\"150\" required>
-            </label>
-            <label>
-                止盈目标
-                <input id=\"draft-portfolio-target\" type=\"number\" min=\"0.01\" max=\"1\" step=\"0.01\" value=\"0.15\">
-            </label>
-            <label>
-                止损阈值
-                <input id=\"draft-portfolio-stop\" type=\"number\" min=\"0.01\" max=\"1\" step=\"0.01\" value=\"0.08\">
-            </label>
-            <label>
-                备注
-                <input id=\"draft-portfolio-notes\" type=\"text\" placeholder=\"例如：长期持有 / 波段仓位\">
-            </label>
+    <div class=\"split-shell\">
+        <div class=\"subpanel\">
+            <h3>录入持仓与阈值</h3>
+            <p>把买入成本、止盈止损和备注作为一等输入项，减少用户启动订阅后的二次修改。</p>
+            <form id=\"draft-portfolio-form\">
+                <div class=\"field-grid\">
+                    <label>
+                        股票代码
+                        <input id=\"draft-portfolio-symbol\" type=\"text\" placeholder=\"AAPL\" required>
+                    </label>
+                    <label>
+                        持股数量
+                        <input id=\"draft-portfolio-shares\" type=\"number\" min=\"1\" step=\"1\" value=\"10\" required>
+                    </label>
+                    <label>
+                        持仓均价
+                        <input id=\"draft-portfolio-cost\" type=\"number\" min=\"0.01\" step=\"0.01\" value=\"150\" required>
+                    </label>
+                    <label>
+                        止盈目标
+                        <input id=\"draft-portfolio-target\" type=\"number\" min=\"0.01\" max=\"1\" step=\"0.01\" value=\"0.15\">
+                    </label>
+                    <label>
+                        止损阈值
+                        <input id=\"draft-portfolio-stop\" type=\"number\" min=\"0.01\" max=\"1\" step=\"0.01\" value=\"0.08\">
+                    </label>
+                    <label>
+                        备注
+                        <input id=\"draft-portfolio-notes\" type=\"text\" placeholder=\"例如：长期持有 / 波段仓位\">
+                    </label>
+                </div>
+                <label class=\"inline-check\">
+                    <input id=\"draft-portfolio-notify\" type=\"checkbox\" checked>
+                    持仓相关信号也通知我
+                </label>
+                <div class=\"button-row\">
+                    <button type=\"submit\">加入或覆盖持仓</button>
+                    <button type=\"button\" class=\"ghost\" id=\"reset-portfolio-form\">清空表单</button>
+                </div>
+            </form>
+            <div class=\"status\" id=\"portfolio-draft-status\"></div>
         </div>
-        <label class=\"inline-check\">
-            <input id=\"draft-portfolio-notify\" type=\"checkbox\" checked>
-            持仓相关信号也通知我
-        </label>
-        <div class=\"button-row\">
-            <button type=\"submit\">加入或覆盖持仓</button>
-            <button type=\"button\" class=\"ghost\" id=\"reset-portfolio-form\">清空表单</button>
+        <div class=\"subpanel\">
+            <h3>持仓草稿列表</h3>
+            <p>空仓场景也在同一页面处理，避免把“允许空仓启动”隐藏到设置里。</p>
+            <div class=\"table-wrap\" id=\"draft-portfolio-table\"><div class=\"empty-state\">还没有已持仓股票。如果当前空仓，请在开始订阅前勾选“允许空仓启动”。</div></div>
         </div>
-    </form>
-    <div class=\"status\" id=\"portfolio-draft-status\"></div>
-    <div class=\"table-wrap\" id=\"draft-portfolio-table\"><div class=\"empty-state\">还没有已持仓股票。如果当前空仓，请在开始订阅前勾选“允许空仓启动”。</div></div>
+    </div>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel wide\" id=\"app-launch\">
     <div class=\"panel-header\">
         <div>
             <h2>现金与开始订阅</h2>
-            <p class=\"panel-copy\">这里录入你目前可用的现金。开始订阅时，系统会把“现金 + 已持仓成本 + 订阅股票列表”一起同步为桌面端监控快照。</p>
+            <p class=\"panel-copy\">把最终启动动作收口成单一主按钮。先确认现金和币种，再决定是否允许空仓启动，最后一次性写入服务端监控快照。</p>
         </div>
         <span class=\"pill\">POST /v1/account/start-subscription</span>
     </div>
-    <div class=\"field-grid\">
-        <label>
-            可用现金
-            <input id=\"draft-cash-input\" type=\"number\" min=\"0\" step=\"0.01\" placeholder=\"50000\" required>
-        </label>
-        <label>
-            币种
-            <input id=\"draft-currency-input\" type=\"text\" placeholder=\"USD\" value=\"USD\">
-        </label>
+    <div class=\"split-shell\">
+        <div class=\"stack-flow\">
+            <div class=\"subpanel\">
+                <h3>最终确认</h3>
+                <p>同步前只保留最关键的资产输入和一个主动作按钮，符合移动端的主路径原则。</p>
+                <div class=\"field-grid\">
+                    <label>
+                        可用现金
+                        <input id=\"draft-cash-input\" type=\"number\" min=\"0\" step=\"0.01\" placeholder=\"50000\" required>
+                    </label>
+                    <label>
+                        币种
+                        <input id=\"draft-currency-input\" type=\"text\" placeholder=\"USD\" value=\"USD\">
+                    </label>
+                </div>
+                <label class=\"inline-check\">
+                    <input id=\"draft-allow-empty-portfolio\" type=\"checkbox\">
+                    我当前是空仓，只同步订阅股票和现金
+                </label>
+                <div class=\"button-row\">
+                    <button type=\"button\" id=\"start-subscription-button\">开始订阅</button>
+                </div>
+                <div class=\"status\" id=\"subscription-sync-status\"></div>
+            </div>
+            <div class=\"subpanel\">
+                <h3>同步后的产品反馈</h3>
+                <p>启动成功后，桌面监控端会把这次同步当作最新有效快照，后续研究与信号都从这里展开。</p>
+                <ul class=\"micro-list\">
+                    <li>订阅股票会进入平台端与扫描器的关注范围。</li>
+                    <li>已持仓与现金会成为总资产估算与风控提醒的基础数据。</li>
+                    <li>如果用户后续调整草稿，需要重新执行一次“开始订阅”。</li>
+                </ul>
+            </div>
+        </div>
+        <aside class=\"phone-shell\">
+            <h3>同步结果预览</h3>
+            <p>右侧保留一个更像成品 app 的结果卡片，用来承接启动后的回包、错误或服务端回执。</p>
+            <div class=\"phone-chip-row\">
+                <span class=\"phone-chip\">单一主操作</span>
+                <span class=\"phone-chip\">结果即时反馈</span>
+                <span class=\"phone-chip\">可回滚到草稿修改</span>
+            </div>
+            <div class=\"table-wrap\" id=\"subscription-sync-panel\"><div class=\"empty-state\">填写完订阅股票、持仓和现金后，点击“开始订阅”即可把监控快照同步到桌面端。</div></div>
+        </aside>
     </div>
-    <label class=\"inline-check\">
-        <input id=\"draft-allow-empty-portfolio\" type=\"checkbox\">
-        我当前是空仓，只同步订阅股票和现金
-    </label>
-    <div class=\"button-row\">
-        <button type=\"button\" id=\"start-subscription-button\">开始订阅</button>
-    </div>
-    <div class=\"status\" id=\"subscription-sync-status\"></div>
-    <div class=\"table-wrap\" id=\"subscription-sync-panel\"><div class=\"empty-state\">填写完订阅股票、持仓和现金后，点击“开始订阅”即可把监控快照同步到桌面端。</div></div>
 </section>
 """
 
 _PLATFORM_BODY = _BASE_CONNECTION_PANEL + """
-<section class=\"panel\">
+<section class=\"panel span-4\" id=\"platform-session\">
     <div class=\"panel-header\">
         <div>
             <h2>共享会话快照</h2>
-            <p class=\"panel-copy\">`/platform` 会复用 `/app` 中保存的用户 Bearer 令牌。</p>
+            <p class=\"panel-copy\">平台工作台默认复用 next/app 已保存的用户 Bearer 会话，方便在策略研究、仓位调整和交易执行之间连续工作。</p>
         </div>
         <span class=\"pill\">令牌复用</span>
     </div>
@@ -3847,190 +5780,258 @@ _PLATFORM_BODY = _BASE_CONNECTION_PANEL + """
     <pre class=\"json-output\" id=\"platform-session-output\"></pre>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-4 platform-command-panel\" id=\"platform-command\">
     <div class=\"panel-header\">
         <div>
-            <h2>标的搜索</h2>
-            <p class=\"panel-copy\">搜索公开市场标的，并将选中的代码带入下方观察列表表单。</p>
+            <h2>策略核心导航</h2>
+            <p class=\"panel-copy\">把候选标的、买入预警、退出策略、交易执行与内部策略接口统一收回桌面端，让平台一眼看上去就是策略核心。</p>
+        </div>
+        <span class=\"pill\">策略核心</span>
+    </div>
+    <div class=\"command-strip\">
+        <article class=\"command-card\">
+            <small>Lane 01</small>
+            <strong>入场策略</strong>
+            <span>围绕候选标的、观察池和买入预警条件建立可执行的入场策略池。</span>
+        </article>
+        <article class=\"command-card\">
+            <small>Lane 02</small>
+            <strong>退出策略</strong>
+            <span>持仓、止盈止损和退出节奏在同一工作台联动维护，不拆到别的产品面。</span>
+        </article>
+        <article class=\"command-card\">
+            <small>Lane 03</small>
+            <strong>策略实验</strong>
+            <span>回测、胜率、排名和内部策略接口都应服务平台核心，而不是成为 admin 的主界面。</span>
+        </article>
+        <article class=\"command-card\">
+            <small>Lane 04</small>
+            <strong>执行闭环</strong>
+            <span>从信号判断到交易确认尽量不离开桌面端，保持策略到执行的连续性。</span>
+        </article>
+    </div>
+    <div class=\"section-nav\">
+        <a class=\"section-link\" href=\"#platform-research\">候选标的</a>
+        <a class=\"section-link\" href=\"#platform-positions\">策略组合</a>
+        <a class=\"section-link\" href=\"#platform-trades\">交易执行</a>
+        <a class=\"section-link\" href=\"#platform-console\">策略实验</a>
+    </div>
+    <ul class=\"micro-list\">
+        <li>平台端不是资料页，而是策略核心工作台，入场与退出逻辑都应在这里闭环。</li>
+        <li>高权限策略接口即使暂时经由内部 API 提供，产品归属也仍然属于平台端。</li>
+        <li>交易执行与结果确认要紧贴策略判断，而不是散落到别的后台面板。</li>
+    </ul>
+</section>
+
+<section class=\"panel span-8\" id=\"platform-research\">
+    <div class=\"panel-header\">
+        <div>
+            <h2>候选标的与入场研究</h2>
+            <p class=\"panel-copy\">这里是买入预警策略的候选池入口。搜索结果、原始回包和后续观察池操作保留在同一屏，方便快速形成入场判断。</p>
         </div>
         <span class=\"pill\">/v1/search/symbols</span>
     </div>
-    <form id=\"symbol-search-form\">
-        <div class=\"field-grid\">
-            <label>
-                搜索词
-                <input id=\"search-query\" type=\"text\" placeholder=\"AAPL 或 台积电\" required>
-            </label>
-            <label>
-                资产类型
-                <input id=\"search-type\" type=\"text\" placeholder=\"stock, etf, crypto\">
-            </label>
-            <label>
-                数量上限
-                <input id=\"search-limit\" type=\"number\" min=\"1\" max=\"50\" value=\"20\">
-            </label>
-        </div>
-        <div class=\"button-row\">
-            <button type=\"submit\">搜索标的</button>
-        </div>
-    </form>
-    <div class=\"status\" id=\"search-status\"></div>
-    <div class=\"table-wrap\" id=\"search-results\"><div class=\"empty-state\">搜索结果会显示在这里。</div></div>
-    <pre class=\"json-output\" id=\"search-output\"></pre>
+    <div class=\"subpanel\">
+        <h3>候选标的池</h3>
+        <p>搜索结果点击后可直接回填到下方策略观察池，减少从研究到入场筛选之间的切换成本。</p>
+        <form id=\"symbol-search-form\">
+            <div class=\"field-grid\">
+                <label>
+                    搜索词
+                    <input id=\"search-query\" type=\"text\" placeholder=\"AAPL 或 台积电\" required>
+                </label>
+                <label>
+                    资产类型
+                    <input id=\"search-type\" type=\"text\" placeholder=\"stock, etf, crypto\">
+                </label>
+                <label>
+                    数量上限
+                    <input id=\"search-limit\" type=\"number\" min=\"1\" max=\"50\" value=\"20\">
+                </label>
+            </div>
+            <div class=\"button-row\">
+                <button type=\"submit\">搜索标的</button>
+            </div>
+        </form>
+        <div class=\"status\" id=\"search-status\"></div>
+    </div>
+    <div class=\"split-shell\">
+        <div class=\"table-wrap\" id=\"search-results\"><div class=\"empty-state\">搜索结果会显示在这里。</div></div>
+        <pre class=\"json-output\" id=\"search-output\"></pre>
+    </div>
 </section>
 
-<section class=\"panel\">
+<section class=\"panel span-4 tall\" id=\"platform-positions\">
     <div class=\"panel-header\">
         <div>
-            <h2>观察列表与持仓</h2>
-            <p class=\"panel-copy\">在一个界面里操作共享的研究观察列表和持仓。</p>
+            <h2>策略组合：观察池与持仓</h2>
+            <p class=\"panel-copy\">这里不是普通资料页，而是平台策略状态面：入场观察池、已有持仓和退出参数在同一侧栏里维护。</p>
         </div>
         <span class=\"pill\">用户 API</span>
     </div>
-    <form id=\"platform-watchlist-form\">
-        <div class=\"field-grid\">
-            <label>
-                代码
-                <input id=\"platform-watchlist-symbol\" type=\"text\" placeholder=\"AAPL\" required>
-            </label>
-            <label>
-                最低分数
-                <input id=\"platform-watchlist-score\" type=\"number\" min=\"0\" max=\"100\" value=\"70\">
-            </label>
+    <div class=\"stack-flow\">
+        <div class=\"subpanel\">
+            <h3>入场观察池</h3>
+            <p>研究结果可以直接回填到这里，把候选标的转成真正的买入预警监控列表。</p>
+            <form id=\"platform-watchlist-form\">
+                <div class=\"field-grid\">
+                    <label>
+                        代码
+                        <input id=\"platform-watchlist-symbol\" type=\"text\" placeholder=\"AAPL\" required>
+                    </label>
+                    <label>
+                        最低分数
+                        <input id=\"platform-watchlist-score\" type=\"number\" min=\"0\" max=\"100\" value=\"70\">
+                    </label>
+                </div>
+                <label class=\"inline-check\">
+                    <input id=\"platform-watchlist-notify\" type=\"checkbox\" checked>
+                    该标的满足买入条件时通知我
+                </label>
+                <div class=\"button-row\">
+                    <button type=\"submit\">加入观察列表</button>
+                    <button type=\"button\" class=\"secondary\" id=\"platform-load-watchlist\">加载观察列表</button>
+                    <button type=\"button\" class=\"ghost\" id=\"platform-load-portfolio\">加载持仓</button>
+                </div>
+            </form>
+            <div class=\"status\" id=\"platform-watchlist-status\"></div>
+            <pre class=\"json-output\" id=\"platform-watchlist-output\"></pre>
         </div>
-        <label class=\"inline-check\">
-            <input id=\"platform-watchlist-notify\" type=\"checkbox\" checked>
-            该标的变得可执行时通知我
-        </label>
-        <div class=\"button-row\">
-            <button type=\"submit\">加入观察列表</button>
-            <button type=\"button\" class=\"secondary\" id=\"platform-load-watchlist\">加载观察列表</button>
-            <button type=\"button\" class=\"ghost\" id=\"platform-load-portfolio\">加载持仓</button>
+        <div class=\"subpanel\">
+            <h3>退出策略与持仓</h3>
+            <p>这里对应 <code>POST /v1/portfolio</code>，用于把持仓、止盈止损和退出提醒放进同一套退出策略工作流。</p>
+            <form id=\"platform-portfolio-form\">
+                <div class=\"field-grid\">
+                    <label>
+                        持仓代码
+                        <input id=\"platform-portfolio-symbol\" type=\"text\" placeholder=\"AAPL\" required>
+                    </label>
+                    <label>
+                        股数
+                        <input id=\"platform-portfolio-shares\" type=\"number\" min=\"0.0001\" step=\"0.0001\" value=\"10\">
+                    </label>
+                    <label>
+                        平均成本
+                        <input id=\"platform-portfolio-avg-cost\" type=\"number\" min=\"0.0001\" step=\"0.0001\" value=\"150\">
+                    </label>
+                    <label>
+                        止盈目标
+                        <input id=\"platform-portfolio-target\" type=\"number\" step=\"0.0001\" min=\"0\" max=\"1\" value=\"0.15\">
+                    </label>
+                    <label>
+                        止损阈值
+                        <input id=\"platform-portfolio-stop\" type=\"number\" step=\"0.0001\" min=\"0\" max=\"1\" value=\"0.08\">
+                    </label>
+                </div>
+                <label class=\"inline-check\">
+                    <input id=\"platform-portfolio-notify\" type=\"checkbox\" checked>
+                    该持仓触发退出条件时通知我
+                </label>
+                <label>
+                    持仓备注
+                    <input id=\"platform-portfolio-notes\" type=\"text\" placeholder=\"建仓原因、风控备注等\">
+                </label>
+                <div class=\"button-row\">
+                    <button type=\"submit\" class=\"secondary\">新增持仓</button>
+                </div>
+            </form>
+            <div class=\"status\" id=\"platform-portfolio-status\"></div>
+            <pre class=\"json-output\" id=\"platform-portfolio-output\"></pre>
         </div>
-    </form>
-    <p class=\"panel-note\">如果需要直接建仓，可在这里调用 <code>POST /v1/portfolio</code>。</p>
-    <form id=\"platform-portfolio-form\">
-        <div class=\"field-grid\">
-            <label>
-                持仓代码
-                <input id=\"platform-portfolio-symbol\" type=\"text\" placeholder=\"AAPL\" required>
-            </label>
-            <label>
-                股数
-                <input id=\"platform-portfolio-shares\" type=\"number\" min=\"0.0001\" step=\"0.0001\" value=\"10\">
-            </label>
-            <label>
-                平均成本
-                <input id=\"platform-portfolio-avg-cost\" type=\"number\" min=\"0.0001\" step=\"0.0001\" value=\"150\">
-            </label>
-            <label>
-                止盈目标
-                <input id=\"platform-portfolio-target\" type=\"number\" step=\"0.0001\" min=\"0\" max=\"1\" value=\"0.15\">
-            </label>
-            <label>
-                止损阈值
-                <input id=\"platform-portfolio-stop\" type=\"number\" step=\"0.0001\" min=\"0\" max=\"1\" value=\"0.08\">
-            </label>
-        </div>
-        <label class=\"inline-check\">
-            <input id=\"platform-portfolio-notify\" type=\"checkbox\" checked>
-            该持仓达到阈值时通知我
-        </label>
-        <label>
-            持仓备注
-            <input id=\"platform-portfolio-notes\" type=\"text\" placeholder=\"建仓原因、风控备注等\">
-        </label>
-        <div class=\"button-row\">
-            <button type=\"submit\" class=\"secondary\">新增持仓</button>
-        </div>
-    </form>
-    <div class=\"status\" id=\"platform-watchlist-status\"></div>
-    <pre class=\"json-output\" id=\"platform-watchlist-output\"></pre>
-    <div class=\"status\" id=\"platform-portfolio-status\"></div>
-    <pre class=\"json-output\" id=\"platform-portfolio-output\"></pre>
+    </div>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-7\" id=\"platform-maintenance\">
     <div class=\"panel-header\">
         <div>
-            <h2>研究数据维护</h2>
-            <p class=\"panel-copy\">在同一个平台控制台里更新或删除观察列表和持仓条目。</p>
+            <h2>策略参数维护</h2>
+            <p class=\"panel-copy\">观察池和持仓参数的更新动作被视为策略维护的一部分，而不是附属数据编辑页面。</p>
         </div>
-        <span class=\"pill\">共享用户数据的 PUT/DELETE 接口</span>
+        <span class=\"pill\">策略参数编辑</span>
     </div>
-    <form id=\"platform-update-watchlist-form\">
-        <div class=\"field-grid\">
-            <label>
-                观察项 ID
-                <input id=\"platform-watchlist-item-id\" type=\"number\" min=\"1\" placeholder=\"1\" required>
-            </label>
-            <label>
-                新最低分数
-                <input id=\"platform-watchlist-update-score\" type=\"number\" min=\"0\" max=\"100\" placeholder=\"80\">
-            </label>
-            <label>
-                通知状态
-                <select id=\"platform-watchlist-update-notify\">
-                    <option value=\"\">保持当前</option>
-                    <option value=\"true\">启用</option>
-                    <option value=\"false\">停用</option>
-                </select>
-            </label>
+    <div class=\"stack-flow\">
+        <div class=\"subpanel\">
+            <h3>入场参数维护</h3>
+            <p>适合在信号筛选前快速调整单个观察项的阈值、提醒和入场筛选条件。</p>
+            <form id=\"platform-update-watchlist-form\">
+                <div class=\"field-grid\">
+                    <label>
+                        观察项 ID
+                        <input id=\"platform-watchlist-item-id\" type=\"number\" min=\"1\" placeholder=\"1\" required>
+                    </label>
+                    <label>
+                        新最低分数
+                        <input id=\"platform-watchlist-update-score\" type=\"number\" min=\"0\" max=\"100\" placeholder=\"80\">
+                    </label>
+                    <label>
+                        通知状态
+                        <select id=\"platform-watchlist-update-notify\">
+                            <option value=\"\">保持当前</option>
+                            <option value=\"true\">启用</option>
+                            <option value=\"false\">停用</option>
+                        </select>
+                    </label>
+                </div>
+                <div class=\"button-row\">
+                    <button type=\"submit\" class=\"secondary\">更新观察项</button>
+                    <button type=\"button\" class=\"ghost\" id=\"platform-delete-watchlist-item\">删除观察项</button>
+                </div>
+            </form>
         </div>
-        <div class=\"button-row\">
-            <button type=\"submit\" class=\"secondary\">更新观察项</button>
-            <button type=\"button\" class=\"ghost\" id=\"platform-delete-watchlist-item\">删除观察项</button>
+        <div class=\"subpanel\">
+            <h3>退出参数维护</h3>
+            <p>把股数、成本、止盈止损和退出提醒这些高频维护动作压缩到一屏里完成。</p>
+            <form id=\"platform-update-portfolio-form\">
+                <div class=\"field-grid\">
+                    <label>
+                        持仓条目 ID
+                        <input id=\"platform-portfolio-item-id\" type=\"number\" min=\"1\" placeholder=\"1\" required>
+                    </label>
+                    <label>
+                        股数
+                        <input id=\"platform-portfolio-update-shares\" type=\"number\" min=\"1\" placeholder=\"10\">
+                    </label>
+                    <label>
+                        平均成本
+                        <input id=\"platform-portfolio-update-cost\" type=\"number\" step=\"0.01\" min=\"0.01\" placeholder=\"150\">
+                    </label>
+                    <label>
+                        止盈目标
+                        <input id=\"platform-portfolio-update-target\" type=\"number\" step=\"0.01\" min=\"0.01\" max=\"1\" placeholder=\"0.2\">
+                    </label>
+                    <label>
+                        止损阈值
+                        <input id=\"platform-portfolio-update-stop\" type=\"number\" step=\"0.01\" min=\"0.01\" max=\"1\" placeholder=\"0.08\">
+                    </label>
+                    <label>
+                        通知状态
+                        <select id=\"platform-portfolio-update-notify\">
+                            <option value=\"\">保持当前</option>
+                            <option value=\"true\">启用</option>
+                            <option value=\"false\">停用</option>
+                        </select>
+                    </label>
+                </div>
+                <label>
+                    备注
+                    <input id=\"platform-portfolio-update-notes\" type=\"text\" placeholder=\"更新后的持仓理由\">
+                </label>
+                <div class=\"button-row\">
+                    <button type=\"submit\" class=\"secondary\">更新持仓</button>
+                    <button type=\"button\" class=\"ghost\" id=\"platform-delete-portfolio-item\">删除持仓</button>
+                </div>
+            </form>
         </div>
-    </form>
-    <form id=\"platform-update-portfolio-form\">
-        <div class=\"field-grid\">
-            <label>
-                持仓条目 ID
-                <input id=\"platform-portfolio-item-id\" type=\"number\" min=\"1\" placeholder=\"1\" required>
-            </label>
-            <label>
-                股数
-                <input id=\"platform-portfolio-update-shares\" type=\"number\" min=\"1\" placeholder=\"10\">
-            </label>
-            <label>
-                平均成本
-                <input id=\"platform-portfolio-update-cost\" type=\"number\" step=\"0.01\" min=\"0.01\" placeholder=\"150\">
-            </label>
-            <label>
-                止盈目标
-                <input id=\"platform-portfolio-update-target\" type=\"number\" step=\"0.01\" min=\"0.01\" max=\"1\" placeholder=\"0.2\">
-            </label>
-            <label>
-                止损阈值
-                <input id=\"platform-portfolio-update-stop\" type=\"number\" step=\"0.01\" min=\"0.01\" max=\"1\" placeholder=\"0.08\">
-            </label>
-            <label>
-                通知状态
-                <select id=\"platform-portfolio-update-notify\">
-                    <option value=\"\">保持当前</option>
-                    <option value=\"true\">启用</option>
-                    <option value=\"false\">停用</option>
-                </select>
-            </label>
-        </div>
-        <label>
-            备注
-            <input id=\"platform-portfolio-update-notes\" type=\"text\" placeholder=\"更新后的持仓理由\">
-        </label>
-        <div class=\"button-row\">
-            <button type=\"submit\" class=\"secondary\">更新持仓</button>
-            <button type=\"button\" class=\"ghost\" id=\"platform-delete-portfolio-item\">删除持仓</button>
-        </div>
-    </form>
+    </div>
     <div class=\"status\" id=\"platform-maintenance-status\"></div>
     <pre class=\"json-output\" id=\"platform-maintenance-output\"></pre>
 </section>
 
-<section class=\"panel\">
+<section class=\"panel span-5\" id=\"platform-trades\">
     <div class=\"panel-header\">
         <div>
-            <h2>交易查询</h2>
-            <p class=\"panel-copy\">使用已登录的 app 接口或公开链接 Token，在无需 JS 框架的情况下查看交易。</p>
+            <h2>交易执行与回执</h2>
+            <p class=\"panel-copy\">策略确认后的执行面仍属于平台核心。这里保留应用内交易和公开交易两条路径，用于形成完整执行闭环。</p>
         </div>
         <span class=\"pill\">/v1/trades/*</span>
     </div>
@@ -4094,18 +6095,18 @@ _PLATFORM_BODY = _BASE_CONNECTION_PANEL + """
     <pre class=\"json-output\" id=\"trade-output\"></pre>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-4\" id=\"platform-matrix\">
     <div class=\"panel-header\">
         <div>
-            <h2>平台 API 能力矩阵</h2>
-            <p class=\"panel-copy\">按关键字筛选并查看 platform 所覆盖的 public API 功能域、认证方式与调用入口。</p>
+            <h2>策略能力矩阵</h2>
+            <p class=\"panel-copy\">这里用来快速盘点平台是否已经覆盖选股、预警、退出、执行和实验所需的接口能力。</p>
         </div>
-        <span class=\"pill\">端点覆盖 QA</span>
+        <span class=\"pill\">策略覆盖索引</span>
     </div>
     <div class=\"field-grid\">
         <label>
             筛选关键字
-            <input id=\"platform-endpoint-filter\" type=\"text\" placeholder=\"例如：notifications, trades, bearer\">
+            <input id=\"platform-endpoint-filter\" type=\"text\" placeholder=\"例如：scanner, backtests, trades\">
         </label>
         <label>
             当前统计
@@ -4116,128 +6117,389 @@ _PLATFORM_BODY = _BASE_CONNECTION_PANEL + """
     <div class=\"status\" id=\"platform-endpoint-status\"></div>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-8\" id=\"platform-console\">
     <div class=\"panel-header\">
         <div>
-            <h2>平台 API 调试台</h2>
-            <p class=\"panel-copy\">选中任意端点后可直接填写路径参数、查询参数、请求体和附加请求头，覆盖所有平台能力。</p>
+            <h2>策略实验与观测</h2>
+            <p class=\"panel-copy\">把 scanner、backtests、signal stats 与 strategy health 直接拉回桌面端。admin token 在这里只是高权限取数凭证，不再要求你切到另一个产品面做核心策略判断。</p>
         </div>
-        <span class=\"pill\">全量执行入口</span>
+        <span class=\"pill\">策略实验</span>
     </div>
-    <form id=\"platform-endpoint-console-form\">
-        <div class=\"field-grid\">
-            <label>
-                端点
-                <select id=\"platform-endpoint-select\"></select>
-            </label>
-            <label>
-                Bearer Token 覆盖（可选）
-                <input id=\"platform-endpoint-token\" type=\"text\" placeholder=\"留空时按端点配置自动处理认证\">
-            </label>
+    <div class=\"stack-flow\">
+        <div class=\"split-shell\">
+            <div class=\"subpanel\">
+                <h3>高权限策略凭证</h3>
+                <p>这些接口暂时仍走 admin API，但平台页现在可以直接完成 admin-auth 发码、验证、刷新与手动 token 覆盖，不必先切去 admin 页拿到一份可用 session。</p>
+                <form id=\"platform-admin-send-code-form\">
+                    <div class=\"field-grid\">
+                        <label>
+                            管理员邮箱
+                            <input id=\"platform-admin-auth-email\" type=\"email\" placeholder=\"admin@example.com\" required>
+                        </label>
+                        <label>
+                            语言地区
+                            <input id=\"platform-admin-verify-locale\" type=\"text\" placeholder=\"zh-CN\" value=\"zh-CN\">
+                        </label>
+                    </div>
+                    <div class=\"button-row\">
+                        <button type=\"submit\">发送管理验证码</button>
+                    </div>
+                </form>
+                <form id=\"platform-admin-verify-form\">
+                    <div class=\"field-grid\">
+                        <label>
+                            验证邮箱
+                            <input id=\"platform-admin-verify-email\" type=\"email\" placeholder=\"admin@example.com\" required>
+                        </label>
+                        <label>
+                            6 位验证码
+                            <input id=\"platform-admin-verify-code\" type=\"text\" maxlength=\"6\" placeholder=\"123456\" required>
+                        </label>
+                        <label>
+                            时区
+                            <input id=\"platform-admin-verify-timezone\" type=\"text\" placeholder=\"Asia/Shanghai\" value=\"Asia/Shanghai\">
+                        </label>
+                    </div>
+                    <div class=\"button-row\">
+                        <button type=\"submit\" class=\"secondary\">验证并保存策略会话</button>
+                        <button type=\"button\" class=\"ghost\" id=\"platform-refresh-admin-session\">刷新策略会话</button>
+                    </div>
+                </form>
+                <label>
+                    管理 Bearer Token
+                    <textarea id=\"platform-admin-token\" placeholder=\"在此粘贴高权限策略 Bearer Token\"></textarea>
+                </label>
+                <div class=\"button-row\">
+                    <button type=\"button\" id=\"platform-save-admin-token\">保存策略令牌</button>
+                    <button type=\"button\" class=\"secondary\" id=\"platform-show-admin-session\">查看权限状态</button>
+                    <button type=\"button\" class=\"ghost\" id=\"platform-clear-admin-token\">清除策略令牌</button>
+                </div>
+                <div class=\"status\" id=\"platform-admin-token-status\"></div>
+                <pre class=\"json-output\" id=\"platform-admin-session-output\"></pre>
+            </div>
+            <div class=\"subpanel\">
+                <h3>策略快览</h3>
+                <p>先看策略健康度、信号摘要和分析总览，再决定是否继续下钻到 scanner 运行或回测实验。</p>
+                <div class=\"field-grid\">
+                    <label>
+                        时间窗口（小时）
+                        <input id=\"platform-strategy-window-hours\" type=\"number\" min=\"1\" max=\"720\" value=\"24\">
+                    </label>
+                    <label>
+                        排名周期
+                        <input id=\"platform-backtests-rankings-timeframe\" type=\"text\" value=\"1d\" placeholder=\"1d\">
+                    </label>
+                    <label>
+                        排名上限
+                        <input id=\"platform-backtests-rankings-limit\" type=\"number\" min=\"1\" max=\"100\" value=\"20\">
+                    </label>
+                </div>
+                <div class=\"button-row\">
+                    <button type=\"button\" id=\"platform-load-strategy-health\">加载策略健康度</button>
+                    <button type=\"button\" class=\"secondary\" id=\"platform-load-signal-summary\">加载信号摘要</button>
+                    <button type=\"button\" class=\"secondary\" id=\"platform-load-analytics-overview\">加载策略总览</button>
+                    <button type=\"button\" class=\"ghost\" id=\"platform-load-backtest-rankings\">加载回测排名</button>
+                </div>
+                <div class=\"status\" id=\"platform-strategy-status\"></div>
+                <div class=\"table-wrap\" id=\"platform-strategy-view\"><div class=\"empty-state\">加载策略健康度、信号摘要、总览或回测排名后，这里会显示可读视图。</div></div>
+                <pre class=\"json-output\" id=\"platform-strategy-output\"></pre>
+            </div>
         </div>
-        <div class=\"field-grid\">
-            <label>
-                路径参数 JSON（可选）
-                <textarea id=\"platform-endpoint-path-params\" placeholder='{"item_id": 1}'></textarea>
-            </label>
-            <label>
-                查询参数 JSON（可选）
-                <textarea id=\"platform-endpoint-query-params\" placeholder='{"q": "AAPL", "limit": 20}'></textarea>
-            </label>
+        <div class=\"split-shell\">
+            <div class=\"subpanel\">
+                <h3>扫描器观测</h3>
+                <p>直接从平台端查看 scanner 可观测摘要和实时决策，不再要求先进入 admin 再切回来做策略判断。</p>
+                <div class=\"field-grid\">
+                    <label>
+                        运行状态
+                        <select id=\"platform-scanner-status\">
+                            <option value=\"\">全部</option>
+                            <option value=\"running\">运行中</option>
+                            <option value=\"completed\">已完成</option>
+                            <option value=\"failed\">失败</option>
+                        </select>
+                    </label>
+                    <label>
+                        分桶 ID
+                        <input id=\"platform-scanner-bucket-id\" type=\"number\" min=\"1\" placeholder=\"12\">
+                    </label>
+                    <label>
+                        代码
+                        <input id=\"platform-scanner-symbol\" type=\"text\" placeholder=\"AAPL\">
+                    </label>
+                    <label>
+                        决策
+                        <select id=\"platform-scanner-decision\">
+                            <option value=\"\">全部</option>
+                            <option value=\"emitted\">已发出</option>
+                            <option value=\"suppressed\">已抑制</option>
+                            <option value=\"skipped\">已跳过</option>
+                            <option value=\"error\">错误</option>
+                        </select>
+                    </label>
+                    <label>
+                        运行上限
+                        <input id=\"platform-scanner-limit\" type=\"number\" min=\"1\" max=\"200\" value=\"25\">
+                    </label>
+                    <label>
+                        决策上限
+                        <input id=\"platform-scanner-decision-limit\" type=\"number\" min=\"1\" max=\"200\" value=\"25\">
+                    </label>
+                </div>
+                <div class=\"button-row\">
+                    <button type=\"button\" id=\"platform-load-scanner-observability\">加载扫描器总览</button>
+                    <button type=\"button\" class=\"secondary\" id=\"platform-load-scanner-live-decisions\">加载实时决策</button>
+                </div>
+                <div class=\"status\" id=\"platform-scanner-status-output\"></div>
+                <div class=\"table-wrap\" id=\"platform-scanner-view\"><div class=\"empty-state\">加载扫描器总览或实时决策后，这里会显示运行摘要和决策表。</div></div>
+                <pre class=\"json-output\" id=\"platform-scanner-output\"></pre>
+            </div>
+            <div class=\"subpanel\">
+                <h3>回测实验</h3>
+                <p>回测运行、排名刷新和策略筛选都收口到这里，作为桌面端实验链路的一部分持续使用。</p>
+                <div class=\"field-grid\">
+                    <label>
+                        运行状态
+                        <select id=\"platform-backtests-status\">
+                            <option value=\"\">全部</option>
+                            <option value=\"pending\">待处理</option>
+                            <option value=\"running\">运行中</option>
+                            <option value=\"completed\">已完成</option>
+                            <option value=\"failed\">失败</option>
+                        </select>
+                    </label>
+                    <label>
+                        策略名
+                        <input id=\"platform-backtests-strategy\" type=\"text\" placeholder=\"momentum\">
+                    </label>
+                    <label>
+                        周期
+                        <input id=\"platform-backtests-timeframe\" type=\"text\" value=\"1d\" placeholder=\"1d\">
+                    </label>
+                    <label>
+                        标的
+                        <input id=\"platform-backtests-symbol\" type=\"text\" placeholder=\"AAPL\">
+                    </label>
+                    <label>
+                        运行上限
+                        <input id=\"platform-backtests-limit\" type=\"number\" min=\"1\" max=\"200\" value=\"25\">
+                    </label>
+                    <label>
+                        刷新窗口
+                        <input id=\"platform-backtests-refresh-windows\" type=\"text\" placeholder=\"30, 90, 180\">
+                    </label>
+                </div>
+                <div class=\"field-grid\">
+                    <label>
+                        刷新标的（逗号分隔）
+                        <input id=\"platform-backtests-refresh-symbols\" type=\"text\" placeholder=\"AAPL, MSFT\">
+                    </label>
+                    <label>
+                        刷新策略（逗号分隔）
+                        <input id=\"platform-backtests-refresh-strategies\" type=\"text\" placeholder=\"momentum, mean-reversion\">
+                    </label>
+                </div>
+                <div class=\"field-grid\">
+                    <label>
+                        高权限确认
+                        <span>只有在确认需要立即刷新实验排名时才勾选，避免误触触发整批回测。</span>
+                        <input id=\"platform-backtests-refresh-confirm\" type=\"checkbox\">
+                    </label>
+                </div>
+                <div class=\"button-row\">
+                    <button type=\"button\" id=\"platform-load-backtest-runs\">加载回测运行</button>
+                    <button type=\"button\" class=\"secondary\" id=\"platform-trigger-backtest-refresh\">触发排名刷新</button>
+                </div>
+                <div class=\"status\" id=\"platform-backtests-status-output\"></div>
+                <div class=\"table-wrap\" id=\"platform-backtests-view\"><div class=\"empty-state\">加载回测运行或触发实验后，这里会显示运行列表与结果摘要。</div></div>
+                <pre class=\"json-output\" id=\"platform-backtests-output\"></pre>
+            </div>
         </div>
-        <div class=\"field-grid\">
-            <label>
-                请求体 JSON（可选）
-                <textarea id=\"platform-endpoint-body\" placeholder='{"symbol": "AAPL"}'></textarea>
-            </label>
-            <label>
-                附加请求头 JSON（可选）
-                <textarea id=\"platform-endpoint-headers\" placeholder='{"X-Custom-Header": "value"}'></textarea>
-            </label>
+        <div class=\"subpanel\">
+            <h3>底层接口调试台</h3>
+            <p>如果预设动作还不够，再退回到端点级调试；这里同时覆盖 public API 与高权限策略接口。</p>
+            <form id=\"platform-endpoint-console-form\">
+                <div class=\"field-grid\">
+                    <label>
+                        端点
+                        <select id=\"platform-endpoint-select\"></select>
+                    </label>
+                    <label>
+                        Bearer Token 覆盖（可选）
+                        <input id=\"platform-endpoint-token\" type=\"text\" placeholder=\"留空时按端点配置自动处理认证\">
+                    </label>
+                </div>
+                <div class=\"field-grid\">
+                    <label>
+                        路径参数 JSON（可选）
+                        <textarea id=\"platform-endpoint-path-params\" placeholder='{"item_id": 1}'></textarea>
+                    </label>
+                    <label>
+                        查询参数 JSON（可选）
+                        <textarea id=\"platform-endpoint-query-params\" placeholder='{"q": "AAPL", "limit": 20}'></textarea>
+                    </label>
+                </div>
+                <div class=\"field-grid\">
+                    <label>
+                        请求体 JSON（可选）
+                        <textarea id=\"platform-endpoint-body\" placeholder='{"symbol": "AAPL"}'></textarea>
+                    </label>
+                    <label>
+                        附加请求头 JSON（可选）
+                        <textarea id=\"platform-endpoint-headers\" placeholder='{"X-Custom-Header": "value"}'></textarea>
+                    </label>
+                </div>
+                <div class=\"button-row\">
+                    <button type=\"submit\">执行选中端点</button>
+                    <button type=\"button\" class=\"secondary\" id=\"platform-endpoint-reset\">重置调试台</button>
+                </div>
+            </form>
+            <div class=\"status\" id=\"platform-endpoint-console-status\"></div>
+            <pre class=\"json-output\" id=\"platform-endpoint-output\"></pre>
         </div>
-        <div class=\"button-row\">
-            <button type=\"submit\">执行选中端点</button>
-            <button type=\"button\" class=\"secondary\" id=\"platform-endpoint-reset\">重置调试台</button>
-        </div>
-    </form>
-    <div class=\"status\" id=\"platform-endpoint-console-status\"></div>
-    <pre class=\"json-output\" id=\"platform-endpoint-output\"></pre>
+    </div>
 </section>
 """
 
-_ADMIN_BODY = _BASE_CONNECTION_PANEL + """
-<section class=\"panel\">
+_ADMIN_BODY = """
+<section class=\"panel wide admin-overview\" id=\"admin-overview\">
     <div class=\"panel-header\">
         <div>
-            <h2>管理会话</h2>
-            <p class=\"panel-copy\">使用同样的邮箱验证码流程登录活动管理员，然后把 Bearer Token 复用到 admin API；同时保留手动 Token 覆盖，方便调试。</p>
+            <h2>运营治理总览</h2>
+            <p class=\"panel-copy\">next/admin 聚焦用户、推送、权限、审计与运行治理。策略相关页只作为内部高权限观测面存在，不再把 admin 写成策略产品中心。</p>
         </div>
-        <span class=\"pill\">/v1/admin-auth/*</span>
+        <span class=\"pill\">运营治理面</span>
     </div>
-    <form id=\"admin-send-code-form\">
-        <div class=\"field-grid single\">
-            <label>
-                管理员邮箱
-                <input id=\"admin-auth-email\" type=\"email\" placeholder=\"admin@example.com\" required>
-            </label>
-        </div>
-        <div class=\"button-row\">
-            <button type=\"submit\">发送管理验证码</button>
-        </div>
-    </form>
-    <form id=\"admin-verify-form\">
-        <div class=\"field-grid\">
-            <label>
-                验证邮箱
-                <input id=\"admin-verify-email\" type=\"email\" placeholder=\"admin@example.com\" required>
-            </label>
-            <label>
-                6 位验证码
-                <input id=\"admin-verify-code\" type=\"text\" maxlength=\"6\" placeholder=\"123456\" required>
-            </label>
-            <label>
-                语言地区
-                <input id=\"admin-verify-locale\" type=\"text\" placeholder=\"zh-CN\">
-            </label>
-            <label>
-                时区
-                <input id=\"admin-verify-timezone\" type=\"text\" placeholder=\"Asia/Shanghai\">
-            </label>
-        </div>
-        <div class=\"button-row\">
-            <button type=\"submit\">验证并保存管理会话</button>
-            <button type=\"button\" class=\"secondary\" id=\"refresh-admin-session\">刷新管理令牌</button>
-            <button type=\"button\" class=\"ghost\" id=\"logout-admin-session\">退出管理会话</button>
-        </div>
-    </form>
-    <div class=\"field-grid single\">
-        <label>
-            手动覆盖管理访问令牌
-            <textarea id=\"admin-token\" placeholder=\"在此粘贴 Bearer Token\"></textarea>
-        </label>
+    <div class=\"ops-grid\">
+        <article class=\"ops-card\">
+            <small>Lane 01</small>
+            <strong>用户与订阅</strong>
+            <span>用户资料、订阅状态、套餐调整和生命周期管理属于 admin 主责。</span>
+        </article>
+        <article class=\"ops-card\">
+            <small>Lane 02</small>
+            <strong>推送与消息</strong>
+            <span>手动分发、发件箱、回执和消息任务组成运营主链路。</span>
+        </article>
+        <article class=\"ops-card\">
+            <small>Lane 03</small>
+            <strong>权限与审计</strong>
+            <span>管理员身份、操作员范围和操作留痕用于控制谁能做什么。</span>
+        </article>
+        <article class=\"ops-card\">
+            <small>Lane 04</small>
+            <strong>监控与发布</strong>
+            <span>运行态、告警、验收和发布证据是治理主责；策略运行页仅作内部观测。</span>
+        </article>
     </div>
-    <div class=\"field-grid single\">
-        <label>
-            操作员 ID 覆盖
-            <input id=\"admin-operator-id\" type=\"number\" min=\"1\" placeholder=\"7\">
-        </label>
+    <div class=\"section-nav\">
+        <a class=\"section-link\" href=\"#admin-auth\">身份权限</a>
+        <a class=\"section-link\" href=\"#admin-users\">用户订阅</a>
+        <a class=\"section-link\" href=\"#admin-distribution\">推送任务</a>
+        <a class=\"section-link\" href=\"#admin-runtime\">监控治理</a>
+        <a class=\"section-link\" href=\"#admin-scanner\">内部策略观测</a>
     </div>
-    <div class=\"button-row\">
-        <button type=\"button\" id=\"save-admin-token\">保存粘贴的令牌</button>
-        <button type=\"button\" class=\"secondary\" id=\"show-admin-session\">查看管理会话</button>
-        <button type=\"button\" class=\"ghost\" id=\"clear-admin-session\">清除管理会话</button>
+</section>
+""" + _BASE_CONNECTION_PANEL + """
+<section class=\"panel span-8\" id=\"admin-auth\">
+    <div class=\"panel-header\">
+        <div>
+            <h2>身份与权限</h2>
+            <p class=\"panel-copy\">把登录、验证、Token 覆盖和 operator 标识收口到同一权限域里，先确认是谁在操作，再去执行用户、推送或治理动作。</p>
+        </div>
+        <span class=\"pill\">身份控制</span>
     </div>
-    <div class=\"status\" id=\"admin-auth-status\"></div>
-    <pre class=\"json-output\" id=\"admin-auth-output\"></pre>
-    <div class=\"status\" id=\"admin-session-status\"></div>
-    <pre class=\"json-output\" id=\"admin-session-output\"></pre>
+    <div class=\"split-shell\">
+        <div class=\"stack-flow\">
+            <div class=\"subpanel\">
+                <h3>发送管理验证码</h3>
+                <p>仅保留最短登录链路，适合管理员在值班切换或新设备接入时快速拿到会话。</p>
+                <form id=\"admin-send-code-form\">
+                    <div class=\"field-grid single\">
+                        <label>
+                            管理员邮箱
+                            <input id=\"admin-auth-email\" type=\"email\" placeholder=\"admin@example.com\" required>
+                        </label>
+                    </div>
+                    <div class=\"button-row\">
+                        <button type=\"submit\">发送管理验证码</button>
+                    </div>
+                </form>
+            </div>
+            <div class=\"subpanel\">
+                <h3>验证并保留会话</h3>
+                <p>刷新、退出和登录后的状态反馈都保持在同一个会话卡里，避免后台运维误用旧 Token。</p>
+                <form id=\"admin-verify-form\">
+                    <div class=\"field-grid\">
+                        <label>
+                            验证邮箱
+                            <input id=\"admin-verify-email\" type=\"email\" placeholder=\"admin@example.com\" required>
+                        </label>
+                        <label>
+                            6 位验证码
+                            <input id=\"admin-verify-code\" type=\"text\" maxlength=\"6\" placeholder=\"123456\" required>
+                        </label>
+                        <label>
+                            语言地区
+                            <input id=\"admin-verify-locale\" type=\"text\" placeholder=\"zh-CN\">
+                        </label>
+                        <label>
+                            时区
+                            <input id=\"admin-verify-timezone\" type=\"text\" placeholder=\"Asia/Shanghai\">
+                        </label>
+                    </div>
+                    <div class=\"button-row\">
+                        <button type=\"submit\">验证并保存管理会话</button>
+                        <button type=\"button\" class=\"secondary\" id=\"refresh-admin-session\">刷新管理令牌</button>
+                        <button type=\"button\" class=\"ghost\" id=\"logout-admin-session\">退出管理会话</button>
+                    </div>
+                </form>
+                <div class=\"status\" id=\"admin-auth-status\"></div>
+                <pre class=\"json-output\" id=\"admin-auth-output\"></pre>
+            </div>
+        </div>
+        <div class=\"stack-flow\">
+            <div class=\"subpanel\">
+                <h3>值班身份与令牌覆盖</h3>
+                <p>保留手动 Token 覆盖和 operator ID，便于代理验证、紧急回放和多角色切换。</p>
+                <div class=\"field-grid single\">
+                    <label>
+                        手动覆盖管理访问令牌
+                        <textarea id=\"admin-token\" placeholder=\"在此粘贴 Bearer Token\"></textarea>
+                    </label>
+                </div>
+                <div class=\"field-grid single\">
+                    <label>
+                        操作员 ID 覆盖
+                        <input id=\"admin-operator-id\" type=\"number\" min=\"1\" placeholder=\"7\">
+                    </label>
+                </div>
+                <div class=\"button-row\">
+                    <button type=\"button\" id=\"save-admin-token\">保存粘贴的令牌</button>
+                    <button type=\"button\" class=\"secondary\" id=\"show-admin-session\">查看管理会话</button>
+                    <button type=\"button\" class=\"ghost\" id=\"clear-admin-session\">清除管理会话</button>
+                </div>
+            </div>
+            <div class=\"subpanel\">
+                <h3>当前班次提示</h3>
+                <p>后台值班时建议先确认当前会话、operator ID 和 Token 来源，再执行任务领取或用户变更。</p>
+                <ul class=\"micro-list\">
+                    <li>如果通过验证码登录，优先使用自动保存的本地会话，避免手工粘贴旧 Token。</li>
+                    <li>如果通过代理或调试环境接入，手动 Token 覆盖和 operator ID 可以明确当前权限上下文。</li>
+                    <li>执行用户、任务或发布动作前，可先点“查看管理会话”确认当前身份。</li>
+                </ul>
+                <div class=\"status\" id=\"admin-session-status\"></div>
+                <pre class=\"json-output\" id=\"admin-session-output\"></pre>
+            </div>
+        </div>
+    </div>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-6\" id=\"admin-operators\">
     <div class=\"panel-header\">
         <div>
-            <h2>操作员权限</h2>
-            <p class=\"panel-copy\">查看当前管理员操作员，并在 HTML 壳内直接更新角色、范围和启用状态。</p>
+            <h2>操作员与权限范围</h2>
+            <p class=\"panel-copy\">这里管理谁能做什么，而不是在管理端里直接做策略研究。</p>
         </div>
         <span class=\"pill\">/v1/admin/operators</span>
     </div>
@@ -4307,11 +6569,11 @@ _ADMIN_BODY = _BASE_CONNECTION_PANEL + """
     <pre class=\"json-output\" id=\"admin-operators-output\"></pre>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-6\" id=\"admin-distribution\">
     <div class=\"panel-header\">
         <div>
-            <h2>手动分发</h2>
-            <p class=\"panel-copy\">使用与管理操作相同的分发数据平面，排入手动邮件或推送通知。</p>
+            <h2>推送与手动分发</h2>
+            <p class=\"panel-copy\">管理端的主责之一是消息运营。这里用于排入手动邮件、推送和服务通知，不承载策略本身。</p>
         </div>
         <span class=\"pill\">/v1/admin/distribution/manual-message</span>
     </div>
@@ -4362,11 +6624,11 @@ _ADMIN_BODY = _BASE_CONNECTION_PANEL + """
     <pre class=\"json-output\" id=\"admin-distribution-output\"></pre>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-8\" id=\"admin-receipts\">
     <div class=\"panel-header\">
         <div>
-            <h2>任务中心：回执</h2>
-            <p class=\"panel-copy\">查看回执跟进状态、升级超时确认，并执行确认、领取和解决操作。</p>
+            <h2>消息回执任务</h2>
+            <p class=\"panel-copy\">围绕需要确认的消息、超时跟进和人工领取建立运营任务链路。</p>
         </div>
         <span class=\"pill\">/v1/admin/tasks/receipts*</span>
     </div>
@@ -4434,11 +6696,11 @@ _ADMIN_BODY = _BASE_CONNECTION_PANEL + """
     <pre class=\"json-output\" id=\"admin-task-receipts-output\"></pre>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-4\" id=\"admin-outbox\">
     <div class=\"panel-header\">
         <div>
-            <h2>任务中心：发件箱</h2>
-            <p class=\"panel-copy\">查看待投递任务、释放过期 processing 行，并重新入队发件箱记录。</p>
+            <h2>消息发件箱</h2>
+            <p class=\"panel-copy\">查看待投递消息、释放过期 processing 行，并重新入队发件箱记录。</p>
         </div>
         <span class=\"pill\">/v1/admin/tasks/outbox*</span>
     </div>
@@ -4500,11 +6762,11 @@ _ADMIN_BODY = _BASE_CONNECTION_PANEL + """
     <pre class=\"json-output\" id=\"admin-task-outbox-output\"></pre>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-4\" id=\"admin-trades\">
     <div class=\"panel-header\">
         <div>
-            <h2>任务中心：交易</h2>
-            <p class=\"panel-copy\">在当前操作员上下文下查看待处理交易任务，并执行领取或过期操作。</p>
+            <h2>交易复核任务</h2>
+            <p class=\"panel-copy\">这里只处理人工领取、复核或过期等治理动作，不把管理端写成策略执行主界面。</p>
         </div>
         <span class=\"pill\">/v1/admin/tasks/trades*</span>
     </div>
@@ -4571,11 +6833,11 @@ _ADMIN_BODY = _BASE_CONNECTION_PANEL + """
     <pre class=\"json-output\" id=\"admin-task-trades-output\"></pre>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-7\" id=\"admin-users\">
     <div class=\"panel-header\">
         <div>
-            <h2>用户</h2>
-            <p class=\"panel-copy\">加载用户记录、查看指定用户、更新资料或资金字段，并执行批量套餐或启用状态调整。</p>
+            <h2>用户与订阅</h2>
+            <p class=\"panel-copy\">加载用户记录、查看订阅状态、更新资料或资金字段，并执行批量套餐或启用状态调整。</p>
         </div>
         <span class=\"pill\">/v1/admin/users*</span>
     </div>
@@ -4679,11 +6941,11 @@ _ADMIN_BODY = _BASE_CONNECTION_PANEL + """
     <pre class=\"json-output\" id=\"admin-users-output\"></pre>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-5\" id=\"admin-audit\">
     <div class=\"panel-header\">
         <div>
-            <h2>审计轨迹</h2>
-            <p class=\"panel-copy\">按实体、动作、来源、请求 ID 或发件箱状态筛选审计事件，查看操作历史。</p>
+            <h2>审计与操作留痕</h2>
+            <p class=\"panel-copy\">按实体、动作、来源、请求 ID 或发件箱状态筛选审计事件，确认高风险动作的责任归属。</p>
         </div>
         <span class=\"pill\">/v1/admin/audit</span>
     </div>
@@ -4728,11 +6990,11 @@ _ADMIN_BODY = _BASE_CONNECTION_PANEL + """
     <pre class=\"json-output\" id=\"admin-audit-output\"></pre>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-7\" id=\"admin-scanner\">
     <div class=\"panel-header\">
         <div>
-            <h2>扫描器</h2>
-            <p class=\"panel-copy\">查看扫描器可观测性、加载指定运行，并在管理页面内查询实时决策。</p>
+            <h2>内部策略观测：扫描器</h2>
+            <p class=\"panel-copy\">这里用于治理和值班时观测平台策略运行，不意味着 scanner 属于 admin 的产品中心。</p>
         </div>
         <span class=\"pill\">/v1/admin/scanner/*</span>
     </div>
@@ -4820,11 +7082,11 @@ _ADMIN_BODY = _BASE_CONNECTION_PANEL + """
     <pre class=\"json-output\" id=\"admin-scanner-output\"></pre>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-5\" id=\"admin-backtests\">
     <div class=\"panel-header\">
         <div>
-            <h2>回测</h2>
-            <p class=\"panel-copy\">查看历史回测运行、最新排名，并直接在管理端触发排名刷新。</p>
+            <h2>内部策略观测：回测</h2>
+            <p class=\"panel-copy\">用于查看平台策略实验、排名刷新和运行记录；从产品归属上，这些能力仍属于平台核心。</p>
         </div>
         <span class=\"pill\">/v1/admin/backtests/*</span>
     </div>
@@ -4904,11 +7166,11 @@ _ADMIN_BODY = _BASE_CONNECTION_PANEL + """
     <pre class=\"json-output\" id=\"admin-backtests-output\"></pre>
 </section>
 
-<section class=\"panel\">
+<section class=\"panel span-4\" id=\"admin-analytics\">
     <div class=\"panel-header\">
         <div>
-            <h2>分析</h2>
-            <p class=\"panel-copy\">总览、分发、策略健康度，以及 TradingAgents 读模型。</p>
+            <h2>平台运行分析</h2>
+            <p class=\"panel-copy\">从治理与复核视角查看分发、策略健康度和 TradingAgents 读模型，而不是把 admin 变成策略驾驶舱。</p>
         </div>
         <span class=\"pill\">/v1/admin/analytics/*</span>
     </div>
@@ -4928,11 +7190,11 @@ _ADMIN_BODY = _BASE_CONNECTION_PANEL + """
     <pre class=\"json-output\" id=\"admin-analytics-output\"></pre>
 </section>
 
-<section class=\"panel\">
+<section class=\"panel span-4\" id=\"admin-runtime\">
     <div class=\"panel-header\">
         <div>
-            <h2>运行态</h2>
-            <p class=\"panel-copy\">查看 admin API 的组件健康、运行指标与当前告警状态。</p>
+            <h2>运行监控</h2>
+            <p class=\"panel-copy\">查看 admin API 与相关组件健康、运行指标和当前告警状态，这是管理端最核心的治理能力之一。</p>
         </div>
         <span class=\"pill\">/v1/admin/runtime/*</span>
     </div>
@@ -4945,11 +7207,11 @@ _ADMIN_BODY = _BASE_CONNECTION_PANEL + """
     <pre class=\"json-output\" id=\"admin-runtime-output\"></pre>
 </section>
 
-<section class=\"panel wide\">
+<section class=\"panel span-4\" id=\"admin-acceptance\">
     <div class=\"panel-header\">
         <div>
-            <h2>验收与发布证据</h2>
-            <p class=\"panel-copy\">拉取就绪度报告与制品清单，用于切换和 OpenAPI 验证。</p>
+            <h2>验收与发布治理</h2>
+            <p class=\"panel-copy\">拉取就绪度报告与制品清单，用于切换、验收与变更治理。</p>
         </div>
         <span class=\"pill\">/v1/admin/acceptance/*</span>
     </div>
@@ -4962,25 +7224,72 @@ _ADMIN_BODY = _BASE_CONNECTION_PANEL + """
 </section>
 """
 
+
+def _render_hero_stats(stats: list[tuple[str, str]]) -> str:
+    return "".join(
+        f'<div class="hero-stat"><strong>{escape(title)}</strong><span>{escape(copy)}</span></div>'
+        for title, copy in stats
+    )
+
+
+def _render_hero_aside_items(items: list[str]) -> str:
+    return "".join(f"<li>{escape(item)}</li>" for item in items)
+
 _PAGE_META = {
     "app": {
         "title": "订阅端",
-        "hero_title": "普通订阅用户现在可以只维护一份离线优先草稿。",
-        "hero_copy": "这个路由直接由 Python 提供，面向邮箱验证码登录后的普通订阅用户。用户只需要维护订阅股票、已持仓股票和现金，准备好后再用“开始订阅”把监控快照同步到服务端。",
+        "hero_title": "像正式移动投资产品一样，先整理账户与资产，再一次性启动订阅。",
+        "hero_copy": "next/app 现在强调窄屏流程、单用户资产录入和离线优先草稿。用户可以像使用成熟移动券商一样，先准备 watchlist、持仓和现金，再把本次监控快照同步到服务端。",
+        "hero_stats": [
+            ("离线优先草稿", "订阅股票、持仓和现金先保存在当前设备。"),
+            ("一步启动同步", "准备好后再用一次主动作把快照写入服务端。"),
+            ("轻交互登录", "邮箱验证码即可完成登录、刷新和恢复云端资料。"),
+        ],
+        "hero_aside_title": "移动产品原则",
+        "hero_aside_items": [
+            "单页完成关键录入，减少在移动端多层跳转。",
+            "把最关键的资产数据放在主路径里，不依赖隐藏设置。",
+            "同步动作集中到一个主按钮，避免误触发多次写入。",
+            "右侧设备卡片持续反馈当前会话和同步结果。",
+        ],
         "body": _APP_BODY,
         "script": _APP_SCRIPT,
     },
     "platform": {
         "title": "平台端",
-        "hero_title": "无需前端工作区，也能完成研究与交易查询。",
-        "hero_copy": "平台界面以纯 HTML 控制台的形式运行在 public API 之上。你可以直接在浏览器里搜索标的、查看交易，并复用用户 Bearer 会话。",
+        "hero_title": "平台才是策略核心：买入预警、退出规则、回测与胜率都应在这里闭环。",
+        "hero_copy": "next/platform 继续运行在 public API 之上，但职责被重新收束为桌面策略核心。候选标的、策略观察池、退出参数、交易执行以及内部高权限策略接口都应围绕同一套桌面工作流组织。",
+        "hero_stats": [
+            ("买入策略", "候选标的、观察池和入场信号应在平台端形成统一工作流。"),
+            ("退出策略", "持仓、止盈止损和退出提醒不应散落到别的产品面。"),
+            ("策略实验", "回测、胜率、排名与内部策略接口都属于平台核心能力。"),
+        ],
+        "hero_aside_title": "策略平台原则",
+        "hero_aside_items": [
+            "平台端首先是策略驾驶舱，而不是普通资料管理页。",
+            "买入预警、退出策略、实验验证和执行确认应尽量在同一工作台内闭环。",
+            "即使部分高权限策略接口暂时挂在内部 API 下，产品归属也仍应视为平台核心。",
+            "默认复用 app 会话，避免研究、决策和执行之间重复登录。",
+        ],
         "body": _PLATFORM_BODY,
         "script": _PLATFORM_SCRIPT,
     },
     "admin": {
         "title": "管理端",
-        "hero_title": "在同一套部署基线上完成管理分析与运行控制。",
-        "hero_copy": "这个纯 HTML 管理壳现已支持活动管理员操作员的邮箱验证码登录、刷新和退出，同时仍保留手动 Bearer Token 覆盖，方便调试与代理验证。",
+        "hero_title": "管理端聚焦用户、推送、治理和监控，策略本身不是这里的产品中心。",
+        "hero_copy": "next/admin 被重新定义为运营治理面。管理员在这里处理用户生命周期、消息运营、权限审计和运行监控；scanner、backtests、analytics 等只作为内部高权限观测面存在，用来支撑平台治理。",
+        "hero_stats": [
+            ("用户与订阅", "用户资料、订阅状态、套餐调整和启停管理属于 admin 主责。"),
+            ("推送与任务", "消息分发、发件箱、回执和人工复核任务属于运营链路。"),
+            ("治理与监控", "权限、审计、运行态与发布证据共同构成管理端核心。"),
+        ],
+        "hero_aside_title": "运营后台原则",
+        "hero_aside_items": [
+            "先确认当前身份和权限上下文，再进行用户、消息或治理操作。",
+            "把用户、推送、权限、审计和运行监控放在相邻工作域，降低值班遗漏。",
+            "策略相关页只作为内部观测和应急入口，不把管理端继续写成策略驾驶舱。",
+            "依然保留纯 HTML + Python 部署优势，便于在受限环境下快速接入。",
+        ],
         "body": _ADMIN_BODY,
         "script": _ADMIN_SCRIPT,
     },
@@ -4988,15 +7297,41 @@ _PAGE_META = {
 
 
 def _render_nav(surface: SurfaceName) -> str:
+    return _render_nav_for_paths(surface, path_map=_build_surface_path_map())
+
+
+def _build_surface_path_map(route_prefix: str | None = None) -> dict[SurfaceName, str]:
+    normalized_prefix = str(route_prefix or "").strip().strip("/")
+    base = f"/{normalized_prefix}" if normalized_prefix else ""
+    return {
+        "app": f"{base}/app",
+        "platform": f"{base}/platform",
+        "admin": f"{base}/admin",
+    }
+
+
+def _render_nav_for_paths(
+    surface: SurfaceName,
+    *,
+    path_map: dict[SurfaceName, str],
+    stable_path_map: dict[SurfaceName, str] | None = None,
+    switcher_path: str | None = None,
+) -> str:
     items = [
-        ("app", "/app", "订阅端"),
-        ("platform", "/platform", "平台端"),
-        ("admin", "/admin", "管理端"),
+        ("app", path_map["app"], "订阅端"),
+        ("platform", path_map["platform"], "平台端"),
+        ("admin", path_map["admin"], "管理端"),
     ]
     chips: list[str] = []
     for item_surface, href, label in items:
         class_name = "nav-chip active" if item_surface == surface else "nav-chip"
         chips.append(f'<a class="{class_name}" href="{href}">{escape(label)}</a>')
+    if stable_path_map is not None:
+        chips.append(
+            f'<a class="nav-chip" href="{stable_path_map[surface]}">切回稳定版</a>'
+        )
+    if switcher_path:
+        chips.append(f'<a class="nav-chip" href="{switcher_path}">版本切换</a>')
     return "".join(chips)
 
 
@@ -5006,8 +7341,13 @@ def render_surface_page(
     project_name: str,
     public_api_base_url: str | None = None,
     admin_api_base_url: str | None = None,
+    route_prefix: str | None = None,
+    switcher_path: str | None = None,
+    experimental: bool = False,
 ) -> str:
     meta = _PAGE_META[surface]
+    path_map = _build_surface_path_map(route_prefix)
+    stable_path_map = _build_surface_path_map() if experimental else None
     page_config = json.dumps(
         {
             "surface": surface,
@@ -5016,15 +7356,36 @@ def render_surface_page(
             "adminApiBaseUrl": admin_api_base_url or "",
         }
     )
+    brand_copy = (
+        "并行新版本，不影响当前页面；不满意可立即切回稳定版。"
+        if experimental
+        else "订阅端、桌面端与管理端的统一入口。"
+    )
+    hero_kicker = "股票订阅系统并行新版" if experimental else "股票订阅系统三端入口"
 
     html = _PAGE_TEMPLATE
     replacements = {
-        "__TITLE__": escape(f"{project_name} {meta['title']}"),
+        "__TITLE__": escape(
+            f"{project_name} {meta['title']}" + (" · 并行新版" if experimental else "")
+        ),
         "__SURFACE__": escape(surface),
         "__BRAND__": escape(project_name),
-        "__NAV__": _render_nav(surface),
+        "__BRAND_COPY__": escape(brand_copy),
+        "__NAV__": _render_nav_for_paths(
+            surface,
+            path_map=path_map,
+            stable_path_map=stable_path_map,
+            switcher_path=switcher_path,
+        ),
+        "__HERO_KICKER__": escape(hero_kicker),
         "__HERO_TITLE__": escape(meta["hero_title"]),
         "__HERO_COPY__": escape(meta["hero_copy"]),
+        "__HERO_STATS__": _render_hero_stats(meta["hero_stats"]),
+        "__HERO_ASIDE_TITLE__": escape(meta["hero_aside_title"]),
+        "__HERO_ASIDE_ITEMS__": _render_hero_aside_items(meta["hero_aside_items"]),
+        "__APP_PATH__": escape(path_map["app"]),
+        "__PLATFORM_PATH__": escape(path_map["platform"]),
+        "__ADMIN_PATH__": escape(path_map["admin"]),
         "__BODY__": meta["body"],
         "__PAGE_CONFIG__": page_config,
         "__COMMON_SCRIPT__": _COMMON_SCRIPT,

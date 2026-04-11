@@ -25,6 +25,8 @@ class BacktestRunModel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     strategy_name: Mapped[str] = mapped_column(String(100), index=True)
+    experiment_name: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    run_key: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
     symbol: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     timeframe: Mapped[str] = mapped_column(String(16), default="1d", index=True)
     window_days: Mapped[int] = mapped_column(Integer, default=0, index=True)
@@ -35,8 +37,12 @@ class BacktestRunModel(Base):
         index=True,
     )
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    config: Mapped[str | None] = mapped_column(Text, nullable=True)
     metrics: Mapped[str | None] = mapped_column(Text, nullable=True)
     evidence: Mapped[str | None] = mapped_column(Text, nullable=True)
+    artifacts: Mapped[str | None] = mapped_column(Text, nullable=True)
+    code_version: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    dataset_fingerprint: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

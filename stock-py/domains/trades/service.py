@@ -4,11 +4,17 @@ Trade service - business logic for trade confirmations.
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domains.notifications.repository import NotificationRepository, ReceiptRepository
+from domains.portfolio.exit_plan import (
+    apply_sell_execution,
+    build_portfolio_extra,
+    resolve_stop_loss_ratio,
+    resolve_target_profit_ratio,
+)
 from domains.portfolio.repository import PortfolioRepository
 from domains.trades.link_security import get_link_signer
 from domains.trades.repository import TradeRepository
@@ -292,23 +298,55 @@ class TradeService:
                 actual_shares=normalized_shares,
                 actual_price=price,
             )
+            target_profit = resolve_target_profit_ratio(
+                float(getattr(existing, "target_profit", 0.15) or 0.15),
+                new_avg_cost,
+                getattr(trade, "extra", None),
+            )
+            stop_loss = resolve_stop_loss_ratio(
+                float(getattr(existing, "stop_loss", 0.08) or 0.08),
+                new_avg_cost,
+                getattr(trade, "extra", None),
+            )
+            extra = build_portfolio_extra(
+                getattr(existing, "extra", None),
+                shares=new_shares,
+                avg_cost=new_avg_cost,
+                target_profit=target_profit,
+                stop_loss=stop_loss,
+                trade_extra=getattr(trade, "extra", None),
+            )
             await self.portfolio_repository.update(
                 existing,
                 {
                     "shares": new_shares,
                     "avg_cost": new_avg_cost,
+                    "target_profit": target_profit,
+                    "stop_loss": stop_loss,
+                    "extra": extra,
                 },
             )
         else:
+            target_profit = resolve_target_profit_ratio(0.15, price, getattr(trade, "extra", None))
+            stop_loss = resolve_stop_loss_ratio(0.08, price, getattr(trade, "extra", None))
+            extra = build_portfolio_extra(
+                None,
+                shares=normalized_shares,
+                avg_cost=price,
+                target_profit=target_profit,
+                stop_loss=stop_loss,
+                trade_extra=getattr(trade, "extra", None),
+            )
             await self.portfolio_repository.create(
                 user_id=trade.user_id,
                 symbol=trade.symbol,
                 shares=normalized_shares,
                 avg_cost=price,
-                target_profit=0.15,
-                stop_loss=0.08,
+                target_profit=target_profit,
+                stop_loss=stop_loss,
                 notify=True,
                 notes=None,
+                extra=extra,
             )
 
     async def _apply_sell_to_portfolio(self, trade: Trade, shares: float, price: float) -> None:
@@ -325,11 +363,22 @@ class TradeService:
         )
 
         if position:
-            remaining = self.calculate_remaining_shares(int(position.shares), shares)
+            current_shares = int(position.shares)
+            remaining = self.calculate_remaining_shares(current_shares, shares)
             if remaining <= 0:
                 await self.portfolio_repository.delete(position)
             else:
-                await self.portfolio_repository.update(position, {"shares": remaining})
+                extra = apply_sell_execution(
+                    getattr(position, "extra", None),
+                    shares_before=current_shares,
+                    shares_after=remaining,
+                    target_profit=float(getattr(position, "target_profit", 0.15) or 0.15),
+                    trade_extra=getattr(trade, "extra", None),
+                )
+                updates: dict[str, Any] = {"shares": remaining}
+                if extra is not None:
+                    updates["extra"] = extra
+                await self.portfolio_repository.update(position, updates)
 
     async def _publish_trade_action(
         self,

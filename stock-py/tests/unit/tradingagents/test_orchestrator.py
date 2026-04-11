@@ -122,8 +122,12 @@ class FakeGateway:
             raise self.submit_error
         return self.submit_result or {}
 
-    async def get_stock_result(self, job_id: str):
-        self.poll_calls.append(job_id)
+    async def get_stock_result(
+        self,
+        request_id: str,
+        include_full_result_payload: bool = False,
+    ):
+        self.poll_calls.append(request_id)
         return self.poll_result
 
 
@@ -257,7 +261,7 @@ class TradingAgentsOrchestratorTest(unittest.TestCase):
         self.assertEqual(projection.request_id, "req-poll")
         self.assertEqual(projection.tradingagents_status, "completed")
         self.assertEqual(repository.increment_poll_count_calls, ["req-poll"])
-        self.assertEqual(gateway.poll_calls, ["job-poll"])
+        self.assertEqual(gateway.poll_calls, ["req-poll"])
         self.assertEqual(
             repository.update_projection_calls,
             [

@@ -477,13 +477,13 @@ def _build_shadow_read_config_template() -> dict[str, Any]:
         "scope": "account dashboard/profile, notification list/push-device, trade info",
         "primary_label": "legacy",
         "shadow_label": "python",
-        "notes": "Fill exact primary/shadow URLs before running. Traffic mirroring or routing flags remain deployment-owned.",
+        "notes": "Review the generated URLs before running. Traffic mirroring or routing flags remain deployment-owned.",
         "scenarios": [
             {
                 "name": "account-dashboard",
                 "scope": "account",
                 "method": "GET",
-                "primary_url": "<set legacy account dashboard url>",
+                "primary_url": "${LEGACY_BASE_URL}/v1/account/dashboard",
                 "shadow_url": "${SHADOW_READ_SHADOW_BASE_URL}/v1/account/dashboard",
                 "headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
                 "ignore_json_paths": [],
@@ -492,7 +492,7 @@ def _build_shadow_read_config_template() -> dict[str, Any]:
                 "name": "account-profile",
                 "scope": "account",
                 "method": "GET",
-                "primary_url": "<set legacy account profile url>",
+                "primary_url": "${LEGACY_BASE_URL}/v1/account/profile",
                 "shadow_url": "${SHADOW_READ_SHADOW_BASE_URL}/v1/account/profile",
                 "headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
                 "ignore_json_paths": [],
@@ -501,7 +501,7 @@ def _build_shadow_read_config_template() -> dict[str, Any]:
                 "name": "notifications-list",
                 "scope": "notifications",
                 "method": "GET",
-                "primary_url": "<set legacy notifications list url>",
+                "primary_url": "${LEGACY_BASE_URL}/v1/notifications",
                 "shadow_url": "${SHADOW_READ_SHADOW_BASE_URL}/v1/notifications",
                 "headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
                 "params": {"limit": 20},
@@ -511,7 +511,7 @@ def _build_shadow_read_config_template() -> dict[str, Any]:
                 "name": "push-devices",
                 "scope": "notifications",
                 "method": "GET",
-                "primary_url": "<set legacy push devices url>",
+                "primary_url": "${LEGACY_BASE_URL}/v1/notifications/push-devices",
                 "shadow_url": "${SHADOW_READ_SHADOW_BASE_URL}/v1/notifications/push-devices",
                 "headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
                 "ignore_json_paths": [],
@@ -520,7 +520,7 @@ def _build_shadow_read_config_template() -> dict[str, Any]:
                 "name": "trade-info",
                 "scope": "trades",
                 "method": "GET",
-                "primary_url": "<set legacy trade app-info url>",
+                "primary_url": "${LEGACY_BASE_URL}/v1/trades/${LOAD_TEST_TRADE_ID}/app-info",
                 "shadow_url": "${SHADOW_READ_SHADOW_BASE_URL}/v1/trades/${LOAD_TEST_TRADE_ID}/app-info",
                 "headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
                 "ignore_json_paths": [],
@@ -542,14 +542,14 @@ def _build_dual_write_config_template() -> dict[str, Any]:
                 "name": "subscription-start",
                 "scope": "subscription",
                 "write_method": "POST",
-                "primary_write_url": "<set primary subscription write url>",
+                "primary_write_url": "${PRIMARY_SUBSCRIPTION_START_URL}",
                 "primary_write_headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
                 "primary_write_json": {
                     "allow_empty_portfolio": True,
                     "account": {"total_capital": 100000, "currency": "USD"},
                     "watchlist": [{"symbol": "AAPL", "min_score": 70, "notify": True}],
                 },
-                "primary_verify_url": "<set primary subscription read url>",
+                "primary_verify_url": "${PRIMARY_ACCOUNT_PROFILE_URL}",
                 "shadow_verify_url": "${DUAL_WRITE_SHADOW_BASE_URL}/v1/account/profile",
                 "verify_headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
                 "ignore_json_paths": [],
@@ -559,9 +559,9 @@ def _build_dual_write_config_template() -> dict[str, Any]:
                 "name": "notification-ack",
                 "scope": "notifications",
                 "write_method": "PUT",
-                "primary_write_url": "<set primary notification ack url>",
+                "primary_write_url": "${PRIMARY_NOTIFICATION_ACK_URL}",
                 "primary_write_headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
-                "primary_verify_url": "<set primary notification readback url>",
+                "primary_verify_url": "${PRIMARY_NOTIFICATION_READBACK_URL}",
                 "shadow_verify_url": "${DUAL_WRITE_SHADOW_BASE_URL}/v1/notifications",
                 "verify_headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
                 "ignore_json_paths": [],
@@ -571,9 +571,9 @@ def _build_dual_write_config_template() -> dict[str, Any]:
                 "name": "trade-app-confirm",
                 "scope": "trades",
                 "write_method": "POST",
-                "primary_write_url": "<set primary trade app-confirm url>",
+                "primary_write_url": "${PRIMARY_TRADE_APP_CONFIRM_URL}",
                 "primary_write_headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
-                "primary_verify_url": "<set primary trade readback url>",
+                "primary_verify_url": "${PRIMARY_TRADE_READBACK_URL}",
                 "shadow_verify_url": "${DUAL_WRITE_SHADOW_BASE_URL}/v1/trades/${LOAD_TEST_TRADE_ID}/app-info",
                 "verify_headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
                 "ignore_json_paths": [],
@@ -583,9 +583,9 @@ def _build_dual_write_config_template() -> dict[str, Any]:
                 "name": "trade-app-ignore",
                 "scope": "trades",
                 "write_method": "POST",
-                "primary_write_url": "<set primary trade app-ignore url>",
+                "primary_write_url": "${PRIMARY_TRADE_APP_IGNORE_URL}",
                 "primary_write_headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
-                "primary_verify_url": "<set primary trade readback url>",
+                "primary_verify_url": "${PRIMARY_TRADE_READBACK_URL}",
                 "shadow_verify_url": "${DUAL_WRITE_SHADOW_BASE_URL}/v1/trades/${LOAD_TEST_TRADE_ID}/app-info",
                 "verify_headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
                 "ignore_json_paths": [],
@@ -595,10 +595,10 @@ def _build_dual_write_config_template() -> dict[str, Any]:
                 "name": "trade-app-adjust",
                 "scope": "trades",
                 "write_method": "POST",
-                "primary_write_url": "<set primary trade app-adjust url>",
+                "primary_write_url": "${PRIMARY_TRADE_APP_ADJUST_URL}",
                 "primary_write_headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
                 "primary_write_json": {"actual_shares": 12, "actual_price": 101.5},
-                "primary_verify_url": "<set primary trade readback url>",
+                "primary_verify_url": "${PRIMARY_TRADE_READBACK_URL}",
                 "shadow_verify_url": "${DUAL_WRITE_SHADOW_BASE_URL}/v1/trades/${LOAD_TEST_TRADE_ID}/app-info",
                 "verify_headers": {"Authorization": "Bearer ${LOAD_TEST_ACCESS_TOKEN}"},
                 "ignore_json_paths": [],
@@ -608,7 +608,7 @@ def _build_dual_write_config_template() -> dict[str, Any]:
                 "name": "tradingagents-submit",
                 "scope": "tradingagents",
                 "write_method": "POST",
-                "primary_write_url": "<set primary TradingAgents submit url>",
+                "primary_write_url": "${PRIMARY_TRADINGAGENTS_SUBMIT_URL}",
                 "primary_write_json": {
                     "request_id": "${DUAL_WRITE_TRADINGAGENTS_REQUEST_ID}",
                     "ticker": "AAPL",
@@ -617,7 +617,7 @@ def _build_dual_write_config_template() -> dict[str, Any]:
                     "trigger_type": "manual",
                     "trigger_context": {"source": "dual-write-rehearsal"},
                 },
-                "primary_verify_url": "<set primary TradingAgents analysis read url>",
+                "primary_verify_url": "${PRIMARY_TRADINGAGENTS_ANALYSIS_URL}",
                 "shadow_verify_url": "${ADMIN_RUNTIME_URL}/v1/admin/tradingagents/analyses/${DUAL_WRITE_TRADINGAGENTS_REQUEST_ID}",
                 "verify_headers": {"Authorization": "Bearer ${ADMIN_RUNTIME_TOKEN}"},
                 "settle_seconds": 5,
@@ -628,7 +628,7 @@ def _build_dual_write_config_template() -> dict[str, Any]:
                 "name": "tradingagents-terminal",
                 "scope": "tradingagents",
                 "write_method": "POST",
-                "primary_write_url": "<set primary TradingAgents terminal webhook url>",
+                "primary_write_url": "${PRIMARY_TRADINGAGENTS_TERMINAL_URL}",
                 "primary_write_headers": {"X-Webhook-Signature": "${DUAL_WRITE_WEBHOOK_SIGNATURE}"},
                 "primary_write_json": {
                     "request_id": "${DUAL_WRITE_TRADINGAGENTS_REQUEST_ID}",
@@ -639,7 +639,7 @@ def _build_dual_write_config_template() -> dict[str, Any]:
                     "result_payload": {"source": "dual-write-rehearsal"},
                     "timestamp": "2026-04-06T00:05:00Z",
                 },
-                "primary_verify_url": "<set primary TradingAgents analysis read url>",
+                "primary_verify_url": "${PRIMARY_TRADINGAGENTS_ANALYSIS_URL}",
                 "shadow_verify_url": "${ADMIN_RUNTIME_URL}/v1/admin/tradingagents/analyses/${DUAL_WRITE_TRADINGAGENTS_REQUEST_ID}",
                 "verify_headers": {"Authorization": "Bearer ${ADMIN_RUNTIME_TOKEN}"},
                 "settle_seconds": 5,
@@ -2331,6 +2331,26 @@ def build_parser() -> argparse.ArgumentParser:
         default=os.getenv("SHADOW_READ_SHADOW_LABEL", ""),
     )
 
+    bootstrap_shadow_parser = subparsers.add_parser(
+        "bootstrap-shadow-read-config",
+        help="Create the shadow-read scenario template for a cutover report directory.",
+    )
+    bootstrap_shadow_parser.add_argument("--report-dir", required=True)
+    bootstrap_shadow_parser.add_argument(
+        "--config-path",
+        default=os.getenv("SHADOW_READ_CONFIG_PATH", ""),
+    )
+
+    bootstrap_dual_write_parser = subparsers.add_parser(
+        "bootstrap-dual-write-config",
+        help="Create the dual-write scenario template for a cutover report directory.",
+    )
+    bootstrap_dual_write_parser.add_argument("--report-dir", required=True)
+    bootstrap_dual_write_parser.add_argument(
+        "--config-path",
+        default=os.getenv("DUAL_WRITE_CONFIG_PATH", ""),
+    )
+
     rollback_parser = subparsers.add_parser(
         "capture-rollback-verification",
         help="Record backup readability and rollback smoke evidence for a cutover run.",
@@ -2490,6 +2510,24 @@ def main(argv: list[str] | None = None) -> int:
             "Captured shadow read evidence: "
             f"{Path(args.report_dir) / 'evidence' / 'shadow-read-results.json'}"
         )
+        return 0
+
+    if args.subcommand == "bootstrap-shadow-read-config":
+        path, created = bootstrap_shadow_read_config(
+            report_dir=args.report_dir,
+            config_path=args.config_path,
+        )
+        status = "Created" if created else "Preserved"
+        print(f"{status} shadow-read config: {path}")
+        return 0
+
+    if args.subcommand == "bootstrap-dual-write-config":
+        path, created = bootstrap_dual_write_config(
+            report_dir=args.report_dir,
+            config_path=args.config_path,
+        )
+        status = "Created" if created else "Preserved"
+        print(f"{status} dual-write config: {path}")
         return 0
 
     if args.subcommand == "capture-rollback-verification":

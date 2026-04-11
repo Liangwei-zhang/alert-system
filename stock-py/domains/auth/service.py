@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import secrets
+import smtplib
 from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
+from email.utils import formataddr
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,6 +63,8 @@ class AuthService:
                 message="Verification code generated (development mode)",
                 dev_code=code,
             )
+
+            await self._deliver_auth_code_email(normalized_email, code, is_admin=False)
 
         return SendCodeResponse(message="Verification code sent. Please check your inbox.")
 
@@ -147,6 +153,8 @@ class AuthService:
                 message="Admin verification code generated (development mode)",
                 dev_code=code,
             )
+
+            await self._deliver_auth_code_email(normalized_email, code, is_admin=True)
 
         return SendCodeResponse(message="Admin verification code sent. Please check your inbox.")
 
@@ -412,6 +420,67 @@ class AuthService:
             timezone=user.timezone,
             is_new=is_new,
         )
+
+    async def _deliver_auth_code_email(
+        self,
+        recipient_email: str,
+        code: str,
+        *,
+        is_admin: bool,
+    ) -> None:
+        from infra.core.config import get_settings
+
+        settings = get_settings()
+        if not settings.smtp_host:
+            raise AppError(
+                code="smtp_not_configured",
+                message="Verification email delivery is not configured.",
+                status_code=503,
+            )
+
+        account_label = "admin account" if is_admin else "account"
+        subject = "StockPy admin verification code" if is_admin else "StockPy verification code"
+        text_body = (
+            f"Your StockPy {account_label} verification code is {code}. "
+            "The code expires in 5 minutes."
+        )
+        html_body = (
+            "<html><body>"
+            f"<h2>{subject}</h2>"
+            f"<p>Your StockPy {account_label} verification code is "
+            f"<strong>{code}</strong>.</p>"
+            "<p>The code expires in 5 minutes.</p>"
+            "</body></html>"
+        )
+
+        message = EmailMessage()
+        message["Subject"] = subject
+        message["From"] = formataddr((settings.email_from_name, settings.email_from_address))
+        message["To"] = recipient_email
+        message.set_content(text_body)
+        message.add_alternative(html_body, subtype="html")
+
+        def send_message() -> None:
+            with smtplib.SMTP(
+                settings.smtp_host,
+                settings.smtp_port,
+                timeout=settings.smtp_timeout_seconds,
+            ) as client:
+                if settings.smtp_use_tls:
+                    client.starttls()
+                if settings.smtp_username:
+                    client.login(settings.smtp_username, settings.smtp_password)
+                client.send_message(message)
+
+        try:
+            await asyncio.to_thread(send_message)
+        except Exception as exc:
+            raise AppError(
+                code="send_code_delivery_failed",
+                message="Failed to deliver verification code email.",
+                status_code=503,
+                details={"reason": str(exc)},
+            ) from exc
 
     async def _require_active_admin_operator_by_email(
         self,

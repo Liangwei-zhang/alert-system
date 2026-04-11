@@ -3,7 +3,9 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from infra.analytics.clickhouse_client import ClickHouseClient
+import httpx
+
+from infra.analytics.clickhouse_client import ClickHouseClient, ClickHouseHttpBackend
 
 
 class ClickHouseClientTest(unittest.IsolatedAsyncioTestCase):
@@ -87,6 +89,56 @@ class ClickHouseClientTest(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["trade_id"], "T-2")
+
+
+class ClickHouseHttpBackendErrorHandlingTest(unittest.TestCase):
+    def _status_error(
+        self,
+        *,
+        status_code: int,
+        text: str,
+        exception_code: str | None = None,
+    ) -> httpx.HTTPStatusError:
+        request = httpx.Request("POST", "http://clickhouse.local/")
+        headers = {}
+        if exception_code is not None:
+            headers["X-ClickHouse-Exception-Code"] = exception_code
+        response = httpx.Response(status_code=status_code, text=text, request=request, headers=headers)
+        return httpx.HTTPStatusError("query failed", request=request, response=response)
+
+    def test_is_missing_entity_error_recognizes_unknown_table(self) -> None:
+        error = self._status_error(
+            status_code=404,
+            text="Code: 60. DB::Exception: Table stock_py.events does not exist. (UNKNOWN_TABLE)",
+        )
+
+        self.assertTrue(ClickHouseHttpBackend._is_missing_entity_error(error))
+
+    def test_is_missing_entity_error_recognizes_unknown_database(self) -> None:
+        error = self._status_error(
+            status_code=404,
+            text="Code: 81. DB::Exception: Database stock_py does not exist. (UNKNOWN_DATABASE)",
+        )
+
+        self.assertTrue(ClickHouseHttpBackend._is_missing_entity_error(error))
+
+    def test_is_missing_entity_error_uses_exception_code_header(self) -> None:
+        error = self._status_error(
+            status_code=404,
+            text="some gateway message without canonical marker",
+            exception_code="81",
+        )
+
+        self.assertTrue(ClickHouseHttpBackend._is_missing_entity_error(error))
+
+    def test_is_missing_entity_error_ignores_auth_failures(self) -> None:
+        error = self._status_error(
+            status_code=403,
+            text="Code: 516. DB::Exception: Authentication failed. (AUTHENTICATION_FAILED)",
+            exception_code="516",
+        )
+
+        self.assertFalse(ClickHouseHttpBackend._is_missing_entity_error(error))
 
 
 if __name__ == "__main__":

@@ -72,12 +72,13 @@ def test_tradingagents_flow(
         calls["list_delayed"] = delayed_threshold_minutes
         return [delayed_record]
 
-    async def fake_get_stock_result(self, job_id: str):
-        calls["get_stock_result"] = job_id
+    async def fake_get_stock_result(self, request_id: str, include_full_result_payload: bool = False):
+        calls["get_stock_result"] = request_id
         return {
-            "status": "completed",
+            "tradingagents_status": "succeeded",
             "final_action": "buy",
             "decision_summary": "Recovered by polling",
+            "result_payload": {"score": 0.88},
         }
 
     async def fake_mark_completed(
@@ -199,6 +200,10 @@ def test_tradingagents_flow(
         "selected_analysts": ["alpha", "beta"],
         "trigger_type": "manual",
         "trigger_context": {"source": "dashboard"},
+        "debug": None,
+        "config_overrides": None,
+        "publish_video": None,
+        "video_privacy_status": None,
     }
     assert calls["handle_terminal_event"] == {
         "request_id": "req-1",
@@ -221,15 +226,11 @@ def test_tradingagents_flow(
     assert calls["count_analyses"] == {"status": "completed", "ticker": "AAPL"}
     assert calls["get_by_request_id"] == ["req-1"]
     assert calls["list_delayed"] == 30
-    assert calls["get_stock_result"] == "job-delayed"
+    assert calls["get_stock_result"] == "req-delayed"
     assert calls["mark_completed"] == {
         "request_id": "req-delayed",
         "final_action": "buy",
         "decision_summary": "Recovered by polling",
-        "result_payload": {
-            "status": "completed",
-            "final_action": "buy",
-            "decision_summary": "Recovered by polling",
-        },
+        "result_payload": {"score": 0.88},
     }
     assert calls["build_tradingagents_view"] == 24

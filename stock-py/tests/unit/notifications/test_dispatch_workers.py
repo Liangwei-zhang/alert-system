@@ -47,6 +47,17 @@ class DispatchWorkersTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(processed["processed"])
         self.assertEqual(worker.processed, ["2"])
 
+    async def test_push_dispatch_process_event_handles_push_batch_topic(self) -> None:
+        worker = StubPushDispatchWorker()
+
+        result = await worker.process_event(
+            "notification.push.batch.requested",
+            {"channel": "push", "outbox_ids": ["2", "3"]},
+        )
+
+        self.assertEqual(worker.processed, ["2", "3"])
+        self.assertEqual(result, {"processed": 2, "delivered": 2, "failed": 0, "invalidated": 0})
+
     async def test_email_dispatch_process_event_routes_email_messages_only(self) -> None:
         worker = StubEmailDispatchWorker()
 

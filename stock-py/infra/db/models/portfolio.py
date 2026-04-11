@@ -41,6 +41,7 @@ class PortfolioPositionModel(Base):
     stop_loss: Mapped[float] = mapped_column(Numeric(8, 4), default=0.08)
     notify: Mapped[bool] = mapped_column(Boolean, default=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    extra: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

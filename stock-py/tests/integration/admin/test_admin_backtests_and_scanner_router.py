@@ -38,12 +38,25 @@ class FakeBacktestRepository:
         }
 
     @classmethod
-    def _filter_runs(cls, *, status=None, strategy_name=None, timeframe=None, symbol=None):
+    def _filter_runs(
+        cls,
+        *,
+        status=None,
+        strategy_name=None,
+        experiment_name=None,
+        run_key=None,
+        timeframe=None,
+        symbol=None,
+    ):
         items = list(cls.runs)
         if status:
             items = [item for item in items if str(getattr(item, "status", "")) == status]
         if strategy_name:
             items = [item for item in items if item.strategy_name == strategy_name]
+        if experiment_name:
+            items = [item for item in items if getattr(item, "experiment_name", None) == experiment_name]
+        if run_key:
+            items = [item for item in items if getattr(item, "run_key", None) == run_key]
         if timeframe:
             items = [item for item in items if item.timeframe == timeframe]
         if symbol:
@@ -55,6 +68,8 @@ class FakeBacktestRepository:
         items = self._filter_runs(
             status=kwargs.get("status"),
             strategy_name=kwargs.get("strategy_name"),
+            experiment_name=kwargs.get("experiment_name"),
+            run_key=kwargs.get("run_key"),
             timeframe=kwargs.get("timeframe"),
             symbol=kwargs.get("symbol"),
         )
@@ -68,6 +83,8 @@ class FakeBacktestRepository:
             self._filter_runs(
                 status=kwargs.get("status"),
                 strategy_name=kwargs.get("strategy_name"),
+                experiment_name=kwargs.get("experiment_name"),
+                run_key=kwargs.get("run_key"),
                 timeframe=kwargs.get("timeframe"),
                 symbol=kwargs.get("symbol"),
             )
@@ -106,6 +123,9 @@ class FakeBacktestService:
         strategy_names=None,
         windows=None,
         timeframe="1d",
+        experiment_name=None,
+        experiment_context=None,
+        artifact_entries=None,
     ):
         self.calls.append(
             {
@@ -113,6 +133,9 @@ class FakeBacktestService:
                 "strategy_names": list(strategy_names) if strategy_names is not None else None,
                 "windows": list(windows) if windows is not None else None,
                 "timeframe": timeframe,
+                "experiment_name": experiment_name,
+                "experiment_context": deepcopy(experiment_context),
+                "artifact_entries": deepcopy(artifact_entries),
             }
         )
         return deepcopy(self.return_value)
@@ -250,11 +273,21 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
         run = SimpleNamespace(
             id=12,
             strategy_name="ranking_refresh",
+            experiment_name="cli.backtest-benchmarks",
+            run_key="cli-backtest-benchmarks:1d:20260405T000000Z",
             symbol="*",
             timeframe="1d",
             window_days=365,
             status="completed",
             summary=json.dumps({"ranking_count": 2, "top_strategy": "trend_following"}),
+            config=json.dumps(
+                {
+                    "timeframe": "1d",
+                    "windows": [30, 90],
+                    "strategy_names": ["trend_following", "breakout"],
+                    "universe": {"count": 2, "symbols": ["AAPL", "MSFT"]},
+                }
+            ),
             metrics=json.dumps(
                 {
                     "rankings": [
@@ -264,6 +297,20 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
                 }
             ),
             evidence=json.dumps({"strategies": ["trend_following", "breakout"]}),
+            artifacts=json.dumps(
+                {
+                    "entries": [
+                        {"type": "database", "name": "backtest_run", "locator": {"id": 12}},
+                        {
+                            "type": "database",
+                            "name": "strategy_rankings",
+                            "locator": {"timeframe": "1d", "count": 2},
+                        },
+                    ]
+                }
+            ),
+            code_version="main@abc123def456",
+            dataset_fingerprint="fingerprint-123",
             error_message=None,
             started_at=now - timedelta(minutes=30),
             completed_at=now - timedelta(minutes=28),
@@ -296,6 +343,10 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
         FakeBacktestRepository.rankings = [ranking_one, ranking_two]
         FakeBacktestService.return_value = {
             "run_id": 18,
+            "experiment_name": "admin.manual-refresh",
+            "run_key": "admin-manual-refresh:1d:20260405T000000Z",
+            "code_version": "main@abc123def456",
+            "dataset_fingerprint": "fingerprint-123",
             "ranking_count": 2,
             "rankings": [
                 {
@@ -335,11 +386,19 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
                     {
                         "id": 12,
                         "strategy_name": "ranking_refresh",
+                        "experiment_name": "cli.backtest-benchmarks",
+                        "run_key": "cli-backtest-benchmarks:1d:20260405T000000Z",
                         "symbol": "*",
                         "timeframe": "1d",
                         "window_days": 365,
                         "status": "completed",
                         "summary": {"ranking_count": 2, "top_strategy": "trend_following"},
+                        "config": {
+                            "timeframe": "1d",
+                            "windows": [30, 90],
+                            "strategy_names": ["trend_following", "breakout"],
+                            "universe": {"count": 2, "symbols": ["AAPL", "MSFT"]},
+                        },
                         "metrics": {
                             "rankings": [
                                 {"strategy_name": "trend_following", "score": 1.42},
@@ -347,6 +406,18 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
                             ]
                         },
                         "evidence": {"strategies": ["trend_following", "breakout"]},
+                        "artifacts": {
+                            "entries": [
+                                {"type": "database", "name": "backtest_run", "locator": {"id": 12}},
+                                {
+                                    "type": "database",
+                                    "name": "strategy_rankings",
+                                    "locator": {"timeframe": "1d", "count": 2},
+                                },
+                            ]
+                        },
+                        "code_version": "main@abc123def456",
+                        "dataset_fingerprint": "fingerprint-123",
                         "error_message": None,
                         "started_at": "2026-04-04T23:30:00Z",
                         "completed_at": "2026-04-04T23:32:00Z",
@@ -410,10 +481,18 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
                 "strategy_names": ["trend_following", "breakout"],
                 "windows": [30, 90],
                 "timeframe": "1d",
+                "experiment_name": "admin.manual-refresh",
             },
         )
         self.assertEqual(create_response.status_code, 200)
         self.assertEqual(create_response.json()["run_id"], 18)
+        self.assertEqual(create_response.json()["experiment_name"], "admin.manual-refresh")
+        self.assertEqual(
+            create_response.json()["run_key"],
+            "admin-manual-refresh:1d:20260405T000000Z",
+        )
+        self.assertEqual(create_response.json()["code_version"], "main@abc123def456")
+        self.assertEqual(create_response.json()["dataset_fingerprint"], "fingerprint-123")
         self.assertEqual(create_response.json()["ranking_count"], 2)
         self.assertEqual(
             FakeBacktestService.calls,
@@ -423,6 +502,13 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
                     "strategy_names": ["trend_following", "breakout"],
                     "windows": [30, 90],
                     "timeframe": "1d",
+                    "experiment_name": "admin.manual-refresh",
+                    "experiment_context": {
+                        "trigger": "admin_api",
+                        "entrypoint": "apps.admin_api.routers.backtests.create_run",
+                        "dataset": {"selection_mode": "request"},
+                    },
+                    "artifact_entries": None,
                 }
             ],
         )

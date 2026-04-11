@@ -198,6 +198,26 @@ class Settings(BaseSettings):
         default=10.0,
         validation_alias=AliasChoices("HTTP_TIMEOUT_SECONDS"),
     )
+    tradingagents_base_url: str = Field(
+        default="http://127.0.0.1:8020",
+        validation_alias=AliasChoices("TRADINGAGENTS_BASE_URL"),
+    )
+    tradingagents_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("TRADINGAGENTS_API_KEY"),
+    )
+    tradingagents_timeout_seconds: float = Field(
+        default=30.0,
+        validation_alias=AliasChoices("TRADINGAGENTS_TIMEOUT_SECONDS"),
+    )
+    tradingagents_poll_include_full_result_payload: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("TRADINGAGENTS_POLL_INCLUDE_FULL_RESULT_PAYLOAD"),
+    )
+    tradingagents_webhook_auth_token: str = Field(
+        default="",
+        validation_alias=AliasChoices("TRADINGAGENTS_WEBHOOK_AUTH_TOKEN"),
+    )
     tradingagents_webhook_secret: str = Field(
         default="",
         validation_alias=AliasChoices("TRADINGAGENTS_WEBHOOK_SECRET"),
@@ -385,6 +405,18 @@ class Settings(BaseSettings):
     event_outbox_max_attempts: int = Field(
         default=3,
         validation_alias=AliasChoices("EVENT_OUTBOX_MAX_ATTEMPTS"),
+    )
+    notification_fanout_batch_size: int = Field(
+        default=1000,
+        validation_alias=AliasChoices("NOTIFICATION_FANOUT_BATCH_SIZE"),
+    )
+    push_dispatch_batch_size: int = Field(
+        default=500,
+        validation_alias=AliasChoices("PUSH_DISPATCH_BATCH_SIZE"),
+    )
+    push_dispatch_max_concurrency: int = Field(
+        default=100,
+        validation_alias=AliasChoices("PUSH_DISPATCH_MAX_CONCURRENCY"),
     )
     retention_worker_poll_seconds: float = Field(
         default=3600.0,

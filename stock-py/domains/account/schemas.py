@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -30,6 +32,7 @@ class DashboardPortfolioItem(BaseModel):
     avg_cost: float
     total_capital: float
     pct: float
+    extra: dict[str, Any] | None = None
 
 
 class DashboardWatchlistSummary(BaseModel):

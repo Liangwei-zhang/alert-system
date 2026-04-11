@@ -80,21 +80,21 @@ class FakeTradingAgentsRepository:
 
 
 class FakeTradingAgentsGateway:
-    results_by_job_id: dict[str, dict] = {}
-    errors_by_job_id: dict[str, Exception] = {}
+    results_by_request_id: dict[str, dict] = {}
+    errors_by_request_id: dict[str, Exception] = {}
     calls: list[str] = []
 
     @classmethod
     def reset(cls) -> None:
-        cls.results_by_job_id = {}
-        cls.errors_by_job_id = {}
+        cls.results_by_request_id = {}
+        cls.errors_by_request_id = {}
         cls.calls = []
 
-    async def get_stock_result(self, job_id: str):
-        self.calls.append(job_id)
-        if job_id in self.errors_by_job_id:
-            raise self.errors_by_job_id[job_id]
-        return self.results_by_job_id.get(job_id)
+    async def get_stock_result(self, request_id: str, include_full_result_payload: bool = False):
+        self.calls.append(request_id)
+        if request_id in self.errors_by_request_id:
+            raise self.errors_by_request_id[request_id]
+        return self.results_by_request_id.get(request_id)
 
 
 class FakeTradingAgentsReadModelService:
@@ -176,11 +176,12 @@ class AdminTradingAgentsRouterIntegrationTest(unittest.TestCase):
         FakeTradingAgentsRepository.total = 1
         FakeTradingAgentsRepository.records_by_request_id = {"req-1": analysis_record}
         FakeTradingAgentsRepository.delayed_records = [delayed_record]
-        FakeTradingAgentsGateway.results_by_job_id = {
-            "job-delayed": {
-                "status": "completed",
+        FakeTradingAgentsGateway.results_by_request_id = {
+            "req-delayed": {
+                "tradingagents_status": "succeeded",
                 "final_action": "buy",
                 "decision_summary": "Recovered by polling",
+                "result_payload": {"score": 0.72},
             }
         }
         FakeTradingAgentsReadModelService.response = TradingAgentsMetricsResponse(
@@ -289,7 +290,7 @@ class AdminTradingAgentsRouterIntegrationTest(unittest.TestCase):
         )
         self.assertEqual(FakeTradingAgentsRepository.calls["get_by_request_id"], ["req-1"])
         self.assertEqual(FakeTradingAgentsRepository.calls["list_delayed"], [30])
-        self.assertEqual(FakeTradingAgentsGateway.calls, ["job-delayed"])
+        self.assertEqual(FakeTradingAgentsGateway.calls, ["req-delayed"])
         self.assertEqual(
             FakeTradingAgentsRepository.calls["mark_completed"],
             [
@@ -297,11 +298,7 @@ class AdminTradingAgentsRouterIntegrationTest(unittest.TestCase):
                     "request_id": "req-delayed",
                     "final_action": "buy",
                     "decision_summary": "Recovered by polling",
-                    "result_payload": {
-                        "status": "completed",
-                        "final_action": "buy",
-                        "decision_summary": "Recovered by polling",
-                    },
+                    "result_payload": {"score": 0.72},
                 }
             ],
         )
@@ -314,11 +311,11 @@ class AdminTradingAgentsRouterIntegrationTest(unittest.TestCase):
             SimpleNamespace(request_id="req-error", job_id="job-error"),
             SimpleNamespace(request_id="req-missing-job", job_id=None),
         ]
-        FakeTradingAgentsGateway.results_by_job_id = {
-            "job-failed": {"status": "failed", "error": "provider failed"},
-            "job-running": {"status": "running"},
+        FakeTradingAgentsGateway.results_by_request_id = {
+            "req-failed": {"tradingagents_status": "failed", "error": "provider failed"},
+            "req-running": {"tradingagents_status": "running"},
         }
-        FakeTradingAgentsGateway.errors_by_job_id = {"job-error": RuntimeError("gateway timeout")}
+        FakeTradingAgentsGateway.errors_by_request_id = {"req-error": RuntimeError("gateway timeout")}
 
         get_response = self.client.get("/v1/admin/tradingagents/analyses/missing")
         self.assertEqual(get_response.status_code, 404)
@@ -332,10 +329,10 @@ class AdminTradingAgentsRouterIntegrationTest(unittest.TestCase):
         self.assertEqual(
             reconcile_response.json(),
             {
-                "processed_count": 3,
+                "processed_count": 4,
                 "reconciled_count": 1,
                 "failed_count": 1,
-                "message": "Processed 3 delayed jobs, reconciled 1, failed 1",
+                "message": "Processed 4 delayed jobs, reconciled 1, failed 1",
             },
         )
 
@@ -343,7 +340,7 @@ class AdminTradingAgentsRouterIntegrationTest(unittest.TestCase):
         self.assertEqual(FakeTradingAgentsRepository.calls["list_delayed"], [45])
         self.assertEqual(
             FakeTradingAgentsGateway.calls,
-            ["job-failed", "job-running", "job-error"],
+            ["req-failed", "req-running", "req-error", "req-missing-job"],
         )
         self.assertEqual(
             FakeTradingAgentsRepository.calls["mark_failed"],
@@ -351,7 +348,7 @@ class AdminTradingAgentsRouterIntegrationTest(unittest.TestCase):
         )
         self.assertEqual(
             FakeTradingAgentsRepository.calls["mark_delayed"],
-            ["req-running"],
+            ["req-running", "req-missing-job"],
         )
 
 

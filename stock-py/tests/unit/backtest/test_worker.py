@@ -26,7 +26,15 @@ class StubBacktestWorker(BacktestWorker):
         class Service:
             async def refresh_rankings(self, **kwargs):
                 worker.calls.append(("refresh", kwargs))
-                return {"ranking_count": 2, "rankings": [{"strategy_name": "trend_following"}]}
+                return {
+                    "run_id": 7,
+                    "experiment_name": "scheduler.backtest-refresh",
+                    "run_key": "scheduler-backtest-refresh:1d:20260409T120000Z",
+                    "dataset_fingerprint": "abc123",
+                    "code_version": "main@abc123",
+                    "ranking_count": 2,
+                    "rankings": [{"strategy_name": "trend_following"}],
+                }
 
         return Service()
 
@@ -39,6 +47,12 @@ class BacktestWorkerTest(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result["ranking_count"], 2)
         self.assertEqual(worker.calls[0][0], "refresh")
+        self.assertEqual(worker.calls[0][1]["experiment_name"], "scheduler.backtest-refresh")
+        self.assertEqual(worker.calls[0][1]["experiment_context"]["trigger"], "scheduler")
+        self.assertEqual(
+            worker.calls[0][1]["experiment_context"]["dataset"]["selection_mode"],
+            "active_symbols",
+        )
         self.assertEqual(worker.calls[1], "commit")
         self.assertEqual(worker.calls[2], "close")
 

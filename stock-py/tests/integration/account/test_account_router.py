@@ -123,6 +123,12 @@ class AccountRouterIntegrationTest(unittest.TestCase):
                     avg_cost=150.0,
                     total_capital=1500.0,
                     pct=15.0,
+                    extra={
+                        "sell_plan": {
+                            "base_shares": 10,
+                            "stages": [{"id": "tp1", "sell_pct": 0.25}],
+                        }
+                    },
                 )
             ],
             watchlist=DashboardWatchlistSummary(total=2, notify_enabled=1),
@@ -203,6 +209,12 @@ class AccountRouterIntegrationTest(unittest.TestCase):
                         "avg_cost": 150.0,
                         "total_capital": 1500.0,
                         "pct": 15.0,
+                        "extra": {
+                            "sell_plan": {
+                                "base_shares": 10,
+                                "stages": [{"id": "tp1", "sell_pct": 0.25}],
+                            }
+                        },
                     }
                 ],
                 "watchlist": {"total": 2, "notify_enabled": 1},

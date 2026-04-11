@@ -10,6 +10,10 @@
 
 ## 1. Deployment Gate
 
+- [ ] For a real staging/canary run, copy `ops/reports/cutover/real-cutover.env.template` to a private env file and prefer `make ops-real-cutover-validation CUTOVER_ENV_FILE=...` so load, parity, rollback, and K8s evidence land under one report bundle.
+- [ ] The real-env template defaults to read-only checks. Only enable `RUN_DUAL_WRITE`, `RUN_ROLLBACK_VERIFY`, `RUN_K8S_APPLY`, or `RUN_K8S_ROLLBACK` after the target env has disposable fixtures, backup evidence, and rollback approval.
+- [ ] If the K8s/runtime lane can start before load fixtures are ready, set `RUN_LOAD_BASELINE=false` and `RUN_SHADOW_READ=false` so the wrapper only blocks on release metadata, admin runtime access, and cluster-side inputs.
+- [ ] Prefer `make ops-real-k8s-runtime-validation CUTOVER_ENV_FILE=...` when only the runtime/K8s lane is unblocked; use `ops/reports/cutover/real-env-required-inputs.md` as the phase-by-phase input checklist.
 - [ ] Target image / package version is pinned and matches the release SHA.
 - [ ] `OPS_SECRET_DIR` / secret set has been reviewed for DB, Redis, webhook, mail, MinIO, and internal API keys.
 - [ ] Worker, scheduler, public API, and admin API rollout order is documented.
@@ -34,6 +38,7 @@
 
 ## 4. Shadow Read Check
 
+- [ ] If using the real-env wrapper, ensure `LEGACY_BASE_URL` and `SHADOW_READ_SHADOW_BASE_URL` are filled in the private env file before execution.
 - [ ] Review `ops/reports/cutover/<UTC timestamp>/shadow-read-scenarios.json` and fill the exact primary / shadow URLs plus any auth placeholders before sampling.
 - [ ] Run `make cutover-shadow-read CUTOVER_REPORT_DIR=... SHADOW_READ_DURATION_SECONDS=900 SHADOW_READ_INTERVAL_SECONDS=30` to generate `shadow-read-summary.md` and `evidence/shadow-read-results.json`.
 - [ ] Enable shadow reads for account dashboard and profile endpoints.
@@ -45,6 +50,7 @@
 
 ## 5. Dual-Write Verification
 
+- [ ] If using the real-env wrapper, fill the primary write/readback URL variables plus TradingAgents request/job/signature values in the private env file and set `DUAL_WRITE_ALLOW_MUTATIONS=true`.
 - [ ] Review `ops/reports/cutover/<UTC timestamp>/dual-write-scenarios.json` and fill the exact write / readback URLs plus disposable fixture IDs before running the write parity step.
 - [ ] Run `make cutover-dual-write CUTOVER_REPORT_DIR=... DUAL_WRITE_ALLOW_MUTATIONS=true` to generate `dual-write-summary.md` and `evidence/dual-write-results.json`.
 - [ ] Subscription state writes are mirrored and sampled for parity.
@@ -56,6 +62,7 @@
 ## 6. Load Test Gate
 
 - [ ] Locust dependency is installed from `requirements.txt`.
+- [ ] For real env runs, do not use `make load-bootstrap-fixtures` or `make cutover-bootstrap-fixtures`; those commands seed disposable fixtures through the local DB and are only valid for compose rehearsal.
 - [ ] Run `make load-report-init RELEASE_SHA=... QA_OWNER=... BACKEND_OWNER=...` to create the summary stub before the baseline starts.
 - [ ] Prefer `make ops-compose-load-baseline` when validating the full PgBouncer + Kafka + ClickHouse + MinIO stack.
 - [ ] If running Locust manually, point it at the compose stack or another non-production environment with the same data plane topology.
@@ -70,6 +77,7 @@
 - [ ] Freeze new canary expansion.
 - [ ] Disable write-path feature flags and internal job submissions.
 - [ ] Route traffic back to the previous stable deployment.
+- [ ] If using the real-env wrapper, make sure `BACKUP_DIR` points to a readable PostgreSQL dump + MinIO mirror before enabling `RUN_ROLLBACK_VERIFY=true`.
 - [ ] If using the generated K8s bundle, save the exact `kubectl diff -k` / `kubectl apply -k` / rollback command set alongside the report overlay path.
 - [ ] Revert application deployment and verify health endpoints.
 - [ ] Verify the latest PostgreSQL dump and MinIO mirror backup are readable before proceeding with data restore.

@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Users - Stock-py Admin</title>
+  <link href="../../dist/css/tabler.css" rel="stylesheet" />
+  <link href="../../dist/css/tabler-vendors.css" rel="stylesheet" />
+  <script src="../../dist/js/tabler-theme.min.js"></script>
+  <style>
+    @import url("https://rsms.me/inter/inter.css");
+    .stat-card:hover { transform: translateY(-2px); }
+    .table-responsive { min-height: 400px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Sidebar -->
+    <aside class="sidebar sidebar-dark d-none d-md-block" style="position: fixed; left: 0; top: 0; bottom: 0; width: 260px; z-index: 1000;">
+      <div class="sidebar-brand p-3 text-center">
+        <a href="/pages/dashboard.html" class="text-white text-decoration-none">
+          <svg xmlns="http://www.w3.org/2000/svg" width="120" height="32" viewBox="0 0 232 68">
+            <path d="M64.6 16.2C63 9.9 58.1 5 51.8 3.4 40 1.5 28 1.5 16.2 3.4 9.9 5 5 9.9 3.4 16.2 1.5 28 1.5 40 3.4 51.8 5 58.1 9.9 63 16.2 64.6c11.8 1.9 23.8 1.9 35.6 0C58.1 63 63 58.1 64.6 51.8c1.9-11.8 1.9-23.8 0-35.6z" fill="#066fd1"/>
+            <path d="M105 40l5-5 5 5 10-10-5-5 5-5-10-10-5 5-5-5-10 10 5 5-5 5 10 10zm20-15l5-5-5-5-5 5z" fill="#fff"/>
+          </svg>
+        </a>
+        <div class="text-muted small mt-1">Admin Panel</div>
+      </div>
+      <ul class="nav nav-vertical py-2">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link active" href="users.html">Users</a></li>
+        <li class="nav-item"><a class="nav-link" href="subscriptions.html">Subscriptions</a></li>
+        <li class="nav-item"><a class="nav-link" href="tasks.html">Tasks</a></li>
+        <li class="nav-item"><a class="nav-link" href="audit.html">Audit Logs</a></li>
+        <li class="nav-item"><a class="nav-link" href="push.html">Push / Devices</a></li>
+        <li class="nav-item mt-4"><a class="nav-link text-muted" href="/pages/dashboard.html">← Back to App</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main -->
+    <div class="page-main" style="margin-left: 260px;">
+      <header class="navbar navbar-expand-md d-print-none border-bottom">
+        <div class="container-xl">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="navbar-nav"><span class="text-muted">Users</span></div>
+        </div>
+      </header>
+
+      <div class="container-xl py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1 class="mb-0">User Management</h1>
+          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Add User
+          </button>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <input type="text" class="form-control" id="search-input" placeholder="Search users..." />
+              </div>
+              <div class="col-md-3">
+                <select class="form-select" id="role-filter">
+                  <option value="">All Roles</option>
+                  <option value="admin">Admin</option>
+                  <option value="operator">Operator</option>
+                  <option value="viewer">Viewer</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <select class="form-select" id="status-filter">
+                  <option value="">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="card">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0" id="users-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody">
+                <tr><td colspan="7" class="text-center py-4">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-3 d-flex justify-content-between align-items-center">
+          <span class="text-muted" id="page-info"></span>
+          <div>
+            <button class="btn btn-sm btn-outline-secondary" id="prev-btn">Previous</button>
+            <button class="btn btn-sm btn-outline-secondary" id="next-btn">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-title">Add User</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="user-form">
+            <input type="hidden" id="user-id" />
+            <div class="mb-3">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-control" id="username" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" id="email" required />
+            </div>
+            <div class="mb-3" id="password-group">
+              <label class="form-label">Password</label>
+              <input type="password" class="form-control" id="password" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Role</label>
+              <select class="form-select" id="role">
+                <option value="viewer">Viewer</option>
+                <option value="operator">Operator</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Status</label>
+              <select class="form-select" id="is-active">
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="save-btn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../dist/js/tabler.min.js"></script>
+  <script>
+    const API_BASE = '/api/admin/users';
+    let currentPage = 0, pageSize = 20;
+
+    async function fetchJSON(url, opts = {}) {
+      try {
+        const res = await fetch(url, opts);
+        if (!res.ok) throw new Error(res.status);
+        return await res.json();
+      } catch (e) { console.error(e); return null; }
+    }
+
+    async function loadUsers() {
+      const data = await fetchJSON(`${API_BASE}?skip=${currentPage * pageSize}&limit=${pageSize}`);
+      const tbody = document.getElementById('users-tbody');
+      if (!data || !data.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">No users found</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(u => `
+        <tr>
+          <td>${u.id}</td>
+          <td><strong>${u.username}</strong></td>
+          <td>${u.email}</td>
+          <td><span class="badge bg-${u.role === 'admin' ? 'danger' : u.role === 'operator' ? 'warning' : 'secondary'}">${u.role}</span></td>
+          <td><span class="badge bg-${u.is_active ? 'success' : 'light'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
+          <td>${new Date(u.created_at).toLocaleDateString()}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary" onclick="editUser(${u.id}, '${u.username}', '${u.email}', '${u.role}', ${u.is_active})">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${u.id})">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+      document.getElementById('page-info').textContent = `Page ${currentPage + 1}`;
+    }
+
+    function editUser(id, username, email, role, isActive) {
+      document.getElementById('modal-title').textContent = 'Edit User';
+      document.getElementById('user-id').value = id;
+      document.getElementById('username').value = username;
+      document.getElementById('email').value = email;
+      document.getElementById('role').value = role;
+      document.getElementById('is-active').value = isActive.toString();
+      document.getElementById('password-group').style.display = 'none';
+      new bootstrap.Modal(document.getElementById('userModal')).show();
+    }
+
+    document.getElementById('save-btn').addEventListener('click', async () => {
+      const id = document.getElementById('user-id').value;
+      const data = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        role: document.getElementById('role').value,
+        is_active: document.getElementById('is-active').value === 'true'
+      };
+      if (!id) data.password = document.getElementById('password').value;
+      
+      const url = id ? `${API_BASE}/${id}` : API_BASE;
+      const method = id ? 'PATCH' : 'POST';
+      
+      const res = await fetchJSON(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      if (res) { bootstrap.Modal.getInstance(document.getElementById('userModal')).hide(); loadUsers(); }
+    });
+
+    async function deleteUser(id) {
+      if (!confirm('Delete this user?')) return;
+      await fetchJSON(`${API_BASE}/${id}`, { method: 'DELETE' });
+      loadUsers();
+    }
+
+    document.getElementById('prev-btn').onclick = () => { if (currentPage > 0) { currentPage--; loadUsers(); }};
+    document.getElementById('next-btn').onclick = () => { currentPage++; loadUsers(); };
+
+    document.querySelector('[data-bs-target="#userModal"]').addEventListener('click', () => {
+      document.getElementById('modal-title').textContent = 'Add User';
+      document.getElementById('user-form').reset();
+      document.getElementById('user-id').value = '';
+      document.getElementById('password-group').style.display = 'block';
+    });
+
+    loadUsers();
+  </script>
+</body>
+</html>

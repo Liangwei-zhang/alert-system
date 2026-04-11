@@ -63,6 +63,12 @@ def test_subscription_flow(authenticated_public_api_client: PublicApiClient, mon
                 avg_cost=150.0,
                 total_capital=1500.0,
                 pct=15.0,
+                extra={
+                    "sell_plan": {
+                        "base_shares": 10,
+                        "stages": [{"id": "tp1", "sell_pct": 0.25}],
+                    }
+                },
             )
         ],
         watchlist=DashboardWatchlistSummary(total=2, notify_enabled=1),
@@ -105,6 +111,12 @@ def test_subscription_flow(authenticated_public_api_client: PublicApiClient, mon
         stop_loss=0.1,
         notify=True,
         notes="starter position",
+        extra={
+            "sell_plan": {
+                "base_shares": 10,
+                "stages": [{"id": "tp1", "sell_pct": 0.25}],
+            }
+        },
         updated_at=now,
     )
     updated_portfolio_item = PortfolioItemResponse(
@@ -117,6 +129,10 @@ def test_subscription_flow(authenticated_public_api_client: PublicApiClient, mon
         stop_loss=0.08,
         notify=False,
         notes="scaled in",
+        extra={
+            "sell_progress": {"completed_stage_ids": ["tp1"]},
+            "last_exit": {"remaining_shares": 7},
+        },
         updated_at=now,
     )
     subscription_response = StartSubscriptionResponse(
@@ -209,6 +225,7 @@ def test_subscription_flow(authenticated_public_api_client: PublicApiClient, mon
     dashboard_result = authenticated_public_api_client.get("/v1/account/dashboard")
     assert dashboard_result.status_code == 200
     assert dashboard_result.json()["subscription"]["status"] == "active"
+    assert dashboard_result.json()["portfolio"][0]["extra"]["sell_plan"]["base_shares"] == 10
 
     update_profile_result = authenticated_public_api_client.put(
         "/v1/account/profile",
@@ -254,6 +271,7 @@ def test_subscription_flow(authenticated_public_api_client: PublicApiClient, mon
     )
     assert create_portfolio_result.status_code == 201
     assert create_portfolio_result.json()["shares"] == 10
+    assert create_portfolio_result.json()["extra"]["sell_plan"]["base_shares"] == 10
 
     update_portfolio_result = authenticated_public_api_client.put(
         "/v1/portfolio/1",
@@ -268,6 +286,7 @@ def test_subscription_flow(authenticated_public_api_client: PublicApiClient, mon
     )
     assert update_portfolio_result.status_code == 200
     assert update_portfolio_result.json()["total_capital"] == 1776.0
+    assert update_portfolio_result.json()["extra"]["sell_progress"]["completed_stage_ids"] == ["tp1"]
 
     delete_portfolio_result = authenticated_public_api_client.delete("/v1/portfolio/1")
     assert delete_portfolio_result.status_code == 204

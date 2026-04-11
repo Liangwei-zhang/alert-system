@@ -51,6 +51,15 @@ class BacktestWorker:
                 strategy_names=strategy_names,
                 windows=self.windows,
                 timeframe=self.timeframe,
+                experiment_name="scheduler.backtest-refresh",
+                experiment_context={
+                    "trigger": "scheduler",
+                    "entrypoint": "apps.workers.backtest.worker.BacktestWorker.refresh_rankings",
+                    "poll_interval_seconds": self.poll_interval,
+                    "dataset": {
+                        "selection_mode": "active_symbols",
+                    },
+                },
             )
             await self.commit_session(session)
             return result

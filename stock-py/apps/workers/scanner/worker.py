@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import json
 import logging
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -35,6 +36,8 @@ class ScannerWorker:
         self.market_snapshot_provider = market_snapshot_provider
         self.dedupe_policy = SignalDedupePolicy(cooldown_minutes=cooldown_minutes)
         self._running = False
+        self.strategy_ranking_cache_ttl_seconds = 300
+        self._strategy_rankings_cache: dict[str, tuple[datetime, list[dict[str, Any]]]] = {}
 
     async def run_forever(
         self,
@@ -211,6 +214,29 @@ class ScannerWorker:
             market_regime,
         )
 
+        alert_decision = (
+            candidate_data.get("analysis", {}).get("alert_decision")
+            if isinstance(candidate_data.get("analysis"), dict)
+            else {}
+        )
+        suppressed_reasons = (
+            alert_decision.get("suppressed_reasons") if isinstance(alert_decision, dict) else None
+        )
+        if isinstance(suppressed_reasons, list) and suppressed_reasons:
+            await self.record_decision(
+                session,
+                run_id=run_id,
+                symbol=symbol,
+                decision="suppressed",
+                reason=self._join_reasons([str(reason) for reason in suppressed_reasons])
+                or "strategy-suppressed",
+                signal_type=str(candidate_data["type"]),
+                score=self._coerce_int(candidate_data.get("score")),
+                suppressed=True,
+                dedupe_key=dedupe_key,
+            )
+            return {"status": "suppressed", "dedupe_key": dedupe_key}
+
         duplicate = await self.find_recent_duplicate(
             session,
             symbol=symbol,
@@ -232,16 +258,10 @@ class ScannerWorker:
             return {"status": "suppressed", "dedupe_key": dedupe_key}
 
         signal_id = await self.persist_signal(session, candidate_data, dedupe_key=dedupe_key)
-        recipient_ids = await self.resolve_recipients(
-            session,
-            symbol=symbol,
-            score=float(candidate_data.get("score", 0) or 0),
-        )
         await self.publish_signal_generated(
             session,
             signal_id=signal_id,
             candidate=candidate_data,
-            recipient_ids=recipient_ids,
             dedupe_key=dedupe_key,
         )
         await self.record_decision(
@@ -259,7 +279,7 @@ class ScannerWorker:
             "status": "emitted",
             "signal_id": signal_id,
             "dedupe_key": dedupe_key,
-            "recipient_count": len(recipient_ids),
+            "recipient_count": 0,
         }
 
     async def list_scan_buckets(self) -> list[dict[str, Any]]:
@@ -376,7 +396,40 @@ class ScannerWorker:
         from domains.market_data.scanner_snapshot_service import ScannerSnapshotService
 
         bars = await OhlcvRepository(session).get_recent_bars(symbol, timeframe="1d", limit=60)
-        return ScannerSnapshotService().build_snapshot(symbol, bars, timeframe="1d")
+        snapshot = ScannerSnapshotService().build_snapshot(symbol, bars, timeframe="1d")
+        if snapshot is None:
+            return None
+        rankings = await self.load_strategy_rankings(
+            session,
+            timeframe=str(snapshot.get("timeframe") or "1d"),
+        )
+        if rankings:
+            snapshot["strategy_rankings"] = rankings
+        return snapshot
+
+    async def load_strategy_rankings(
+        self,
+        session: Any,
+        *,
+        timeframe: str,
+    ) -> list[dict[str, Any]]:
+        normalized_timeframe = str(timeframe or "1d").strip().lower()
+        cached = self._strategy_rankings_cache.get(normalized_timeframe)
+        now = utcnow()
+        if cached is not None:
+            fetched_at, payload = cached
+            if (now - fetched_at).total_seconds() < self.strategy_ranking_cache_ttl_seconds:
+                return payload
+
+        from domains.analytics.backtest.repository import BacktestRepository
+
+        rows = await BacktestRepository(session).list_latest_rankings(
+            timeframe=normalized_timeframe,
+            limit=20,
+        )
+        payload = [self._strategy_ranking_to_dict(row) for row in rows]
+        self._strategy_rankings_cache[normalized_timeframe] = (now, payload)
+        return payload
 
     async def find_recent_duplicate(
         self,
@@ -449,7 +502,6 @@ class ScannerWorker:
         *,
         signal_id: int,
         candidate: dict[str, Any],
-        recipient_ids: list[int],
         dedupe_key: str,
     ) -> None:
         from infra.events.outbox import OutboxPublisher
@@ -474,7 +526,7 @@ class ScannerWorker:
                 "reasons": candidate.get("reasons") or [],
                 "analysis": analysis,
                 "source": "scanner.worker",
-                "user_ids": recipient_ids,
+                "user_ids": [],
                 "strategy_window": strategy_window,
                 "market_regime": market_regime,
                 "dedupe_key": dedupe_key,
@@ -520,6 +572,46 @@ class ScannerWorker:
             "bucket_id": int(data["bucket_id"]),
             "symbol": str(data["symbol"]).upper(),
             "priority": int(data.get("priority", 0)),
+        }
+
+    @staticmethod
+    def _strategy_ranking_to_dict(row: Any) -> dict[str, Any]:
+        if isinstance(row, dict):
+            data = dict(row)
+        else:
+            data = {
+                "strategy_name": getattr(row, "strategy_name", None),
+                "timeframe": getattr(row, "timeframe", None),
+                "rank": getattr(row, "rank", None),
+                "score": getattr(row, "score", None),
+                "degradation": getattr(row, "degradation", None),
+                "symbols_covered": getattr(row, "symbols_covered", None),
+                "evidence": getattr(row, "evidence", None),
+                "as_of_date": getattr(row, "as_of_date", None),
+            }
+
+        evidence = data.get("evidence")
+        if isinstance(evidence, str):
+            try:
+                evidence = json.loads(evidence)
+            except json.JSONDecodeError:
+                evidence = {}
+        if not isinstance(evidence, dict):
+            evidence = {}
+
+        as_of_date = data.get("as_of_date")
+        if hasattr(as_of_date, "isoformat"):
+            as_of_date = as_of_date.isoformat()
+
+        return {
+            "strategy_name": str(data.get("strategy_name") or "").strip(),
+            "timeframe": str(data.get("timeframe") or "1d").strip().lower(),
+            "rank": int(data.get("rank") or 0),
+            "score": float(data.get("score") or 0.0),
+            "degradation": float(data.get("degradation") or 0.0),
+            "symbols_covered": int(data.get("symbols_covered") or 0),
+            "evidence": evidence,
+            "as_of_date": as_of_date,
         }
 
     @staticmethod

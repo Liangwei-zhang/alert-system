@@ -450,7 +450,7 @@
                 <div class="rounded-2xl border border-ink/10 bg-white/75 p-3">
                     <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">当前聚焦标的</p>
                     <p class="mono mt-1 text-sm font-semibold text-ink" x-text="selectedSignal() ? selectedSignal().symbol : '--'"></p>
-                    <p class="mt-1 text-xs text-ink/65" x-text="selectedSignal() ? (selectedSignal().strategy + ' · 来源 ' + executionContextSourceLabel()) : '从盯盘雷达选择标的后联动退出策略和判定流' "></p>
+                    <p class="mt-1 text-xs text-ink/65" x-text="selectedSignal() ? (selectedSignal().strategy + ' · ' + signalRegimeLabel(selectedSignal()) + ' · 来源 ' + executionContextSourceLabel()) : '从盯盘雷达选择标的后联动退出策略和判定流' "></p>
                 </div>
                 <div class="rounded-2xl border border-ink/10 bg-white/75 p-3">
                     <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">当前主策略</p>
@@ -879,6 +879,29 @@
                                 </div>
                             </div>
 
+                            <div class="mb-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                <div class="rounded-2xl border border-ink/10 bg-white/70 p-3 text-xs">
+                                    <p class="text-ink/55">策略选择</p>
+                                    <p class="mt-1 text-sm font-semibold text-ink" x-text="strategySelectionSourceLabel(sig.selectionSource)"></p>
+                                    <p class="mt-1 text-ink/65" x-text="signalStrategyNarrative(sig)"></p>
+                                </div>
+                                <div class="rounded-2xl border border-ink/10 bg-white/70 p-3 text-xs">
+                                    <p class="text-ink/55">市场状态</p>
+                                    <p class="mt-1 text-sm font-semibold text-ink" x-text="signalRegimeLabel(sig)"></p>
+                                    <p class="mt-1 text-ink/65" x-text="sig.marketRegime ? ('family ' + sig.marketRegime) : 'family --'"></p>
+                                </div>
+                                <div class="rounded-2xl border border-ink/10 bg-white/70 p-3 text-xs">
+                                    <p class="text-ink/55">退出位责任</p>
+                                    <p class="mt-1 text-sm font-semibold text-ink" x-text="exitLevelSourceLabel(sig.exitLevelSource)"></p>
+                                    <p class="mt-1 text-ink/65" x-text="exitLevelNarrative(sig)"></p>
+                                </div>
+                                <div class="rounded-2xl border border-ink/10 bg-white/70 p-3 text-xs">
+                                    <p class="text-ink/55">校准版本</p>
+                                    <p class="mono mt-1 text-sm font-semibold text-ink" x-text="sig.calibrationVersion"></p>
+                                    <p class="mt-1 text-ink/65" x-text="sig.selectionStable ? '当前策略稳定' : '当前策略待复核'"></p>
+                                </div>
+                            </div>
+
                             <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
                                 <div class="metric-tile">
                                     <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">入场价</p>
@@ -904,6 +927,16 @@
                                     <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">风险收益比</p>
                                     <p class="mono mt-1 text-sm font-semibold" x-text="toFixed(sig.riskReward, 3)"></p>
                                 </div>
+                            </div>
+
+                            <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4" x-show="selectedScoreBreakdownCards(sig).length" x-cloak>
+                                <template x-for="card in selectedScoreBreakdownCards(sig)" :key="card.id">
+                                    <div class="rounded-2xl border border-ink/10 bg-white/70 p-3 text-xs">
+                                        <p class="text-ink/55" x-text="card.label"></p>
+                                        <p class="mono mt-1 text-sm font-semibold text-ink" x-text="card.value"></p>
+                                        <p class="mt-1 text-ink/65" x-text="card.meta"></p>
+                                    </div>
+                                </template>
                             </div>
 
                             <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">

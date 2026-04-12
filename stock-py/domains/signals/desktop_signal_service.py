@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import inspect
 from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domains.signals.dedupe_policy import SignalDedupePolicy
+from domains.signals.exit_level_calculator import ExitLevelCalculator
 from domains.signals.repository import SignalRepository
 from domains.signals.schemas import DesktopSignalRequest
 from infra.events.outbox import OutboxPublisher
@@ -17,10 +19,23 @@ class DesktopSignalService:
         self.repository = SignalRepository(session)
         self.dedupe_policy = SignalDedupePolicy()
         self.outbox = OutboxPublisher(session)
+        self.exit_level_calculator = ExitLevelCalculator()
 
     async def ingest_desktop_signal(self, request: DesktopSignalRequest) -> dict[str, Any]:
         strategy_window = self._strategy_window(request)
         market_regime = self._market_regime(request)
+        analysis = dict(request.analysis)
+        active_calibration_snapshot = await self.load_active_calibration_snapshot()
+        self._apply_active_calibration_snapshot(analysis, active_calibration_snapshot)
+        exit_levels = self.exit_level_calculator.calculate(
+            signal_type=request.alert.type,
+            entry_price=request.alert.price,
+            market_snapshot=request.alert.model_dump(mode="python"),
+            analysis=analysis,
+            market_regime=market_regime,
+            risk_reward_ratio=self._coerce_float(analysis.get("risk_reward_ratio")),
+        )
+        analysis["exit_levels"] = exit_levels
         dedupe_key = self.dedupe_policy.build_dedupe_key(
             request.alert.symbol,
             request.alert.type,
@@ -54,21 +69,21 @@ class DesktopSignalService:
                 "signal_type": request.alert.type,
                 "status": "pending",
                 "entry_price": request.alert.price,
-                "stop_loss": request.alert.stop_loss,
-                "take_profit_1": request.alert.take_profit_1,
-                "take_profit_2": request.alert.take_profit_2,
-                "take_profit_3": request.alert.take_profit_3,
-                "probability": request.alert.probability or request.analysis.get("probability", 0),
+                "stop_loss": exit_levels.get("stop_loss"),
+                "take_profit_1": exit_levels.get("take_profit_1"),
+                "take_profit_2": exit_levels.get("take_profit_2"),
+                "take_profit_3": exit_levels.get("take_profit_3"),
+                "probability": request.alert.probability or analysis.get("probability", 0),
                 "confidence": request.alert.confidence or request.alert.score,
-                "risk_reward_ratio": request.analysis.get("risk_reward_ratio"),
-                "sfp_validated": bool(request.analysis.get("sfp_validated", False)),
-                "chooch_validated": bool(request.analysis.get("chooch_validated", False)),
-                "fvg_validated": bool(request.analysis.get("fvg_validated", False)),
-                "validation_status": str(request.analysis.get("validation_status", "validated")),
-                "atr_value": request.analysis.get("atr_value"),
-                "atr_multiplier": request.analysis.get("atr_multiplier", 2.0),
+                "risk_reward_ratio": analysis.get("risk_reward_ratio"),
+                "sfp_validated": bool(analysis.get("sfp_validated", False)),
+                "chooch_validated": bool(analysis.get("chooch_validated", False)),
+                "fvg_validated": bool(analysis.get("fvg_validated", False)),
+                "validation_status": str(analysis.get("validation_status", "validated")),
+                "atr_value": analysis.get("atr_value") or exit_levels.get("atr_value"),
+                "atr_multiplier": analysis.get("atr_multiplier") or exit_levels.get("atr_multiplier") or 2.0,
                 "reasoning": self._reasoning(request.alert.reasons),
-                "analysis": request.analysis,
+                "analysis": analysis,
                 "source": request.source,
                 "emitted_at": request.emitted_at.isoformat(),
                 "strategy_window": strategy_window,
@@ -77,7 +92,7 @@ class DesktopSignalService:
                 "generated_at": self._normalize_emitted_at(request.emitted_at),
             }
         )
-        await self.route_signal(signal.id, request, dedupe_key=dedupe_key)
+        await self.route_signal(signal.id, request, dedupe_key=dedupe_key, analysis=analysis)
         return {
             "signal_id": signal.id,
             "dedupe_key": dedupe_key,
@@ -92,7 +107,9 @@ class DesktopSignalService:
         request: DesktopSignalRequest,
         dedupe_key: str,
         recipient_ids: list[int] | None = None,
+        analysis: dict[str, Any] | None = None,
     ) -> None:
+        payload_analysis = analysis if isinstance(analysis, dict) else request.analysis
         payload = {
             "signal_id": str(signal_id),
             "symbol": request.alert.symbol,
@@ -100,7 +117,7 @@ class DesktopSignalService:
             "price": request.alert.price,
             "score": request.alert.score,
             "reasons": request.alert.reasons,
-            "analysis": request.analysis,
+            "analysis": payload_analysis,
             "source": request.source,
             "user_ids": recipient_ids or [],
             "strategy_window": self._strategy_window(request),
@@ -124,6 +141,48 @@ class DesktopSignalService:
             },
         )
 
+    async def load_active_calibration_snapshot(self) -> dict[str, Any] | None:
+        execute = getattr(self.session, "execute", None)
+        if not callable(execute):
+            return None
+
+        from domains.signals.calibration_repository import SignalCalibrationSnapshotRepository
+
+        snapshot = await SignalCalibrationSnapshotRepository(self.session).get_active_snapshot()
+        if not isinstance(snapshot, dict):
+            return None
+        return {
+            "version": snapshot.get("version"),
+            "source": snapshot.get("source"),
+            "strategy_weights": dict(snapshot.get("strategy_weights") or {}),
+            "score_multipliers": dict(snapshot.get("score_multipliers") or {}),
+        }
+
+    @staticmethod
+    def _apply_active_calibration_snapshot(
+        analysis: dict[str, Any],
+        snapshot: dict[str, Any] | None,
+    ) -> None:
+        if not isinstance(snapshot, dict) or not snapshot:
+            return
+
+        if not isinstance(analysis.get("calibration_snapshot"), dict):
+            analysis["calibration_snapshot"] = {
+                "version": snapshot.get("version"),
+                "source": snapshot.get("source"),
+                "strategy_weights": dict(snapshot.get("strategy_weights") or {}),
+                "score_multipliers": dict(snapshot.get("score_multipliers") or {}),
+            }
+
+        version = str(snapshot.get("version") or "").strip()
+        if version and not str(analysis.get("calibration_version") or "").strip():
+            analysis["calibration_version"] = version
+
+        for block_name in ("strategy_selection", "score_breakdown"):
+            block = analysis.get(block_name)
+            if isinstance(block, dict) and version and not str(block.get("calibration_version") or "").strip():
+                block["calibration_version"] = version
+
     @staticmethod
     def _reasoning(reasons: list[str]) -> str | None:
         items = [reason.strip() for reason in reasons if reason.strip()]
@@ -146,3 +205,12 @@ class DesktopSignalService:
         if value.tzinfo is None:
             return value.replace(tzinfo=timezone.utc)
         return value.astimezone(timezone.utc)
+
+    @staticmethod
+    def _coerce_float(value: Any) -> float | None:
+        if value in (None, ""):
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None

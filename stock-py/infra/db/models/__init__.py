@@ -16,6 +16,7 @@ from infra.db.models.portfolio import PortfolioPositionModel
 from infra.db.models.signals import (
     ScannerDecisionModel,
     ScannerRunModel,
+    SignalCalibrationSnapshotModel,
     SignalModel,
     SignalStatus,
     SignalType,
@@ -51,6 +52,7 @@ __all__ = [
     "PushSubscriptionModel",
     "ScannerDecisionModel",
     "ScannerRunModel",
+    "SignalCalibrationSnapshotModel",
     "SessionModel",
     "SignalModel",
     "SignalStatus",

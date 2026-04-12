@@ -19,6 +19,7 @@ from infra.db.session import get_db_session
 class FakeSignalRepository:
     records = []
     summary_payload = {}
+    quality_payload = {}
     calls: dict[str, list] = {}
 
     def __init__(self, db) -> None:
@@ -28,10 +29,12 @@ class FakeSignalRepository:
     def reset(cls) -> None:
         cls.records = []
         cls.summary_payload = {}
+        cls.quality_payload = {}
         cls.calls = {
             "list_admin_signals": [],
             "count_admin_signals": [],
             "summarize_admin_signals": [],
+            "summarize_signal_quality": [],
         }
 
     @classmethod
@@ -80,6 +83,10 @@ class FakeSignalRepository:
     async def summarize_admin_signals(self, *, window_hours: int = 24 * 7):
         self.calls["summarize_admin_signals"].append({"window_hours": window_hours})
         return deepcopy(self.summary_payload)
+
+    async def summarize_signal_quality(self, *, window_hours: int = 24 * 7):
+        self.calls["summarize_signal_quality"].append({"window_hours": window_hours})
+        return deepcopy(self.quality_payload)
 
 
 class FakeOhlcvRepository:
@@ -201,7 +208,57 @@ class AdminSignalStatsAndAnomaliesRouterIntegrationTest(unittest.TestCase):
             validation_status="validated",
             atr_value=3.2,
             atr_multiplier=2.0,
-            indicators=json.dumps({"source": "scanner", "market_regime": "bull"}),
+            indicators=json.dumps(
+                {
+                    "source": "scanner",
+                    "strategy_window": "1h",
+                    "market_regime": "trend",
+                    "market_regime_detail": "trend_up",
+                    "calibration_version": "signals-v2-default",
+                    "strategy_selection": {
+                        "strategy": "trend_continuation",
+                        "source": "heuristic",
+                        "source_strategy": "trend_continuation",
+                        "rank": 1,
+                        "ranking_score": 0.94,
+                        "combined_score": 27.2,
+                        "signal_fit_score": 13.5,
+                        "regime_bias": 4.5,
+                        "degradation_penalty": 0.0,
+                        "stable": True,
+                        "market_regime_detail": "trend_up",
+                        "regime_reasons": ["momentum_confirmed", "trend_confirmed"],
+                        "calibration_version": "signals-v2-default",
+                        "strategy_weight": 1.05,
+                    },
+                    "exit_levels": {
+                        "source": "server_default",
+                        "stop_loss": 184.5,
+                        "take_profit_1": 197.0,
+                        "take_profit_2": 201.0,
+                        "take_profit_3": 205.0,
+                        "atr_value": 3.2,
+                        "atr_multiplier": 2.0,
+                    },
+                    "score_breakdown": {
+                        "calibration_version": "signals-v2-default",
+                        "base_score": 32.0,
+                        "signal_bias": 8.0,
+                        "confidence_points": 19.5,
+                        "probability_points": 25.2,
+                        "risk_reward_points": 10.5,
+                        "volume_bonus": 8.0,
+                        "trend_bonus": 8.0,
+                        "reversal_bonus": 0.0,
+                        "quality_bonus": 11.4,
+                        "stale_penalty": 0.0,
+                        "liquidity_penalty": 0.0,
+                        "raw_total": 114.6,
+                        "clamped_total": 100,
+                        "selected_score": 94,
+                    },
+                }
+            ),
             reasoning="trend continuation",
             generated_at=now - timedelta(hours=2),
             triggered_at=None,
@@ -254,6 +311,31 @@ class AdminSignalStatsAndAnomaliesRouterIntegrationTest(unittest.TestCase):
                 {"symbol": "MSFT", "count": 1},
             ],
         }
+        FakeSignalRepository.quality_payload = {
+            "window_hours": 48,
+            "generated_after": now - timedelta(hours=48),
+            "total_signals": 2,
+            "signals_with_strategy_selection": 1,
+            "signals_with_exit_levels": 1,
+            "signals_with_score_breakdown": 1,
+            "signals_with_calibration_version": 1,
+            "signals_with_market_regime_detail": 1,
+            "top_strategies": [
+                {"key": "trend_continuation", "count": 1},
+                {"key": "mean_reversion", "count": 1},
+            ],
+            "exit_level_sources": [
+                {"key": "server_default", "count": 1},
+                {"key": "legacy_or_client", "count": 1},
+            ],
+            "calibration_versions": [
+                {"key": "signals-v2-default", "count": 1},
+            ],
+            "market_regimes": [
+                {"key": "trend_up", "count": 1},
+                {"key": "range", "count": 1},
+            ],
+        }
 
         summary_response = self.client.get(
             "/v1/admin/signal-stats/summary",
@@ -280,6 +362,40 @@ class AdminSignalStatsAndAnomaliesRouterIntegrationTest(unittest.TestCase):
                 "top_symbols": [
                     {"symbol": "AAPL", "count": 1},
                     {"symbol": "MSFT", "count": 1},
+                ],
+            },
+        )
+
+        quality_response = self.client.get(
+            "/v1/admin/signal-stats/quality",
+            params={"window_hours": 48},
+        )
+        self.assertEqual(quality_response.status_code, 200)
+        self.assertEqual(
+            quality_response.json(),
+            {
+                "window_hours": 48,
+                "generated_after": "2026-04-03T00:00:00Z",
+                "total_signals": 2,
+                "signals_with_strategy_selection": 1,
+                "signals_with_exit_levels": 1,
+                "signals_with_score_breakdown": 1,
+                "signals_with_calibration_version": 1,
+                "signals_with_market_regime_detail": 1,
+                "top_strategies": [
+                    {"key": "trend_continuation", "count": 1},
+                    {"key": "mean_reversion", "count": 1},
+                ],
+                "exit_level_sources": [
+                    {"key": "server_default", "count": 1},
+                    {"key": "legacy_or_client", "count": 1},
+                ],
+                "calibration_versions": [
+                    {"key": "signals-v2-default", "count": 1},
+                ],
+                "market_regimes": [
+                    {"key": "trend_up", "count": 1},
+                    {"key": "range", "count": 1},
                 ],
             },
         )
@@ -318,7 +434,101 @@ class AdminSignalStatsAndAnomaliesRouterIntegrationTest(unittest.TestCase):
                         "validation_status": "validated",
                         "atr_value": 3.2,
                         "atr_multiplier": 2.0,
-                        "indicators": {"source": "scanner", "market_regime": "bull"},
+                        "indicators": {
+                            "source": "scanner",
+                            "strategy_window": "1h",
+                            "market_regime": "trend",
+                            "market_regime_detail": "trend_up",
+                            "calibration_version": "signals-v2-default",
+                            "strategy_selection": {
+                                "strategy": "trend_continuation",
+                                "source": "heuristic",
+                                "source_strategy": "trend_continuation",
+                                "rank": 1,
+                                "ranking_score": 0.94,
+                                "combined_score": 27.2,
+                                "signal_fit_score": 13.5,
+                                "regime_bias": 4.5,
+                                "degradation_penalty": 0.0,
+                                "stable": True,
+                                "market_regime_detail": "trend_up",
+                                "regime_reasons": ["momentum_confirmed", "trend_confirmed"],
+                                "calibration_version": "signals-v2-default",
+                                "strategy_weight": 1.05,
+                            },
+                            "exit_levels": {
+                                "source": "server_default",
+                                "stop_loss": 184.5,
+                                "take_profit_1": 197.0,
+                                "take_profit_2": 201.0,
+                                "take_profit_3": 205.0,
+                                "atr_value": 3.2,
+                                "atr_multiplier": 2.0,
+                            },
+                            "score_breakdown": {
+                                "calibration_version": "signals-v2-default",
+                                "base_score": 32.0,
+                                "signal_bias": 8.0,
+                                "confidence_points": 19.5,
+                                "probability_points": 25.2,
+                                "risk_reward_points": 10.5,
+                                "volume_bonus": 8.0,
+                                "trend_bonus": 8.0,
+                                "reversal_bonus": 0.0,
+                                "quality_bonus": 11.4,
+                                "stale_penalty": 0.0,
+                                "liquidity_penalty": 0.0,
+                                "raw_total": 114.6,
+                                "clamped_total": 100,
+                                "selected_score": 94,
+                            },
+                        },
+                        "strategy_window": "1h",
+                        "market_regime": "trend",
+                        "market_regime_detail": "trend_up",
+                        "calibration_version": "signals-v2-default",
+                        "strategy_selection": {
+                            "strategy": "trend_continuation",
+                            "source": "heuristic",
+                            "source_strategy": "trend_continuation",
+                            "rank": 1,
+                            "ranking_score": 0.94,
+                            "combined_score": 27.2,
+                            "signal_fit_score": 13.5,
+                            "regime_bias": 4.5,
+                            "degradation_penalty": 0.0,
+                            "stable": True,
+                            "market_regime_detail": "trend_up",
+                            "regime_reasons": ["momentum_confirmed", "trend_confirmed"],
+                            "calibration_version": "signals-v2-default",
+                            "strategy_weight": 1.05,
+                        },
+                        "exit_levels": {
+                            "source": "server_default",
+                            "stop_loss": 184.5,
+                            "take_profit_1": 197.0,
+                            "take_profit_2": 201.0,
+                            "take_profit_3": 205.0,
+                            "atr_value": 3.2,
+                            "atr_multiplier": 2.0,
+                        },
+                        "score_breakdown": {
+                            "calibration_version": "signals-v2-default",
+                            "base_score": 32.0,
+                            "signal_bias": 8.0,
+                            "confidence_points": 19.5,
+                            "probability_points": 25.2,
+                            "risk_reward_points": 10.5,
+                            "volume_bonus": 8.0,
+                            "trend_bonus": 8.0,
+                            "reversal_bonus": 0.0,
+                            "quality_bonus": 11.4,
+                            "stale_penalty": 0.0,
+                            "liquidity_penalty": 0.0,
+                            "raw_total": 114.6,
+                            "clamped_total": 100,
+                            "selected_score": 94,
+                        },
                         "reasoning": "trend continuation",
                         "generated_at": "2026-04-04T22:00:00Z",
                         "triggered_at": None,

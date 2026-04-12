@@ -194,6 +194,101 @@ class AnalyticsRepositoryTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["strategies"][1]["signals_generated"], 2)
         self.assertIsNotNone(result["refreshed_at"])
 
+    async def test_query_signal_results_builds_symbol_alignment_and_rates(self) -> None:
+        now = datetime.now(timezone.utc)
+        await self.client.insert_rows(
+            "signal_events",
+            [
+                {
+                    "occurred_at": now,
+                    "signal_id": 1,
+                    "symbol": "AAPL",
+                    "signal_type": "buy",
+                    "strategy": "trend_continuation",
+                    "strategy_window": "1h",
+                    "market_regime": "trend_up",
+                    "score": 91,
+                },
+                {
+                    "occurred_at": now - timedelta(minutes=10),
+                    "signal_id": 2,
+                    "symbol": "AAPL",
+                    "signal_type": "buy",
+                    "strategy": "trend_continuation",
+                    "strategy_window": "1h",
+                    "market_regime": "trend_up",
+                    "score": 88,
+                },
+                {
+                    "occurred_at": now - timedelta(minutes=5),
+                    "signal_id": 3,
+                    "symbol": "MSFT",
+                    "signal_type": "sell",
+                    "strategy": "mean_reversion",
+                    "strategy_window": "4h",
+                    "market_regime": "range",
+                    "score": 74,
+                },
+            ],
+        )
+        await self.client.insert_rows(
+            "trade_events",
+            [
+                {
+                    "occurred_at": now,
+                    "trade_id": "T-1",
+                    "symbol": "AAPL",
+                    "action": "buy",
+                    "status": "confirmed",
+                    "actual_price": 190.2,
+                    "actual_amount": 950.0,
+                },
+                {
+                    "occurred_at": now - timedelta(minutes=2),
+                    "trade_id": "T-2",
+                    "symbol": "AAPL",
+                    "action": "buy",
+                    "status": "ignored",
+                },
+                {
+                    "occurred_at": now - timedelta(minutes=1),
+                    "trade_id": "T-3",
+                    "symbol": "NVDA",
+                    "action": "sell",
+                    "status": "pending",
+                },
+            ],
+        )
+
+        result = await self.repository.query_signal_results(24)
+
+        self.assertEqual(result["total_signals"], 3)
+        self.assertEqual(result["total_trade_actions"], 3)
+        self.assertEqual(result["confirmed_trades"], 1)
+        self.assertEqual(result["ignored_trades"], 1)
+        self.assertEqual(result["pending_trades"], 1)
+        self.assertAlmostEqual(result["trade_action_rate"], 100.0)
+        self.assertAlmostEqual(result["executed_trade_rate"], 33.3333, places=3)
+        self.assertEqual(result["unique_signal_symbols"], 2)
+        self.assertEqual(result["unique_trade_symbols"], 2)
+        self.assertEqual(result["overlapping_symbols"], 1)
+        self.assertEqual(result["signal_strategies"][0], {"key": "trend_continuation", "count": 2})
+        self.assertEqual(result["market_regimes"][0], {"key": "trend_up", "count": 2})
+        self.assertEqual(result["trade_statuses"][0], {"key": "confirmed", "count": 1})
+        self.assertEqual(
+            result["symbol_alignment"],
+            [
+                {
+                    "symbol": "AAPL",
+                    "signals_generated": 2,
+                    "trade_actions": 2,
+                    "executed_trades": 1,
+                    "execution_rate": 50.0,
+                }
+            ],
+        )
+        self.assertEqual(result["comparable_field_sets"][0]["category"], "live_signals")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -137,6 +138,84 @@ class SignalRepository:
             ],
         }
 
+    async def summarize_signal_quality(self, *, window_hours: int = 24 * 7) -> dict[str, Any]:
+        generated_after = utcnow() - timedelta(hours=window_hours)
+        result = await self.session.execute(
+            select(SignalModel)
+            .where(SignalModel.generated_at >= generated_after)
+            .order_by(SignalModel.generated_at.desc(), SignalModel.id.desc())
+        )
+        signals = list(result.scalars().all())
+
+        strategy_counter: Counter[str] = Counter()
+        exit_source_counter: Counter[str] = Counter()
+        calibration_counter: Counter[str] = Counter()
+        regime_counter: Counter[str] = Counter()
+
+        with_strategy_selection = 0
+        with_exit_levels = 0
+        with_score_breakdown = 0
+        with_calibration_version = 0
+        with_market_regime_detail = 0
+
+        for signal in signals:
+            metadata = self._load_metadata(signal)
+            strategy_selection = self._metadata_block(metadata, "strategy_selection")
+            exit_levels = self._metadata_block(metadata, "exit_levels")
+            score_breakdown = self._metadata_block(metadata, "score_breakdown")
+
+            strategy_name = self._metadata_text(
+                strategy_selection.get("strategy") if strategy_selection else None
+            ) or self._metadata_text(metadata.get("strategy"))
+            if strategy_name:
+                strategy_counter[strategy_name] += 1
+
+            exit_source = self._metadata_text(
+                exit_levels.get("source") if exit_levels else None
+            )
+            if not exit_source and (
+                getattr(signal, "stop_loss", None) is not None
+                or getattr(signal, "take_profit_1", None) is not None
+            ):
+                exit_source = "legacy_or_client"
+            if exit_source:
+                exit_source_counter[exit_source] += 1
+
+            calibration_version = self._metadata_text(metadata.get("calibration_version")) or self._metadata_text(
+                strategy_selection.get("calibration_version") if strategy_selection else None
+            ) or self._metadata_text(
+                score_breakdown.get("calibration_version") if score_breakdown else None
+            )
+            if calibration_version:
+                calibration_counter[calibration_version] += 1
+
+            regime_value = self._metadata_text(metadata.get("market_regime_detail")) or self._metadata_text(
+                metadata.get("market_regime")
+            )
+            if regime_value:
+                regime_counter[regime_value] += 1
+
+            with_strategy_selection += int(bool(strategy_selection))
+            with_exit_levels += int(bool(exit_levels))
+            with_score_breakdown += int(bool(score_breakdown))
+            with_calibration_version += int(bool(calibration_version))
+            with_market_regime_detail += int(bool(self._metadata_text(metadata.get("market_regime_detail"))))
+
+        return {
+            "window_hours": int(window_hours),
+            "generated_after": generated_after,
+            "total_signals": len(signals),
+            "signals_with_strategy_selection": with_strategy_selection,
+            "signals_with_exit_levels": with_exit_levels,
+            "signals_with_score_breakdown": with_score_breakdown,
+            "signals_with_calibration_version": with_calibration_version,
+            "signals_with_market_regime_detail": with_market_regime_detail,
+            "top_strategies": self._counter_rows(strategy_counter),
+            "exit_level_sources": self._counter_rows(exit_source_counter),
+            "calibration_versions": self._counter_rows(calibration_counter),
+            "market_regimes": self._counter_rows(regime_counter),
+        }
+
     async def create_signal(self, payload: dict[str, Any]) -> SignalModel:
         metadata = dict(payload.get("analysis") or {})
         metadata.update(
@@ -265,6 +344,25 @@ class SignalRepository:
         except json.JSONDecodeError:
             return {}
         return payload if isinstance(payload, dict) else {}
+
+    @staticmethod
+    def _metadata_block(metadata: dict[str, Any], key: str) -> dict[str, Any] | None:
+        value = metadata.get(key)
+        return value if isinstance(value, dict) else None
+
+    @staticmethod
+    def _metadata_text(value: Any) -> str | None:
+        if value is None:
+            return None
+        text = str(value).strip()
+        return text or None
+
+    @staticmethod
+    def _counter_rows(counter: Counter[str], limit: int = 8) -> list[dict[str, Any]]:
+        return [
+            {"key": key, "count": int(count)}
+            for key, count in counter.most_common(limit)
+        ]
 
 
 class ScannerRunRepository:

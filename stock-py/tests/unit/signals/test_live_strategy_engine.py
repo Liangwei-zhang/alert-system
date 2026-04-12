@@ -97,6 +97,15 @@ class LiveStrategyEngineTest(unittest.TestCase):
         self.assertGreaterEqual(payload["score"], 80)
         self.assertEqual(payload["analysis"]["strategy"], "trend_continuation")
         self.assertEqual(payload["analysis"]["market_regime"], "trend")
+        self.assertEqual(payload["analysis"]["market_regime_detail"], "trend_up")
+        self.assertEqual(payload["analysis"]["strategy_selection"]["calibration_version"], "signals-v2-default")
+        self.assertIn("score_breakdown", payload["analysis"])
+        self.assertEqual(
+            payload["analysis"]["score_breakdown"]["selected_score"],
+            payload["score"],
+        )
+        self.assertIn("exit_levels", payload["analysis"])
+        self.assertEqual(payload["analysis"]["exit_levels"]["source"], "unavailable")
 
     def test_build_signal_candidate_keeps_suppressed_alert_decision_metadata(self) -> None:
         engine = LiveStrategyEngine()
@@ -130,6 +139,68 @@ class LiveStrategyEngineTest(unittest.TestCase):
             "strategy-degradation-detected",
             payload["analysis"]["alert_decision"]["suppressed_reasons"],
         )
+
+    def test_build_signal_candidate_computes_server_default_exit_levels_when_atr_is_present(self) -> None:
+        engine = LiveStrategyEngine()
+
+        candidate = engine.build_signal_candidate(
+            "AAPL",
+            {
+                "direction": "buy",
+                "price": 100.0,
+                "momentum_score": 0.72,
+                "trend_strength": 0.7,
+                "volatility_score": 0.31,
+                "risk_reward_ratio": 2.5,
+                "analysis": {
+                    "atr_value": 4.0,
+                    "atr_multiplier": 2.0,
+                    "trend_confirmed": True,
+                    "setup_quality": 80,
+                },
+            },
+        )
+
+        payload = _as_dict(candidate)
+        self.assertEqual(payload["analysis"]["exit_levels"]["source"], "server_default")
+        self.assertEqual(payload["stop_loss"], 92.0)
+        self.assertEqual(payload["take_profit_1"], 106.0)
+        self.assertEqual(payload["take_profit_2"], 110.0)
+        self.assertEqual(payload["take_profit_3"], 120.0)
+
+    def test_score_candidate_breakdown_exposes_factor_breakout(self) -> None:
+        engine = LiveStrategyEngine()
+
+        breakdown = engine.score_candidate_breakdown(
+            {
+                "type": "buy",
+                "confidence": 84,
+                "probability": 0.78,
+                "risk_reward_ratio": 2.4,
+                "analysis": {
+                    "volume_confirmed": True,
+                    "trend_confirmed": True,
+                    "setup_quality": 86,
+                },
+            }
+        )
+
+        self.assertEqual(breakdown["calibration_version"], "signals-v2-default")
+        self.assertGreater(breakdown["confidence_points"], 0)
+        self.assertGreater(breakdown["probability_points"], 0)
+        self.assertEqual(breakdown["clamped_total"], engine.score_candidate(
+            {
+                "type": "buy",
+                "confidence": 84,
+                "probability": 0.78,
+                "risk_reward_ratio": 2.4,
+                "analysis": {
+                    "volume_confirmed": True,
+                    "trend_confirmed": True,
+                    "setup_quality": 86,
+                },
+            }
+        ))
 
     def test_select_strategy_suppresses_weak_breakout_candidates(self) -> None:
         engine = LiveStrategyEngine()

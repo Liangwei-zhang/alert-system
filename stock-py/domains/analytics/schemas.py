@@ -65,3 +65,44 @@ class TradingAgentsMetricsResponse(BaseModel):
     avg_latency_seconds: float | None = None
     by_status: dict[str, int] = Field(default_factory=dict)
     by_final_action: dict[str, int] = Field(default_factory=dict)
+
+
+class AnalyticsBucketCountResponse(BaseModel):
+    key: str
+    count: int
+
+
+class SignalTradeAlignmentItem(BaseModel):
+    symbol: str
+    signals_generated: int = 0
+    trade_actions: int = 0
+    executed_trades: int = 0
+    execution_rate: float = 0.0
+
+
+class ComparableFieldSetResponse(BaseModel):
+    category: str
+    fields: list[str] = Field(default_factory=list)
+    note: str | None = None
+
+
+class SignalResultMetricsResponse(BaseModel):
+    window_hours: int
+    generated_after: datetime
+    total_signals: int = 0
+    total_trade_actions: int = 0
+    confirmed_trades: int = 0
+    adjusted_trades: int = 0
+    ignored_trades: int = 0
+    expired_trades: int = 0
+    pending_trades: int = 0
+    trade_action_rate: float = 0.0
+    executed_trade_rate: float = 0.0
+    unique_signal_symbols: int = 0
+    unique_trade_symbols: int = 0
+    overlapping_symbols: int = 0
+    signal_strategies: list[AnalyticsBucketCountResponse] = Field(default_factory=list)
+    market_regimes: list[AnalyticsBucketCountResponse] = Field(default_factory=list)
+    trade_statuses: list[AnalyticsBucketCountResponse] = Field(default_factory=list)
+    symbol_alignment: list[SignalTradeAlignmentItem] = Field(default_factory=list)
+    comparable_field_sets: list[ComparableFieldSetResponse] = Field(default_factory=list)

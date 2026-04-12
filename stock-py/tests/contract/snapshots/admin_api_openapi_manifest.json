@@ -65,6 +65,16 @@
         ]
       }
     },
+    "/v1/admin/analytics/signal-results": {
+      "get": {
+        "operationId": "get_signal_results_v1_admin_analytics_signal_results_get",
+        "summary": "Get Signal Results",
+        "tags": [
+          "admin",
+          "analytics"
+        ]
+      }
+    },
     "/v1/admin/analytics/overview": {
       "get": {
         "operationId": "get_overview_v1_admin_analytics_overview_get",
@@ -160,6 +170,64 @@
         "tags": [
           "admin",
           "backtests"
+        ]
+      }
+    },
+    "/v1/admin/calibrations": {
+      "get": {
+        "operationId": "list_calibration_snapshots_v1_admin_calibrations_get",
+        "summary": "List Calibration Snapshots",
+        "tags": [
+          "admin",
+          "calibrations"
+        ]
+      },
+      "post": {
+        "operationId": "create_calibration_snapshot_v1_admin_calibrations_post",
+        "summary": "Create Calibration Snapshot",
+        "tags": [
+          "admin",
+          "calibrations"
+        ]
+      }
+    },
+    "/v1/admin/calibrations/active": {
+      "get": {
+        "operationId": "get_active_calibration_snapshot_v1_admin_calibrations_active_get",
+        "summary": "Get Active Calibration Snapshot",
+        "tags": [
+          "admin",
+          "calibrations"
+        ]
+      }
+    },
+    "/v1/admin/calibrations/proposal": {
+      "get": {
+        "operationId": "get_calibration_proposal_v1_admin_calibrations_proposal_get",
+        "summary": "Get Calibration Proposal",
+        "tags": [
+          "admin",
+          "calibrations"
+        ]
+      }
+    },
+    "/v1/admin/calibrations/proposal/apply": {
+      "post": {
+        "operationId": "apply_calibration_proposal_v1_admin_calibrations_proposal_apply_post",
+        "summary": "Apply Calibration Proposal",
+        "tags": [
+          "admin",
+          "calibrations"
+        ]
+      }
+    },
+    "/v1/admin/calibrations/{snapshot_id}/activate": {
+      "post": {
+        "operationId": "activate_calibration_snapshot_v1_admin_calibrations__snapshot_id__activate_post",
+        "summary": "Activate Calibration Snapshot",
+        "tags": [
+          "admin",
+          "calibrations"
         ]
       }
     },
@@ -297,6 +365,16 @@
       "get": {
         "operationId": "list_signal_stats_v1_admin_signal_stats_get",
         "summary": "List Signal Stats",
+        "tags": [
+          "admin",
+          "signal-stats"
+        ]
+      }
+    },
+    "/v1/admin/signal-stats/quality": {
+      "get": {
+        "operationId": "get_signal_stats_quality_v1_admin_signal_stats_quality_get",
+        "summary": "Get Signal Stats Quality",
         "tags": [
           "admin",
           "signal-stats"

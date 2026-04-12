@@ -7,6 +7,7 @@ class StubScannerWorker(ScannerWorker):
     def __init__(self) -> None:
         super().__init__(bucket_count=8, cooldown_minutes=30)
         self.snapshots = {}
+        self.calibration_snapshot = None
         self.duplicate = None
         self.persisted = []
         self.events = []
@@ -15,6 +16,10 @@ class StubScannerWorker(ScannerWorker):
     async def load_market_snapshot(self, symbol, session, *, priority=0):
         del session, priority
         return self.snapshots.get(symbol)
+
+    async def load_active_calibration_snapshot(self, session):
+        del session
+        return self.calibration_snapshot
 
     async def find_recent_duplicate(self, session, *, symbol, signal_type, dedupe_key):
         del session, symbol, signal_type, dedupe_key
@@ -141,6 +146,36 @@ class ScannerWorkerTest(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result["status"], "skipped")
         self.assertEqual(worker.decisions[-1]["reason"], "market_snapshot_unavailable")
+
+    async def test_process_symbol_injects_active_calibration_snapshot(self) -> None:
+        worker = StubScannerWorker()
+        worker.calibration_snapshot = {
+            "version": "signals-v2-review-20260411",
+            "source": "manual_review",
+            "strategy_weights": {"trend_continuation": 1.12},
+            "score_multipliers": {"confidence": 1.08},
+        }
+        worker.snapshots["AAPL"] = {
+            "direction": "buy",
+            "price": 182.4,
+            "confidence": 82,
+            "probability": 0.76,
+            "momentum_score": 0.79,
+            "analysis": {"volume_confirmed": True, "trend_confirmed": True},
+            "reasons": ["Momentum expansion"],
+        }
+
+        result = await worker.process_symbol(object(), run_id=15, symbol="AAPL", priority=2)
+
+        self.assertEqual(result["status"], "emitted")
+        self.assertEqual(
+            worker.persisted[0]["analysis"]["calibration_version"],
+            "signals-v2-review-20260411",
+        )
+        self.assertEqual(
+            worker.persisted[0]["analysis"]["strategy_selection"]["calibration_version"],
+            "signals-v2-review-20260411",
+        )
 
 
 if __name__ == "__main__":

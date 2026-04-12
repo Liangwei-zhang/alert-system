@@ -60,6 +60,7 @@
             bodyTemplate: { role: "operator", scopes: ["tasks"], is_active: true }
         }),
         endpoint("GET", "/v1/admin/signal-stats/summary", { queryTemplate: { window_hours: 24 } }),
+        endpoint("GET", "/v1/admin/signal-stats/quality", { queryTemplate: { window_hours: 24 } }),
         endpoint("GET", "/v1/admin/signal-stats"),
         endpoint("GET", "/v1/admin/scanner"),
         endpoint("GET", "/v1/admin/scanner/observability"),
@@ -78,8 +79,43 @@
         endpoint("GET", "/v1/admin/audit"),
         endpoint("GET", "/v1/admin/analytics/overview", { queryTemplate: { window_hours: 24 } }),
         endpoint("GET", "/v1/admin/analytics/distribution", { queryTemplate: { window_hours: 24 } }),
+        endpoint("GET", "/v1/admin/analytics/signal-results", { queryTemplate: { window_hours: 24 } }),
         endpoint("GET", "/v1/admin/analytics/strategy-health", { queryTemplate: { window_hours: 168 } }),
         endpoint("GET", "/v1/admin/analytics/tradingagents", { queryTemplate: { window_hours: 24 } }),
+        endpoint("GET", "/v1/admin/calibrations"),
+        endpoint("GET", "/v1/admin/calibrations/active"),
+        endpoint("GET", "/v1/admin/calibrations/proposal", {
+            queryTemplate: { signal_window_hours: 24, ranking_window_hours: 168 }
+        }),
+        endpoint("POST", "/v1/admin/calibrations/proposal/apply", {
+            requiresBody: true,
+            bodyTemplate: {
+                signal_window_hours: 24,
+                ranking_window_hours: 168,
+                activate: false,
+                version: "signals-v2-proposal-20260411-r1",
+                notes: "Reviewed in admin console and staged for operator validation"
+            }
+        }),
+        endpoint("POST", "/v1/admin/calibrations/{snapshot_id}/activate"),
+        endpoint("POST", "/v1/admin/calibrations", {
+            requiresBody: true,
+            bodyTemplate: {
+                version: "signals-v2-review-20260411",
+                source: "manual_review",
+                activate: false,
+                derived_from: "backtest:30d-ranking + live:24h-results",
+                sample_size: 128,
+                strategy_weights: {
+                    trend_continuation: 1.08,
+                    mean_reversion: 0.97
+                },
+                score_multipliers: {
+                    confidence: 1.04,
+                    liquidity_penalty: 1.1
+                }
+            }
+        }),
         endpoint("GET", "/v1/admin/users"),
         endpoint("GET", "/v1/admin/users/{user_id}"),
         endpoint("PUT", "/v1/admin/users/{user_id}", {
@@ -535,12 +571,17 @@
     }
 
     async function loadIntelligence(dataObj) {
-        const [overview, distribution, strategyHealth, tradingMetrics, signalSummary, observability, anomalies] = await Promise.all([
+        const [overview, distribution, signalResults, strategyHealth, tradingMetrics, signalSummary, signalQuality, activeCalibration, calibrationHistory, calibrationProposal, observability, anomalies] = await Promise.all([
             requestSafe("/v1/admin/analytics/overview?window_hours=24"),
             requestSafe("/v1/admin/analytics/distribution?window_hours=24"),
+            requestSafe("/v1/admin/analytics/signal-results?window_hours=24"),
             requestSafe("/v1/admin/analytics/strategy-health?window_hours=168"),
             requestSafe("/v1/admin/analytics/tradingagents?window_hours=24"),
             requestSafe("/v1/admin/signal-stats/summary?window_hours=24"),
+            requestSafe("/v1/admin/signal-stats/quality?window_hours=24"),
+            requestSafe("/v1/admin/calibrations/active"),
+            requestSafe("/v1/admin/calibrations?limit=5"),
+            requestSafe("/v1/admin/calibrations/proposal?signal_window_hours=24&ranking_window_hours=168"),
             requestSafe("/v1/admin/scanner/observability?limit=10&decision_limit=10"),
             requestSafe("/v1/admin/anomalies/ohlcv?limit=10")
         ]);
@@ -613,23 +654,168 @@
             ];
         }
 
-        if (signalSummary) {
+        if (signalSummary || signalQuality) {
+            const totalSignals = Number((signalSummary && signalSummary.total_signals) || (signalQuality && signalQuality.total_signals) || 0);
+            const strategyCoverage = totalSignals > 0
+                ? `${Math.round((Number(signalQuality && signalQuality.signals_with_strategy_selection || 0) / totalSignals) * 100)}%`
+                : "0%";
+            const exitCoverage = totalSignals > 0
+                ? `${Math.round((Number(signalQuality && signalQuality.signals_with_exit_levels || 0) / totalSignals) * 100)}%`
+                : "0%";
+            const calibrationCoverage = totalSignals > 0
+                ? `${Math.round((Number(signalQuality && signalQuality.signals_with_calibration_version || 0) / totalSignals) * 100)}%`
+                : "0%";
+            const topStrategy = signalQuality && Array.isArray(signalQuality.top_strategies) && signalQuality.top_strategies[0]
+                ? signalQuality.top_strategies[0]
+                : null;
+            const topExitSource = signalQuality && Array.isArray(signalQuality.exit_level_sources) && signalQuality.exit_level_sources[0]
+                ? signalQuality.exit_level_sources[0]
+                : null;
+            const topCalibration = signalQuality && Array.isArray(signalQuality.calibration_versions) && signalQuality.calibration_versions[0]
+                ? signalQuality.calibration_versions[0]
+                : null;
+            const topRegime = signalQuality && Array.isArray(signalQuality.market_regimes) && signalQuality.market_regimes[0]
+                ? signalQuality.market_regimes[0]
+                : null;
+
             dataObj.intelligence.signalStats = [
-                { label: "Signals generated", value: String(signalSummary.total_signals || 0), tone: "brand" },
+                { label: "Signals generated", value: String(totalSignals || 0), tone: "brand" },
                 {
-                    label: "Pending signals",
-                    value: String(signalSummary.pending_signals || 0),
-                    tone: "warning"
-                },
-                {
-                    label: "Triggered signals",
-                    value: String(signalSummary.triggered_signals || 0),
+                    label: "Strategy metadata",
+                    value: strategyCoverage,
                     tone: "positive"
                 },
                 {
-                    label: "Avg confidence",
-                    value: Number(signalSummary.avg_confidence || 0).toFixed(2),
+                    label: "Exit metadata",
+                    value: exitCoverage,
+                    tone: "warning"
+                },
+                {
+                    label: "Calibration tagged",
+                    value: calibrationCoverage,
                     tone: "brand"
+                }
+            ];
+
+            dataObj.intelligence.signalQuality = [
+                {
+                    label: "Top strategy",
+                    value: topStrategy ? `${topStrategy.key} · ${topStrategy.count}` : "n/a",
+                    detail: topStrategy ? "Current leader in strategy selection coverage." : "Waiting for strategy selection metadata."
+                },
+                {
+                    label: "Exit source",
+                    value: topExitSource ? `${topExitSource.key} · ${topExitSource.count}` : "n/a",
+                    detail: topExitSource ? "Primary exit-level ownership in recent signals." : "Waiting for exit-level metadata."
+                },
+                {
+                    label: "Calibration version",
+                    value: topCalibration ? `${topCalibration.key} · ${topCalibration.count}` : "n/a",
+                    detail: topCalibration ? "Most common live calibration tag in the recent window." : "No calibration version tagged yet."
+                },
+                {
+                    label: "Dominant regime",
+                    value: topRegime ? `${topRegime.key} · ${topRegime.count}` : "n/a",
+                    detail: topRegime ? "Most common market regime or detail in the recent window." : "Waiting for regime detail metadata."
+                }
+            ];
+        }
+
+        if (signalResults) {
+            dataObj.intelligence.signalResults = [
+                {
+                    label: "Signal / trade ratio",
+                    value: `${Number(signalResults.trade_action_rate || 0).toFixed(2)}%`,
+                    detail: `${signalResults.total_trade_actions || 0} trade actions vs ${signalResults.total_signals || 0} live signals in-window.`
+                },
+                {
+                    label: "Executed trade ratio",
+                    value: `${Number(signalResults.executed_trade_rate || 0).toFixed(2)}%`,
+                    detail: `${(signalResults.confirmed_trades || 0) + (signalResults.adjusted_trades || 0)} executed trades across confirmed + adjusted.`
+                },
+                {
+                    label: "Symbol overlap",
+                    value: `${signalResults.overlapping_symbols || 0}/${signalResults.unique_signal_symbols || 0}`,
+                    detail: `${signalResults.unique_trade_symbols || 0} trade symbols and ${signalResults.unique_signal_symbols || 0} signal symbols are currently comparable by symbol.`
+                },
+                {
+                    label: "Top alignment",
+                    value: signalResults.symbol_alignment && signalResults.symbol_alignment[0]
+                        ? `${signalResults.symbol_alignment[0].symbol} · ${Number(signalResults.symbol_alignment[0].execution_rate || 0).toFixed(2)}%`
+                        : "n/a",
+                    detail: signalResults.symbol_alignment && signalResults.symbol_alignment[0]
+                        ? `${signalResults.symbol_alignment[0].signals_generated} signals vs ${signalResults.symbol_alignment[0].trade_actions} trade actions for the leading overlapping symbol.`
+                        : "No overlapping signal/trade symbols in the current window."
+                }
+            ];
+        }
+
+        const activeCalibrationItem = activeCalibration && activeCalibration.data
+            ? activeCalibration.data
+            : null;
+        const calibrationItems = calibrationHistory && Array.isArray(calibrationHistory.data)
+            ? calibrationHistory.data
+            : [];
+
+        if (activeCalibrationItem || calibrationItems.length > 0) {
+            const rows = calibrationItems.length > 0
+                ? calibrationItems
+                : [activeCalibrationItem];
+            dataObj.intelligence.calibrationSnapshots = rows.slice(0, 4).map((item) => {
+                const strategyAdjustments = Object.values(item.strategy_weights || {}).filter((value) => Math.abs(Number(value || 0) - 1) >= 0.01).length;
+                const scoreAdjustments = Object.values(item.score_multipliers || {}).filter((value) => Math.abs(Number(value || 0) - 1) >= 0.01).length;
+                return {
+                    version: item.version,
+                    status: item.is_active ? "active" : "stored",
+                    source: item.source || "snapshot",
+                    effectiveAt: formatDate(item.effective_at || item.created_at),
+                    detail: `${strategyAdjustments} strategy weights, ${scoreAdjustments} score multipliers adjusted${item.derived_from ? ` · ${item.derived_from}` : ""}`,
+                    note: item.notes || (item.is_active
+                        ? "Current active snapshot loaded by the scanner runtime."
+                        : "Stored snapshot available for review, rollback, or later activation.")
+                };
+            });
+        }
+
+        if (calibrationProposal) {
+            const topStrategyDelta = Array.isArray(calibrationProposal.strategy_weights) && calibrationProposal.strategy_weights[0]
+                ? calibrationProposal.strategy_weights[0]
+                : null;
+            const topScoreDelta = Array.isArray(calibrationProposal.score_multipliers) && calibrationProposal.score_multipliers[0]
+                ? calibrationProposal.score_multipliers[0]
+                : null;
+            dataObj.intelligence.calibrationProposal = [
+                {
+                    label: "Proposed version",
+                    value: calibrationProposal.proposed_version || "n/a",
+                    detail: `Active ${calibrationProposal.current_version || "n/a"} · ${calibrationProposal.summary && calibrationProposal.summary.total_signals || 0} live signals reviewed.`
+                },
+                {
+                    label: "Top strategy delta",
+                    value: topStrategyDelta
+                        ? `${topStrategyDelta.key} · ${Number(topStrategyDelta.proposed_value || 0).toFixed(2)}`
+                        : "n/a",
+                    detail: topStrategyDelta
+                        ? `${topStrategyDelta.delta >= 0 ? "+" : ""}${Number(topStrategyDelta.delta || 0).toFixed(2)} from current weight.`
+                        : "No strategy adjustment suggested yet."
+                },
+                {
+                    label: "Top score delta",
+                    value: topScoreDelta
+                        ? `${topScoreDelta.key} · ${Number(topScoreDelta.proposed_value || 0).toFixed(2)}`
+                        : "n/a",
+                    detail: topScoreDelta
+                        ? `${topScoreDelta.delta >= 0 ? "+" : ""}${Number(topScoreDelta.delta || 0).toFixed(2)} from current multiplier.`
+                        : "No score multiplier adjustment suggested yet."
+                },
+                {
+                    label: "Executed trade rate",
+                    value: calibrationProposal.summary
+                        ? `${Number(calibrationProposal.summary.executed_trade_rate || 0).toFixed(2)}%`
+                        : "0.00%",
+                    detail: calibrationProposal.summary
+                        ? `${calibrationProposal.summary.total_trade_actions || 0} trade actions and ${calibrationProposal.summary.overlapping_symbols || 0} overlapping symbols informed the proposal.`
+                        : "Proposal summary unavailable."
                 }
             ];
         }

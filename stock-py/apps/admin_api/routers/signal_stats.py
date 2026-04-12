@@ -19,6 +19,11 @@ class AdminSignalStatsSymbolResponse(BaseModel):
     count: int
 
 
+class AdminSignalStatsBucketCountResponse(BaseModel):
+    key: str
+    count: int
+
+
 class AdminSignalStatsSummaryResponse(BaseModel):
     window_hours: int
     generated_after: datetime
@@ -35,6 +40,21 @@ class AdminSignalStatsSummaryResponse(BaseModel):
     avg_probability: float
     avg_confidence: float
     top_symbols: list[AdminSignalStatsSymbolResponse]
+
+
+class AdminSignalStatsQualityResponse(BaseModel):
+    window_hours: int
+    generated_after: datetime
+    total_signals: int
+    signals_with_strategy_selection: int
+    signals_with_exit_levels: int
+    signals_with_score_breakdown: int
+    signals_with_calibration_version: int
+    signals_with_market_regime_detail: int
+    top_strategies: list[AdminSignalStatsBucketCountResponse]
+    exit_level_sources: list[AdminSignalStatsBucketCountResponse]
+    calibration_versions: list[AdminSignalStatsBucketCountResponse]
+    market_regimes: list[AdminSignalStatsBucketCountResponse]
 
 
 class AdminSignalStatsItemResponse(BaseModel):
@@ -57,6 +77,13 @@ class AdminSignalStatsItemResponse(BaseModel):
     atr_value: float | None = None
     atr_multiplier: float
     indicators: dict[str, Any] | list[Any] | None = None
+    strategy_window: str | None = None
+    market_regime: str | None = None
+    market_regime_detail: str | None = None
+    calibration_version: str | None = None
+    strategy_selection: dict[str, Any] | None = None
+    exit_levels: dict[str, Any] | None = None
+    score_breakdown: dict[str, Any] | None = None
     reasoning: str | None = None
     generated_at: datetime
     triggered_at: datetime | None = None
@@ -83,7 +110,61 @@ def _load_payload(value: str | None) -> dict[str, Any] | list[Any] | None:
     return {"value": payload}
 
 
+def _pick_metadata_block(
+    payload: dict[str, Any] | list[Any] | None,
+    key: str,
+) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    value = payload.get(key)
+    if isinstance(value, dict):
+        return value
+    return None
+
+
+def _signal_metadata(payload: dict[str, Any] | list[Any] | None) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return {
+            "strategy_window": None,
+            "market_regime": None,
+            "market_regime_detail": None,
+            "calibration_version": None,
+            "strategy_selection": None,
+            "exit_levels": None,
+            "score_breakdown": None,
+        }
+    strategy_selection = _pick_metadata_block(payload, "strategy_selection")
+    score_breakdown = _pick_metadata_block(payload, "score_breakdown")
+    return {
+        "strategy_window": str(payload.get("strategy_window")).strip()
+        if payload.get("strategy_window")
+        else None,
+        "market_regime": str(payload.get("market_regime")).strip()
+        if payload.get("market_regime")
+        else None,
+        "market_regime_detail": str(payload.get("market_regime_detail")).strip()
+        if payload.get("market_regime_detail")
+        else None,
+        "calibration_version": str(
+            payload.get("calibration_version")
+            or (strategy_selection or {}).get("calibration_version")
+            or (score_breakdown or {}).get("calibration_version")
+        ).strip()
+        if (
+            payload.get("calibration_version")
+            or (strategy_selection or {}).get("calibration_version")
+            or (score_breakdown or {}).get("calibration_version")
+        )
+        else None,
+        "strategy_selection": strategy_selection,
+        "exit_levels": _pick_metadata_block(payload, "exit_levels"),
+        "score_breakdown": score_breakdown,
+    }
+
+
 def _signal_to_response(signal: Any) -> AdminSignalStatsItemResponse:
+    indicators = _load_payload(getattr(signal, "indicators", None))
+    metadata = _signal_metadata(indicators)
     return AdminSignalStatsItemResponse(
         id=int(signal.id),
         symbol=str(signal.symbol),
@@ -123,7 +204,14 @@ def _signal_to_response(signal: Any) -> AdminSignalStatsItemResponse:
             float(signal.atr_value) if getattr(signal, "atr_value", None) is not None else None
         ),
         atr_multiplier=float(signal.atr_multiplier or 0.0),
-        indicators=_load_payload(getattr(signal, "indicators", None)),
+        indicators=indicators,
+        strategy_window=metadata["strategy_window"],
+        market_regime=metadata["market_regime"],
+        market_regime_detail=metadata["market_regime_detail"],
+        calibration_version=metadata["calibration_version"],
+        strategy_selection=metadata["strategy_selection"],
+        exit_levels=metadata["exit_levels"],
+        score_breakdown=metadata["score_breakdown"],
         reasoning=getattr(signal, "reasoning", None),
         generated_at=signal.generated_at,
         triggered_at=getattr(signal, "triggered_at", None),
@@ -138,6 +226,15 @@ async def get_signal_stats_summary(
 ) -> AdminSignalStatsSummaryResponse:
     summary = await SignalRepository(db).summarize_admin_signals(window_hours=window_hours)
     return AdminSignalStatsSummaryResponse(**summary)
+
+
+@router.get("/quality", response_model=AdminSignalStatsQualityResponse)
+async def get_signal_stats_quality(
+    window_hours: int = Query(24 * 7, ge=1, le=24 * 365, description="Quality lookback window"),
+    db: AsyncSession = Depends(get_db_session),
+) -> AdminSignalStatsQualityResponse:
+    summary = await SignalRepository(db).summarize_signal_quality(window_hours=window_hours)
+    return AdminSignalStatsQualityResponse(**summary)
 
 
 @router.get("", response_model=AdminSignalStatsListResponse)

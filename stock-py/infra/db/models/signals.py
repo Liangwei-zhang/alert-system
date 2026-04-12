@@ -6,7 +6,7 @@ from enum import Enum
 from sqlalchemy import Boolean, DateTime, Float, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from infra.db.models.base import Base, sql_enum
+from infra.db.models.base import Base, TimestampMixin, sql_enum
 
 
 def utcnow() -> datetime:
@@ -82,6 +82,24 @@ class SignalModel(Base):
     expired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class SignalCalibrationSnapshotModel(Base, TimestampMixin):
+    __tablename__ = "signal_calibration_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    version: Mapped[str] = mapped_column(String(120), nullable=False, unique=True, index=True)
+    source: Mapped[str] = mapped_column(String(48), nullable=False, default="manual_review", index=True)
+    snapshot: Mapped[str] = mapped_column(Text, nullable=False)
+    derived_from: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
+    sample_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
+    effective_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 class ScannerRunModel(Base):
     __tablename__ = "scanner_runs"
 
@@ -123,6 +141,7 @@ class ScannerDecisionModel(Base):
 
 
 __all__ = [
+    "SignalCalibrationSnapshotModel",
     "ScannerDecisionModel",
     "ScannerRunModel",
     "SignalModel",

@@ -445,9 +445,61 @@ window.adminDemoData = {
         ],
         signalStats: [
             { label: "Signals generated", value: "1,284", tone: "brand" },
-            { label: "Strong buy ratio", value: "24%", tone: "positive" },
-            { label: "Suppressed", value: "38%", tone: "warning" },
-            { label: "Validation flagged", value: "7%", tone: "negative" }
+            { label: "Strategy metadata", value: "92%", tone: "positive" },
+            { label: "Exit metadata", value: "88%", tone: "warning" },
+            { label: "Calibration tagged", value: "81%", tone: "brand" }
+        ],
+        signalQuality: [
+            { label: "Top strategy", value: "trend_continuation · 412", detail: "Current leader in strategy selection coverage." },
+            { label: "Exit source", value: "server_default · 691", detail: "Primary exit-level ownership in recent signals." },
+            { label: "Calibration version", value: "signals-v2-default · 645", detail: "Most common live calibration tag in the recent window." },
+            { label: "Dominant regime", value: "trend_up · 533", detail: "Most common market regime or detail in the recent window." }
+        ],
+        signalResults: [
+            { label: "Signal / trade ratio", value: "41.80%", detail: "536 trade actions vs 1,284 live signals in-window." },
+            { label: "Executed trade ratio", value: "22.50%", detail: "289 executed trades across confirmed + adjusted." },
+            { label: "Symbol overlap", value: "37/52", detail: "41 trade symbols and 52 signal symbols are currently comparable by symbol." },
+            { label: "Top alignment", value: "AAPL · 63.00%", detail: "19 signals vs 16 trade actions for the leading overlapping symbol." }
+        ],
+        calibrationSnapshots: [
+            {
+                version: "signals-v2-review-20260411",
+                status: "active",
+                source: "manual_review",
+                effectiveAt: "2026-04-11 07:15 UTC",
+                detail: "2 strategy weights, 2 score multipliers adjusted · backtest:30d-ranking + live:24h-results",
+                note: "Current active snapshot loaded by the scanner runtime."
+            },
+            {
+                version: "signals-v2-default",
+                status: "stored",
+                source: "default",
+                effectiveAt: "2026-04-10 00:00 UTC",
+                detail: "0 strategy weights, 0 score multipliers adjusted · baseline bootstrap",
+                note: "Fallback snapshot retained for rollback and comparison."
+            }
+        ],
+        calibrationProposal: [
+            {
+                label: "Proposed version",
+                value: "signals-v2-proposal-20260411",
+                detail: "Active signals-v2-review-20260411 · 64 live signals reviewed."
+            },
+            {
+                label: "Top strategy delta",
+                value: "trend_continuation · 1.12",
+                detail: "+0.08 from current weight."
+            },
+            {
+                label: "Top score delta",
+                value: "stale_penalty · 1.05",
+                detail: "+0.05 from current multiplier."
+            },
+            {
+                label: "Executed trade rate",
+                value: "17.19%",
+                detail: "18 trade actions and 9 overlapping symbols informed the proposal."
+            }
         ],
         scannerRuns: [
             {

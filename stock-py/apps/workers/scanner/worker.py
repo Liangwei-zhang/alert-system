@@ -38,6 +38,8 @@ class ScannerWorker:
         self._running = False
         self.strategy_ranking_cache_ttl_seconds = 300
         self._strategy_rankings_cache: dict[str, tuple[datetime, list[dict[str, Any]]]] = {}
+        self.calibration_snapshot_cache_ttl_seconds = 300
+        self._active_calibration_snapshot_cache: tuple[datetime, dict[str, Any] | None] | None = None
 
     async def run_forever(
         self,
@@ -177,10 +179,19 @@ class ScannerWorker:
             )
             return {"status": "skipped"}
 
+        context: dict[str, Any] = {"priority": priority}
+        try:
+            calibration_snapshot = await self.load_active_calibration_snapshot(session)
+        except Exception:
+            logger.exception("Scanner worker failed loading active calibration snapshot")
+            calibration_snapshot = None
+        if calibration_snapshot:
+            context["calibration_snapshot"] = calibration_snapshot
+
         candidate = self.live_strategy_engine.build_signal_candidate(
             symbol,
             snapshot,
-            {"priority": priority},
+            context,
         )
         if candidate is None:
             await self.record_decision(
@@ -407,6 +418,28 @@ class ScannerWorker:
             snapshot["strategy_rankings"] = rankings
         return snapshot
 
+    async def load_active_calibration_snapshot(self, session: Any) -> dict[str, Any] | None:
+        cached = self._active_calibration_snapshot_cache
+        now = utcnow()
+        if cached is not None:
+            fetched_at, payload = cached
+            if (now - fetched_at).total_seconds() < self.calibration_snapshot_cache_ttl_seconds:
+                return self._clone_calibration_snapshot(payload)
+
+        from domains.signals.calibration_repository import SignalCalibrationSnapshotRepository
+
+        snapshot = await SignalCalibrationSnapshotRepository(session).get_active_snapshot()
+        payload = None
+        if isinstance(snapshot, dict):
+            payload = {
+                "version": snapshot.get("version"),
+                "source": snapshot.get("source"),
+                "strategy_weights": dict(snapshot.get("strategy_weights") or {}),
+                "score_multipliers": dict(snapshot.get("score_multipliers") or {}),
+            }
+        self._active_calibration_snapshot_cache = (now, payload)
+        return self._clone_calibration_snapshot(payload)
+
     async def load_strategy_rankings(
         self,
         session: Any,
@@ -555,6 +588,17 @@ class ScannerWorker:
         if isinstance(candidate, dict):
             return dict(candidate)
         raise TypeError("Unsupported candidate type")
+
+    @staticmethod
+    def _clone_calibration_snapshot(payload: dict[str, Any] | None) -> dict[str, Any] | None:
+        if not isinstance(payload, dict):
+            return None
+        return {
+            "version": payload.get("version"),
+            "source": payload.get("source"),
+            "strategy_weights": dict(payload.get("strategy_weights") or {}),
+            "score_multipliers": dict(payload.get("score_multipliers") or {}),
+        }
 
     @staticmethod
     def _normalize_bucket_item(item: Any) -> dict[str, Any]:

@@ -269,6 +269,86 @@ class AdminAnalyticsPipelineIntegrationTest(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(strategy_payload["strategies"][1]["stable"])
         self.assertIsNotNone(strategy_payload["refreshed_at"])
 
+        signal_results = self.http_client.get(
+            "/v1/admin/analytics/signal-results", params={"window_hours": 24}
+        )
+        self.assertEqual(signal_results.status_code, 200)
+        self.assertEqual(
+            signal_results.json(),
+            {
+                "window_hours": 24,
+                "generated_after": signal_results.json()["generated_after"],
+                "total_signals": 2,
+                "total_trade_actions": 1,
+                "confirmed_trades": 0,
+                "adjusted_trades": 0,
+                "ignored_trades": 0,
+                "expired_trades": 0,
+                "pending_trades": 0,
+                "trade_action_rate": 50.0,
+                "executed_trade_rate": 0.0,
+                "unique_signal_symbols": 2,
+                "unique_trade_symbols": 1,
+                "overlapping_symbols": 1,
+                "signal_strategies": [
+                    {"key": "breakout", "count": 1},
+                    {"key": "momentum", "count": 1},
+                ],
+                "market_regimes": [
+                    {"key": "trend", "count": 2},
+                ],
+                "trade_statuses": [
+                    {"key": "unknown", "count": 1},
+                ],
+                "symbol_alignment": [
+                    {
+                        "symbol": "AAPL",
+                        "signals_generated": 1,
+                        "trade_actions": 1,
+                        "executed_trades": 0,
+                        "execution_rate": 0.0,
+                    }
+                ],
+                "comparable_field_sets": [
+                    {
+                        "category": "live_signals",
+                        "fields": [
+                            "symbol",
+                            "signal_type",
+                            "strategy",
+                            "strategy_window",
+                            "market_regime",
+                            "score",
+                        ],
+                        "note": "来自 signal.generated / signal_events。",
+                    },
+                    {
+                        "category": "trade_actions",
+                        "fields": [
+                            "symbol",
+                            "action",
+                            "status",
+                            "actual_price",
+                            "actual_amount",
+                        ],
+                        "note": "来自 trade.action.recorded / trade_events；当前按窗口与 symbol 做近似对齐。",
+                    },
+                    {
+                        "category": "backtests",
+                        "fields": [
+                            "symbol",
+                            "strategy_name",
+                            "timeframe",
+                            "window_days",
+                            "score",
+                            "degradation",
+                        ],
+                        "note": "与 live signal 的可比字段已明确，但当前响应暂不直接联表 backtest_runs。",
+                    },
+                ],
+            },
+        )
+
         tradingagents = self.http_client.get(
             "/v1/admin/analytics/tradingagents", params={"window_hours": 24}
         )

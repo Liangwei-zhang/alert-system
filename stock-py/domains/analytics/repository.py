@@ -200,6 +200,144 @@ class AnalyticsRepository:
             "by_final_action": dict(sorted(by_final_action.items())),
         }
 
+    async def query_signal_results(self, window_hours: int = 24) -> dict[str, Any]:
+        cutoff = utcnow() - timedelta(hours=window_hours)
+        signal_rows = await self.client.query_rows("signal_events", start_at=cutoff)
+        trade_rows = await self.client.query_rows("trade_events", start_at=cutoff)
+
+        strategies: dict[str, int] = defaultdict(int)
+        market_regimes: dict[str, int] = defaultdict(int)
+        trade_statuses: dict[str, int] = defaultdict(int)
+        signals_by_symbol: dict[str, int] = defaultdict(int)
+        trades_by_symbol: dict[str, int] = defaultdict(int)
+        executed_by_symbol: dict[str, int] = defaultdict(int)
+
+        for row in signal_rows:
+            symbol = str(row.get("symbol") or "UNKNOWN").upper()
+            strategy = str(row.get("strategy") or "unknown")
+            market_regime = str(row.get("market_regime") or "unknown")
+            signals_by_symbol[symbol] += 1
+            strategies[strategy] += 1
+            market_regimes[market_regime] += 1
+
+        confirmed_trades = 0
+        adjusted_trades = 0
+        ignored_trades = 0
+        expired_trades = 0
+        pending_trades = 0
+        for row in trade_rows:
+            symbol = str(row.get("symbol") or "UNKNOWN").upper()
+            status = str(row.get("status") or "unknown").lower()
+            trades_by_symbol[symbol] += 1
+            trade_statuses[status] += 1
+            if status == "confirmed":
+                confirmed_trades += 1
+                executed_by_symbol[symbol] += 1
+            elif status == "adjusted":
+                adjusted_trades += 1
+                executed_by_symbol[symbol] += 1
+            elif status == "ignored":
+                ignored_trades += 1
+            elif status == "expired":
+                expired_trades += 1
+            elif status == "pending":
+                pending_trades += 1
+
+        signal_symbols = set(signals_by_symbol)
+        trade_symbols = set(trades_by_symbol)
+        overlapping_symbols = signal_symbols & trade_symbols
+        total_signals = len(signal_rows)
+        total_trade_actions = len(trade_rows)
+        executed_trades = confirmed_trades + adjusted_trades
+
+        symbol_alignment = []
+        for symbol in sorted(
+            overlapping_symbols,
+            key=lambda item: (
+                -(signals_by_symbol.get(item, 0) + trades_by_symbol.get(item, 0)),
+                item,
+            ),
+        )[:8]:
+            trade_actions = trades_by_symbol.get(symbol, 0)
+            symbol_alignment.append(
+                {
+                    "symbol": symbol,
+                    "signals_generated": signals_by_symbol.get(symbol, 0),
+                    "trade_actions": trade_actions,
+                    "executed_trades": executed_by_symbol.get(symbol, 0),
+                    "execution_rate": round(
+                        (executed_by_symbol.get(symbol, 0) / trade_actions * 100)
+                        if trade_actions
+                        else 0.0,
+                        4,
+                    ),
+                }
+            )
+
+        return {
+            "window_hours": window_hours,
+            "generated_after": cutoff,
+            "total_signals": total_signals,
+            "total_trade_actions": total_trade_actions,
+            "confirmed_trades": confirmed_trades,
+            "adjusted_trades": adjusted_trades,
+            "ignored_trades": ignored_trades,
+            "expired_trades": expired_trades,
+            "pending_trades": pending_trades,
+            "trade_action_rate": round(
+                (total_trade_actions / total_signals * 100) if total_signals else 0.0,
+                4,
+            ),
+            "executed_trade_rate": round(
+                (executed_trades / total_signals * 100) if total_signals else 0.0,
+                4,
+            ),
+            "unique_signal_symbols": len(signal_symbols),
+            "unique_trade_symbols": len(trade_symbols),
+            "overlapping_symbols": len(overlapping_symbols),
+            "signal_strategies": self._bucket_rows(strategies),
+            "market_regimes": self._bucket_rows(market_regimes),
+            "trade_statuses": self._bucket_rows(trade_statuses),
+            "symbol_alignment": symbol_alignment,
+            "comparable_field_sets": [
+                {
+                    "category": "live_signals",
+                    "fields": [
+                        "symbol",
+                        "signal_type",
+                        "strategy",
+                        "strategy_window",
+                        "market_regime",
+                        "score",
+                    ],
+                    "note": "来自 signal.generated / signal_events。",
+                },
+                {
+                    "category": "trade_actions",
+                    "fields": [
+                        "symbol",
+                        "action",
+                        "status",
+                        "actual_price",
+                        "actual_amount",
+                    ],
+                    "note": "来自 trade.action.recorded / trade_events；当前按窗口与 symbol 做近似对齐。",
+                },
+                {
+                    "category": "backtests",
+                    "fields": [
+                        "symbol",
+                        "strategy_name",
+                        "timeframe",
+                        "window_days",
+                        "score",
+                        "degradation",
+                    ],
+                    "note": "与 live signal 的可比字段已明确，但当前响应暂不直接联表 backtest_runs。",
+                },
+            ],
+        }
+
     @classmethod
     def _latest_timestamp(cls, *row_sets: list[dict[str, Any]]) -> datetime | None:
         latest: datetime | None = None
@@ -226,3 +364,10 @@ class AnalyticsRepository:
         if isinstance(value, str) and value.strip():
             return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
         return None
+
+    @staticmethod
+    def _bucket_rows(items: dict[str, int], limit: int = 8) -> list[dict[str, Any]]:
+        return [
+            {"key": key, "count": int(count)}
+            for key, count in sorted(items.items(), key=lambda entry: (-entry[1], entry[0]))[:limit]
+        ]

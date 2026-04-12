@@ -15,6 +15,7 @@ from apps.admin_api.routers import (
     anomalies,
     audit,
     backtests,
+    calibrations,
     distribution,
     operators,
     runtime_monitoring,
@@ -120,6 +121,7 @@ app.include_router(anomalies.router)
 app.include_router(analytics.router)
 app.include_router(audit.router)
 app.include_router(backtests.router)
+app.include_router(calibrations.router)
 app.include_router(distribution.router)
 app.include_router(operators.router)
 app.include_router(runtime_monitoring.router)

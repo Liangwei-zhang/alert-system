@@ -886,13 +886,68 @@
                     </div>
                 </article>
                 <article class="panel panel--span-5" id="signal-stats">
-                    ${panelHeader("Signal stats", "Volume and quality checks", "Make `/v1/admin/signal-stats` visible as an at-a-glance module instead of a raw JSON endpoint.", `<span class="endpoint-badge">GET /v1/admin/signal-stats/summary</span>`) }
+                    ${panelHeader("Signal stats", "Volume and quality checks", "Make `/v1/admin/signal-stats` visible as an at-a-glance module instead of a raw JSON endpoint.", `<span class="endpoint-badge">GET /v1/admin/signal-stats/summary</span><span class="endpoint-badge">GET /v1/admin/signal-stats/quality</span>`) }
                     <div class="stat-rail">
                         ${source.signalStats.map((item) => `
                             <div class="stat-rail__item">
                                 <span class="stat-rail__label">${escapeHtml(item.label)}</span>
                                 <span class="stat-rail__value ${clsTone(item.tone)}">${escapeHtml(item.value)}</span>
                             </div>
+                        `).join("")}
+                    </div>
+                    <div class="card-list">
+                        ${(source.signalQuality || []).map((item) => `
+                            <article class="list-card">
+                                <div class="list-card__top">
+                                    <strong>${escapeHtml(item.label)}</strong>
+                                    <span class="badge">${escapeHtml(item.value)}</span>
+                                </div>
+                                <div class="list-card__copy">${escapeHtml(item.detail)}</div>
+                            </article>
+                        `).join("")}
+                    </div>
+                </article>
+                <article class="panel panel--span-5">
+                    ${panelHeader("Signal results", "Live signal vs trade baseline", "A first comparable baseline for signal-to-trade outcomes using window + symbol alignment instead of hard foreign-key joins.", `<span class="endpoint-badge">GET /v1/admin/analytics/signal-results</span>`) }
+                    <div class="card-list">
+                        ${(source.signalResults || []).map((item) => `
+                            <article class="list-card">
+                                <div class="list-card__top">
+                                    <strong>${escapeHtml(item.label)}</strong>
+                                    <span class="badge">${escapeHtml(item.value)}</span>
+                                </div>
+                                <div class="list-card__copy">${escapeHtml(item.detail)}</div>
+                            </article>
+                        `).join("")}
+                    </div>
+                </article>
+                <article class="panel panel--span-4">
+                    ${panelHeader("Calibration", "Snapshot versions", "Reviewed calibration snapshots stored in Postgres and loaded into scanner runtime through the active version lookup.", `<span class="endpoint-badge">GET /v1/admin/calibrations/active</span><span class="endpoint-badge">GET /v1/admin/calibrations</span>`) }
+                    <div class="card-list">
+                        ${(source.calibrationSnapshots || []).map((item) => `
+                            <article class="list-card">
+                                <div class="list-card__top">
+                                    <strong>${escapeHtml(item.version)}</strong>
+                                    <span class="${chipClass(item.status)}">${escapeHtml(item.status)}</span>
+                                </div>
+                                <div class="list-card__copy">${escapeHtml(item.source)} · ${escapeHtml(item.effectiveAt)}</div>
+                                <div class="list-card__copy">${escapeHtml(item.detail)}</div>
+                                <div class="list-card__copy">${escapeHtml(item.note)}</div>
+                            </article>
+                        `).join("")}
+                    </div>
+                </article>
+                <article class="panel panel--span-4">
+                    ${panelHeader("Proposal", "Next calibration review", "A generated proposal built from current strategy-health and signal-result baselines so operators can review before creating the next snapshot.", `<span class="endpoint-badge">GET /v1/admin/calibrations/proposal</span>`) }
+                    <div class="card-list">
+                        ${(source.calibrationProposal || []).map((item) => `
+                            <article class="list-card">
+                                <div class="list-card__top">
+                                    <strong>${escapeHtml(item.label)}</strong>
+                                    <span class="badge">${escapeHtml(item.value)}</span>
+                                </div>
+                                <div class="list-card__copy">${escapeHtml(item.detail)}</div>
+                            </article>
                         `).join("")}
                     </div>
                 </article>

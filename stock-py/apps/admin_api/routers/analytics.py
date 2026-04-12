@@ -5,14 +5,17 @@ from fastapi import APIRouter, Depends, Query
 from apps.admin_api.dependencies import (
     get_distribution_read_model_service,
     get_overview_read_model_service,
+    get_signal_results_read_model_service,
     get_strategy_read_model_service,
     get_tradingagents_read_model_service,
 )
 from domains.analytics.distribution_read_model_service import DistributionReadModelService
 from domains.analytics.overview_read_model_service import OverviewReadModelService
+from domains.analytics.signal_results_read_model_service import SignalResultsReadModelService
 from domains.analytics.schemas import (
     DistributionMetricsResponse,
     OverviewMetricsResponse,
+    SignalResultMetricsResponse,
     StrategyHealthResponse,
     TradingAgentsMetricsResponse,
 )
@@ -44,6 +47,14 @@ async def get_strategy_health(
     service: StrategyReadModelService = Depends(get_strategy_read_model_service),
 ) -> StrategyHealthResponse:
     return await service.build_strategy_health_view(window_hours)
+
+
+@router.get("/signal-results", response_model=SignalResultMetricsResponse)
+async def get_signal_results(
+    window_hours: int = Query(24, ge=1, le=24 * 30),
+    service: SignalResultsReadModelService = Depends(get_signal_results_read_model_service),
+) -> SignalResultMetricsResponse:
+    return await service.build_signal_results_view(window_hours)
 
 
 @router.get("/tradingagents", response_model=TradingAgentsMetricsResponse)

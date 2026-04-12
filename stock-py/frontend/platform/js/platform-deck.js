@@ -864,11 +864,175 @@ function platformDeck() {
             };
         },
 
+        parseSignalMetadata(item) {
+            const payload = item && item.indicators && typeof item.indicators === 'object' && !Array.isArray(item.indicators)
+                ? item.indicators
+                : {};
+            const strategySelection = item && item.strategy_selection && typeof item.strategy_selection === 'object' && !Array.isArray(item.strategy_selection)
+                ? item.strategy_selection
+                : (payload.strategy_selection
+                && typeof payload.strategy_selection === 'object'
+                && !Array.isArray(payload.strategy_selection)
+                ? payload.strategy_selection
+                : {});
+            const exitLevels = item && item.exit_levels && typeof item.exit_levels === 'object' && !Array.isArray(item.exit_levels)
+                ? item.exit_levels
+                : (payload.exit_levels
+                && typeof payload.exit_levels === 'object'
+                && !Array.isArray(payload.exit_levels)
+                ? payload.exit_levels
+                : {});
+            const scoreBreakdown = item && item.score_breakdown && typeof item.score_breakdown === 'object' && !Array.isArray(item.score_breakdown)
+                ? item.score_breakdown
+                : (payload.score_breakdown
+                && typeof payload.score_breakdown === 'object'
+                && !Array.isArray(payload.score_breakdown)
+                ? payload.score_breakdown
+                : {});
+            const strategyWindow = String(item && item.strategy_window || payload.strategy_window || '').trim();
+            const marketRegime = String(item && item.market_regime || payload.market_regime || '').trim();
+            const marketRegimeDetail = String(
+                item && item.market_regime_detail
+                || payload.market_regime_detail
+                || strategySelection.market_regime_detail
+                || marketRegime
+                || ''
+            ).trim();
+            const calibrationVersion = String(
+                item && item.calibration_version
+                || payload.calibration_version
+                || strategySelection.calibration_version
+                || scoreBreakdown.calibration_version
+                || ''
+            ).trim();
+            return {
+                payload,
+                strategySelection,
+                exitLevels,
+                scoreBreakdown,
+                strategyWindow,
+                marketRegime,
+                marketRegimeDetail,
+                calibrationVersion
+            };
+        },
+
+        strategySelectionSourceLabel(source) {
+            const normalized = String(source || '').trim().toLowerCase();
+            const mapping = {
+                ranking: '排名归一化',
+                heuristic: '规则推断',
+                fallback: '兼容回退',
+                manual: '手动覆盖'
+            };
+            return mapping[normalized] || '服务端选择';
+        },
+
+        exitLevelSourceLabel(source) {
+            const normalized = String(source || '').trim().toLowerCase();
+            const mapping = {
+                client: '客户端传入',
+                server_default: '服务端 ATR 默认',
+                server_adjusted: '服务端动态调整',
+                unavailable: '退出位待补'
+            };
+            return mapping[normalized] || '退出位待补';
+        },
+
+        marketRegimeDetailLabel(value) {
+            const normalized = String(value || '').trim().toLowerCase();
+            const mapping = {
+                trend: '趋势',
+                trend_up: '趋势上行',
+                trend_down: '趋势下行',
+                range: '区间震荡',
+                volatile: '高波动',
+                breakout_candidate: '突破候选'
+            };
+            return mapping[normalized] || (normalized ? normalized.replaceAll('_', ' ') : '--');
+        },
+
+        signalRegimeLabel(signal) {
+            if (!signal) {
+                return '--';
+            }
+            return this.marketRegimeDetailLabel(signal.marketRegimeDetail || signal.marketRegime);
+        },
+
+        signalStrategyNarrative(signal) {
+            if (!signal) {
+                return '等待信号元数据';
+            }
+            const selectionSource = this.strategySelectionSourceLabel(signal.selectionSource);
+            const rankText = signal.selectionRank > 0 ? `排行 #${this.formatInt(signal.selectionRank)}` : '无排行输入';
+            const fitText = signal.signalFitScore > 0
+                ? `适配 ${this.toFixed(signal.signalFitScore, 1)}`
+                : '适配待补';
+            const weightText = signal.strategyWeight > 0
+                ? `权重 ${this.toFixed(signal.strategyWeight, 2)}`
+                : '权重默认';
+            return `${selectionSource} · ${rankText} · ${fitText} · ${weightText}`;
+        },
+
+        exitLevelNarrative(signal) {
+            if (!signal) {
+                return '等待退出位数据';
+            }
+            const sourceLabel = this.exitLevelSourceLabel(signal.exitLevelSource);
+            const atrText = signal.exitAtrValue > 0
+                ? `ATR ${this.toFixed(signal.exitAtrValue, 2)} x ${this.toFixed(signal.exitAtrMultiplier, 2)}`
+                : 'ATR 待补';
+            return `${sourceLabel} · ${atrText}`;
+        },
+
+        selectedScoreBreakdownCards(signal) {
+            if (!signal || !signal.scoreBreakdown || !Object.keys(signal.scoreBreakdown).length) {
+                return [];
+            }
+            const scoreBreakdown = signal.scoreBreakdown;
+            const bonusTotal = this.toNumber(scoreBreakdown.volume_bonus)
+                + this.toNumber(scoreBreakdown.trend_bonus)
+                + this.toNumber(scoreBreakdown.reversal_bonus)
+                + this.toNumber(scoreBreakdown.quality_bonus);
+            const penaltyTotal = this.toNumber(scoreBreakdown.stale_penalty)
+                + this.toNumber(scoreBreakdown.liquidity_penalty);
+            return [
+                {
+                    id: 'base',
+                    label: '基础分',
+                    value: `${this.toFixed(scoreBreakdown.base_score, 1)} + ${this.toFixed(scoreBreakdown.signal_bias, 1)}`,
+                    meta: '基础分 + 方向偏置'
+                },
+                {
+                    id: 'probability',
+                    label: '置信 / 概率',
+                    value: `${this.toFixed(scoreBreakdown.confidence_points, 1)} / ${this.toFixed(scoreBreakdown.probability_points, 1)}`,
+                    meta: 'confidence 与 probability 贡献'
+                },
+                {
+                    id: 'risk-reward',
+                    label: 'RR / 奖励项',
+                    value: `${this.toFixed(scoreBreakdown.risk_reward_points, 1)} / ${this.toFixed(bonusTotal, 1)}`,
+                    meta: 'RR 与量能/趋势/质量奖励'
+                },
+                {
+                    id: 'penalty',
+                    label: '惩罚项 / 总分',
+                    value: `${this.toFixed(penaltyTotal, 1)} / ${this.toFixed(scoreBreakdown.selected_score || scoreBreakdown.clamped_total, 0)}`,
+                    meta: 'stale、流动性惩罚与最终分数'
+                }
+            ];
+        },
+
         consumeSignals(payload) {
             const rows = Array.isArray(payload && payload.data) ? payload.data : [];
             this.watchlist = rows.map((item) => {
                 const signalType = this.normalizeSignalType(item.signal_type);
-                const strategyCode = this.resolveStrategyCode(item.indicators);
+                const metadata = this.parseSignalMetadata(item);
+                const strategyCode = this.resolveStrategyCode(
+                    metadata.payload,
+                    metadata.strategySelection,
+                );
                 return {
                     id: Number(item.id || 0),
                     symbol: String(item.symbol || '').toUpperCase(),
@@ -889,9 +1053,42 @@ function platformDeck() {
                     confidence: this.toNumber(item.confidence),
                     probability: this.toNumber(item.probability),
                     generatedAt: item.generated_at,
-                    indicators: item.indicators && typeof item.indicators === 'object' && !Array.isArray(item.indicators)
-                        ? item.indicators
-                        : {},
+                    indicators: metadata.payload,
+                    strategySelection: metadata.strategySelection,
+                    selectionSource: String(metadata.strategySelection.source || 'heuristic').trim() || 'heuristic',
+                    sourceStrategy: String(
+                        metadata.strategySelection.source_strategy
+                        || metadata.strategySelection.strategy
+                        || strategyCode
+                        || 'unknown'
+                    ).trim(),
+                    selectionRank: Number(metadata.strategySelection.rank || 0),
+                    rankingScore: this.toNumber(metadata.strategySelection.ranking_score),
+                    combinedScore: this.toNumber(metadata.strategySelection.combined_score),
+                    signalFitScore: this.toNumber(metadata.strategySelection.signal_fit_score),
+                    regimeBias: this.toNumber(metadata.strategySelection.regime_bias),
+                    degradationPenalty: this.toNumber(metadata.strategySelection.degradation_penalty),
+                    strategyWeight: this.toNumber(metadata.strategySelection.strategy_weight),
+                    selectionStable: Boolean(metadata.strategySelection.stable),
+                    marketRegime: metadata.marketRegime || 'range',
+                    marketRegimeDetail: metadata.marketRegimeDetail || 'range',
+                    calibrationVersion: metadata.calibrationVersion || '--',
+                    exitLevels: metadata.exitLevels,
+                    exitLevelSource: String(
+                        metadata.exitLevels.source
+                        || ((item.stop_loss || item.take_profit_1) ? 'client' : 'unavailable')
+                    ).trim() || 'unavailable',
+                    exitAtrValue: this.toNumber(
+                        metadata.exitLevels.atr_value
+                        || metadata.payload.atr_value
+                        || item.atr_value
+                    ),
+                    exitAtrMultiplier: this.toNumber(
+                        metadata.exitLevels.atr_multiplier
+                        || metadata.payload.atr_multiplier
+                        || item.atr_multiplier
+                    ),
+                    scoreBreakdown: metadata.scoreBreakdown,
                     raw: item
                 };
             });
@@ -996,7 +1193,10 @@ function platformDeck() {
             return ['active', 'triggered'].includes(String(item.status || '').toLowerCase());
         },
 
-        resolveStrategyCode(indicators) {
+        resolveStrategyCode(indicators, strategySelection = null) {
+            if (strategySelection && typeof strategySelection === 'object' && strategySelection.strategy) {
+                return String(strategySelection.strategy).toLowerCase();
+            }
             if (indicators && typeof indicators === 'object' && !Array.isArray(indicators) && indicators.strategy) {
                 return String(indicators.strategy).toLowerCase();
             }

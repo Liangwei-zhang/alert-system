@@ -515,9 +515,7 @@ class ClickHouseHttpBackend:
             return True
 
         response_text = response.text.upper()
-        return any(
-            marker in response_text for marker in ClickHouseHttpBackend._MISSING_ENTITY_MARKERS
-        )
+        return any(marker in response_text for marker in ClickHouseHttpBackend._MISSING_ENTITY_MARKERS)
 
 
 class ClickHouseClient:

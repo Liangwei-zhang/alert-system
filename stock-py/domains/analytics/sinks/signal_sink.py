@@ -16,12 +16,14 @@ class SignalAnalyticsSink:
 
     async def handle_signal_generated(self, payload: dict[str, Any]) -> dict[str, Any]:
         analysis = payload.get("analysis") if isinstance(payload.get("analysis"), dict) else {}
+        exit_levels = analysis.get("exit_levels") if isinstance(analysis.get("exit_levels"), dict) else {}
         row = {
             "occurred_at": payload.get("occurred_at") or utcnow(),
             "signal_id": payload.get("signal_id"),
             "symbol": str(payload.get("symbol") or "UNKNOWN").upper(),
             "signal_type": str(payload.get("signal_type") or "signal").lower(),
             "price": payload.get("price"),
+            "entry_price": payload.get("entry_price") or payload.get("price"),
             "score": payload.get("score"),
             "source": payload.get("source") or "unknown",
             "strategy": analysis.get("strategy") or payload.get("strategy") or "unknown",
@@ -31,6 +33,26 @@ class SignalAnalyticsSink:
             "market_regime": payload.get("market_regime")
             or analysis.get("market_regime")
             or "unknown",
+            "market_regime_detail": analysis.get("market_regime_detail"),
+            "risk_reward_ratio": payload.get("risk_reward_ratio")
+            or analysis.get("risk_reward_ratio"),
+            "atr_multiplier": payload.get("atr_multiplier")
+            or analysis.get("atr_multiplier")
+            or exit_levels.get("atr_multiplier"),
+            "stop_loss": payload.get("stop_loss")
+            or analysis.get("stop_loss")
+            or exit_levels.get("stop_loss"),
+            "take_profit_1": payload.get("take_profit_1")
+            or analysis.get("take_profit_1")
+            or exit_levels.get("take_profit_1"),
+            "take_profit_2": payload.get("take_profit_2")
+            or analysis.get("take_profit_2")
+            or exit_levels.get("take_profit_2"),
+            "take_profit_3": payload.get("take_profit_3")
+            or analysis.get("take_profit_3")
+            or exit_levels.get("take_profit_3"),
+            "calibration_version": analysis.get("calibration_version"),
+            "analysis": analysis,
             "recipient_count": len(payload.get("user_ids") or []),
             "user_ids": payload.get("user_ids") or [],
         }

@@ -1,0 +1,946 @@
+{
+  "timeframe": "1d",
+  "source": "history.archive.adjusted",
+  "baseline": "rsi_proxy",
+  "goal": {
+    "met": false,
+    "checks": {
+      "new_win_rate": {
+        "actual": 35.8268,
+        "target": 65.58,
+        "passed": false
+      },
+      "absolute_uplift_pp": {
+        "actual": -33.8483,
+        "target": 10.89,
+        "passed": false
+      },
+      "relative_uplift_percent": {
+        "actual": -48.5802,
+        "target": 19.92,
+        "passed": false
+      }
+    }
+  },
+  "comparison": {
+    "baseline_win_rate": 69.6751,
+    "new_win_rate": 35.8268,
+    "absolute_uplift_pp": -33.8483,
+    "relative_uplift_percent": -48.5802
+  },
+  "universe": {
+    "requested_limit": 200,
+    "eligible_symbol_count": 200,
+    "symbol_preview": [
+      "AA",
+      "AE",
+      "AEM",
+      "AEP",
+      "AIG",
+      "ALCO",
+      "ALE",
+      "ALX",
+      "AP",
+      "APOG",
+      "ASA",
+      "AVA",
+      "AVT",
+      "AVY",
+      "AWR",
+      "AXP",
+      "AXR",
+      "BA",
+      "BAC",
+      "BALL"
+    ],
+    "lookback_bars": 365,
+    "train_bars": 275,
+    "test_bars": 90,
+    "min_bars": 365
+  },
+  "baseline_metrics": {
+    "symbol_count": 163,
+    "trade_count": 277,
+    "winning_trades": 193,
+    "win_rate": 69.6751,
+    "mean_total_return_percent": 1.4974,
+    "mean_trade_count_per_symbol": 1.6994
+  },
+  "new_metrics": {
+    "symbol_count": 163,
+    "trade_count": 254,
+    "winning_trades": 91,
+    "win_rate": 35.8268,
+    "mean_total_return_percent": -1.3049,
+    "mean_trade_count_per_symbol": 1.5583,
+    "published_symbol_count": 163,
+    "suppressed_symbol_count": 0
+  },
+  "suppression_diagnostics": {
+    "suppressed_symbols": [],
+    "baseline_on_suppressed_subset": {
+      "symbol_count": 0,
+      "trade_count": 0,
+      "winning_trades": 0,
+      "win_rate": 0.0,
+      "mean_total_return_percent": 0.0,
+      "mean_trade_count_per_symbol": 0.0
+    },
+    "baseline_on_published_subset": {
+      "symbol_count": 163,
+      "trade_count": 277,
+      "winning_trades": 193,
+      "win_rate": 69.6751,
+      "mean_total_return_percent": 1.4974,
+      "mean_trade_count_per_symbol": 1.6994
+    }
+  },
+  "rankings_preview": [
+    {
+      "strategy_name": "rsi_reversion",
+      "timeframe": "1d",
+      "score": 20.7352,
+      "degradation": 18.2454,
+      "symbols_covered": 600,
+      "evidence": {
+        "strategy_name": "rsi_reversion",
+        "best_window_days": 90,
+        "best_score": 65.9374,
+        "weakest_window_days": 30,
+        "weakest_score": 5.1195,
+        "degradation": 18.2454,
+        "stable": false,
+        "windows": {
+          "30": {
+            "score": 5.1195,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "DE",
+                "return_percent": 2.2086,
+                "trade_count": 1
+              },
+              {
+                "symbol": "COKE",
+                "return_percent": 1.9173,
+                "trade_count": 1
+              },
+              {
+                "symbol": "ASA",
+                "return_percent": 1.9104,
+                "trade_count": 1
+              },
+              {
+                "symbol": "FMC",
+                "return_percent": 1.4134,
+                "trade_count": 1
+              },
+              {
+                "symbol": "BRN",
+                "return_percent": 0.8811,
+                "trade_count": 1
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 0.0433,
+              "max_drawdown_percent": 0.0001,
+              "trade_count": 11,
+              "win_rate": 3.5,
+              "avg_trade_return_percent": 0.0433,
+              "sharpe_ratio": 0.0,
+              "samples": 4399
+            }
+          },
+          "90": {
+            "score": 65.9374,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "WWW",
+                "return_percent": 18.37,
+                "trade_count": 1
+              },
+              {
+                "symbol": "UGI",
+                "return_percent": 13.3201,
+                "trade_count": 2
+              },
+              {
+                "symbol": "CMTL",
+                "return_percent": 9.1924,
+                "trade_count": 3
+              },
+              {
+                "symbol": "ATRI",
+                "return_percent": 8.6604,
+                "trade_count": 1
+              },
+              {
+                "symbol": "AGYS",
+                "return_percent": 8.1462,
+                "trade_count": 1
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 1.251,
+              "max_drawdown_percent": 1.9973,
+              "trade_count": 176,
+              "win_rate": 52.0833,
+              "avg_trade_return_percent": 0.9414,
+              "sharpe_ratio": 5.9571,
+              "samples": 12199
+            }
+          },
+          "180": {
+            "score": 45.8849,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "WWW",
+                "return_percent": 28.9971,
+                "trade_count": 2
+              },
+              {
+                "symbol": "UG",
+                "return_percent": 24.1833,
+                "trade_count": 3
+              },
+              {
+                "symbol": "AMD",
+                "return_percent": 23.5145,
+                "trade_count": 2
+              },
+              {
+                "symbol": "AXR",
+                "return_percent": 19.542,
+                "trade_count": 2
+              },
+              {
+                "symbol": "AGYS",
+                "return_percent": 18.408,
+                "trade_count": 3
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 3.11,
+              "max_drawdown_percent": 5.2832,
+              "trade_count": 438,
+              "win_rate": 70.1488,
+              "avg_trade_return_percent": 1.1278,
+              "sharpe_ratio": 3.0381,
+              "samples": 24799
+            }
+          }
+        }
+      },
+      "rank": 1
+    },
+    {
+      "strategy_name": "mean_reversion",
+      "timeframe": "1d",
+      "score": 17.3085,
+      "degradation": 17.1076,
+      "symbols_covered": 600,
+      "evidence": {
+        "strategy_name": "mean_reversion",
+        "best_window_days": 90,
+        "best_score": 63.535,
+        "weakest_window_days": 30,
+        "weakest_score": 6.5095,
+        "degradation": 17.1076,
+        "stable": false,
+        "windows": {
+          "30": {
+            "score": 6.5095,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "UIS",
+                "return_percent": 5.2104,
+                "trade_count": 1
+              },
+              {
+                "symbol": "DE",
+                "return_percent": 2.2086,
+                "trade_count": 1
+              },
+              {
+                "symbol": "COKE",
+                "return_percent": 1.9173,
+                "trade_count": 1
+              },
+              {
+                "symbol": "DLX",
+                "return_percent": 0.6283,
+                "trade_count": 1
+              },
+              {
+                "symbol": "DSGR",
+                "return_percent": 0.032,
+                "trade_count": 1
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 0.0338,
+              "max_drawdown_percent": 0.0162,
+              "trade_count": 15,
+              "win_rate": 2.5,
+              "avg_trade_return_percent": 0.0338,
+              "sharpe_ratio": 0.0,
+              "samples": 4399
+            }
+          },
+          "90": {
+            "score": 63.535,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "FARM",
+                "return_percent": 28.3217,
+                "trade_count": 2
+              },
+              {
+                "symbol": "VHI",
+                "return_percent": 19.5948,
+                "trade_count": 5
+              },
+              {
+                "symbol": "DLX",
+                "return_percent": 14.2136,
+                "trade_count": 3
+              },
+              {
+                "symbol": "CRS",
+                "return_percent": 13.0428,
+                "trade_count": 4
+              },
+              {
+                "symbol": "WWW",
+                "return_percent": 12.9717,
+                "trade_count": 2
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 1.7456,
+              "max_drawdown_percent": 2.6122,
+              "trade_count": 334,
+              "win_rate": 60.9667,
+              "avg_trade_return_percent": 0.7583,
+              "sharpe_ratio": 5.4338,
+              "samples": 12199
+            }
+          },
+          "180": {
+            "score": 33.2037,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "AAME",
+                "return_percent": 47.022,
+                "trade_count": 7
+              },
+              {
+                "symbol": "WWW",
+                "return_percent": 38.8886,
+                "trade_count": 5
+              },
+              {
+                "symbol": "FARM",
+                "return_percent": 35.7452,
+                "trade_count": 3
+              },
+              {
+                "symbol": "CMTL",
+                "return_percent": 34.8333,
+                "trade_count": 6
+              },
+              {
+                "symbol": "AA",
+                "return_percent": 34.6508,
+                "trade_count": 6
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 3.7889,
+              "max_drawdown_percent": 6.3676,
+              "trade_count": 844,
+              "win_rate": 68.3208,
+              "avg_trade_return_percent": 0.6302,
+              "sharpe_ratio": 1.5079,
+              "samples": 24799
+            }
+          }
+        }
+      },
+      "rank": 2
+    },
+    {
+      "strategy_name": "buy_and_hold",
+      "timeframe": "1d",
+      "score": 16.3707,
+      "degradation": 2.9764,
+      "symbols_covered": 600,
+      "evidence": {
+        "strategy_name": "buy_and_hold",
+        "best_window_days": 180,
+        "best_score": 23.7972,
+        "weakest_window_days": 90,
+        "weakest_score": 13.8758,
+        "degradation": 2.9764,
+        "stable": true,
+        "windows": {
+          "30": {
+            "score": 20.3682,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "UIS",
+                "return_percent": 5.2104,
+                "trade_count": 1
+              },
+              {
+                "symbol": "D",
+                "return_percent": 4.9561,
+                "trade_count": 1
+              },
+              {
+                "symbol": "BH",
+                "return_percent": 4.1202,
+                "trade_count": 1
+              },
+              {
+                "symbol": "CTO",
+                "return_percent": 3.7349,
+                "trade_count": 1
+              },
+              {
+                "symbol": "WOR",
+                "return_percent": 3.2803,
+                "trade_count": 1
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 0.2281,
+              "max_drawdown_percent": 0.3842,
+              "trade_count": 200,
+              "win_rate": 62.0,
+              "avg_trade_return_percent": 0.2281,
+              "sharpe_ratio": 0.0,
+              "samples": 4399
+            }
+          },
+          "90": {
+            "score": 13.8758,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "FLXS",
+                "return_percent": 77.9652,
+                "trade_count": 1
+              },
+              {
+                "symbol": "ESP",
+                "return_percent": 38.4533,
+                "trade_count": 1
+              },
+              {
+                "symbol": "AAME",
+                "return_percent": 29.1867,
+                "trade_count": 1
+              },
+              {
+                "symbol": "AZZ",
+                "return_percent": 26.8769,
+                "trade_count": 1
+              },
+              {
+                "symbol": "VTRS",
+                "return_percent": 26.3305,
+                "trade_count": 1
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 0.1624,
+              "max_drawdown_percent": 10.5636,
+              "trade_count": 200,
+              "win_rate": 47.5,
+              "avg_trade_return_percent": 0.1624,
+              "sharpe_ratio": 0.0,
+              "samples": 12199
+            }
+          },
+          "180": {
+            "score": 23.7972,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "FL",
+                "return_percent": 111.1561,
+                "trade_count": 1
+              },
+              {
+                "symbol": "AMD",
+                "return_percent": 83.9517,
+                "trade_count": 1
+              },
+              {
+                "symbol": "ACU",
+                "return_percent": 75.9982,
+                "trade_count": 1
+              },
+              {
+                "symbol": "FLXS",
+                "return_percent": 67.703,
+                "trade_count": 1
+              },
+              {
+                "symbol": "ESP",
+                "return_percent": 66.1994,
+                "trade_count": 1
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 13.3814,
+              "max_drawdown_percent": 14.927,
+              "trade_count": 200,
+              "win_rate": 75.0,
+              "avg_trade_return_percent": 13.3814,
+              "sharpe_ratio": 0.0,
+              "samples": 24799
+            }
+          }
+        }
+      },
+      "rank": 3
+    },
+    {
+      "strategy_name": "bollinger_reversion",
+      "timeframe": "1d",
+      "score": 10.3722,
+      "degradation": 16.5536,
+      "symbols_covered": 600,
+      "evidence": {
+        "strategy_name": "bollinger_reversion",
+        "best_window_days": 180,
+        "best_score": 57.7946,
+        "weakest_window_days": 30,
+        "weakest_score": 2.6159,
+        "degradation": 16.5536,
+        "stable": false,
+        "windows": {
+          "30": {
+            "score": 2.6159,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "UIS",
+                "return_percent": 5.2104,
+                "trade_count": 1
+              },
+              {
+                "symbol": "COKE",
+                "return_percent": 1.9173,
+                "trade_count": 1
+              },
+              {
+                "symbol": "AA",
+                "return_percent": 0.0,
+                "trade_count": 0
+              },
+              {
+                "symbol": "AE",
+                "return_percent": 0.0,
+                "trade_count": 0
+              },
+              {
+                "symbol": "AEM",
+                "return_percent": 0.0,
+                "trade_count": 0
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 0.0354,
+              "max_drawdown_percent": 0.0002,
+              "trade_count": 6,
+              "win_rate": 1.0,
+              "avg_trade_return_percent": 0.0354,
+              "sharpe_ratio": 0.0,
+              "samples": 4399
+            }
+          },
+          "90": {
+            "score": 20.3668,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "WDFC",
+                "return_percent": 17.2531,
+                "trade_count": 1
+              },
+              {
+                "symbol": "EMR",
+                "return_percent": 16.9786,
+                "trade_count": 2
+              },
+              {
+                "symbol": "WWW",
+                "return_percent": 16.1167,
+                "trade_count": 1
+              },
+              {
+                "symbol": "ATRI",
+                "return_percent": 12.9809,
+                "trade_count": 1
+              },
+              {
+                "symbol": "ZION",
+                "return_percent": 12.4813,
+                "trade_count": 2
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 1.5334,
+              "max_drawdown_percent": 2.7268,
+              "trade_count": 141,
+              "win_rate": 46.0,
+              "avg_trade_return_percent": 1.2998,
+              "sharpe_ratio": 0.4289,
+              "samples": 12199
+            }
+          },
+          "180": {
+            "score": 57.7946,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "AA",
+                "return_percent": 65.7331,
+                "trade_count": 4
+              },
+              {
+                "symbol": "VFC",
+                "return_percent": 60.9567,
+                "trade_count": 3
+              },
+              {
+                "symbol": "WWW",
+                "return_percent": 59.7712,
+                "trade_count": 4
+              },
+              {
+                "symbol": "AAME",
+                "return_percent": 47.3811,
+                "trade_count": 3
+              },
+              {
+                "symbol": "AP",
+                "return_percent": 33.4776,
+                "trade_count": 3
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 5.0292,
+              "max_drawdown_percent": 6.9737,
+              "trade_count": 383,
+              "win_rate": 66.8333,
+              "avg_trade_return_percent": 2.0217,
+              "sharpe_ratio": 4.5757,
+              "samples": 24799
+            }
+          }
+        }
+      },
+      "rank": 4
+    },
+    {
+      "strategy_name": "sma_cross",
+      "timeframe": "1d",
+      "score": 9.014,
+      "degradation": 6.233,
+      "symbols_covered": 600,
+      "evidence": {
+        "strategy_name": "sma_cross",
+        "best_window_days": 180,
+        "best_score": 26.8413,
+        "weakest_window_days": 30,
+        "weakest_score": 6.0645,
+        "degradation": 6.233,
+        "stable": false,
+        "windows": {
+          "30": {
+            "score": 6.0645,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "EXC",
+                "return_percent": 0.2776,
+                "trade_count": 1
+              },
+              {
+                "symbol": "AA",
+                "return_percent": 0.0,
+                "trade_count": 0
+              },
+              {
+                "symbol": "AE",
+                "return_percent": 0.0,
+                "trade_count": 0
+              },
+              {
+                "symbol": "AEM",
+                "return_percent": 0.0,
+                "trade_count": 0
+              },
+              {
+                "symbol": "AEP",
+                "return_percent": 0.0,
+                "trade_count": 0
+              }
+            ],
+            "metrics": {
+              "total_return_percent": -0.0437,
+              "max_drawdown_percent": 0.0451,
+              "trade_count": 15,
+              "win_rate": 0.5,
+              "avg_trade_return_percent": -0.0437,
+              "sharpe_ratio": 0.0,
+              "samples": 4399
+            }
+          },
+          "90": {
+            "score": 12.8352,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "FLXS",
+                "return_percent": 80.9218,
+                "trade_count": 1
+              },
+              {
+                "symbol": "FL",
+                "return_percent": 19.1122,
+                "trade_count": 1
+              },
+              {
+                "symbol": "ETN",
+                "return_percent": 18.6615,
+                "trade_count": 1
+              },
+              {
+                "symbol": "AMAT",
+                "return_percent": 18.2246,
+                "trade_count": 1
+              },
+              {
+                "symbol": "WWW",
+                "return_percent": 16.1006,
+                "trade_count": 2
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 0.581,
+              "max_drawdown_percent": 4.5706,
+              "trade_count": 212,
+              "win_rate": 40.0833,
+              "avg_trade_return_percent": 0.8149,
+              "sharpe_ratio": -0.2304,
+              "samples": 12199
+            }
+          },
+          "180": {
+            "score": 26.8413,
+            "symbols_covered": 200,
+            "top_symbols": [
+              {
+                "symbol": "FL",
+                "return_percent": 95.4885,
+                "trade_count": 3
+              },
+              {
+                "symbol": "FLXS",
+                "return_percent": 87.4343,
+                "trade_count": 4
+              },
+              {
+                "symbol": "ACU",
+                "return_percent": 64.832,
+                "trade_count": 3
+              },
+              {
+                "symbol": "WOR",
+                "return_percent": 57.3892,
+                "trade_count": 2
+              },
+              {
+                "symbol": "ESP",
+                "return_percent": 57.1519,
+                "trade_count": 4
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 7.3232,
+              "max_drawdown_percent": 10.9993,
+              "trade_count": 592,
+              "win_rate": 53.0262,
+              "avg_trade_return_percent": 3.3566,
+              "sharpe_ratio": 1.0988,
+              "samples": 24799
+            }
+          }
+        }
+      },
+      "rank": 5
+    }
+  ],
+  "skipped_symbols": [
+    {
+      "symbol": "BAC",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "BK",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "BP",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "CLX",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "DIOD",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "ED",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "EGP",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "EVRG",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "GATX",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "TXT",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "USB",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "VLGEA",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "WY",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "XEL",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "XRX",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "TSRI",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "ACU",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "ADI",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "ADM",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "ASB",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "BRID",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "CBSH",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "CET",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "CINF",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "DCI",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "DUK",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "EBF",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "EML",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "FHN",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "FITB",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "TYL",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "UDR",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "UMBF",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "USLM",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "WABC",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "WEC",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "WEYS",
+      "reason": "snapshot_unavailable"
+    }
+  ],
+  "code_version": "master@97608c335b86+dirty"
+}

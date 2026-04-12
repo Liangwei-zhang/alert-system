@@ -1,0 +1,2031 @@
+{
+  "timeframe": "1d",
+  "source": "history.archive.adjusted",
+  "baseline": "legacy_heuristic",
+  "ranking_source": "latest_substantial_db",
+  "goal": {
+    "met": false,
+    "checks": {
+      "new_win_rate": {
+        "actual": 60.8059,
+        "target": 65.58,
+        "passed": false
+      },
+      "absolute_uplift_pp": {
+        "actual": 6.1184,
+        "target": 10.89,
+        "passed": false
+      },
+      "relative_uplift_percent": {
+        "actual": 11.1879,
+        "target": 19.92,
+        "passed": false
+      }
+    }
+  },
+  "comparison": {
+    "baseline_win_rate": 54.6875,
+    "new_win_rate": 60.8059,
+    "absolute_uplift_pp": 6.1184,
+    "relative_uplift_percent": 11.1879
+  },
+  "universe": {
+    "requested_limit": 200,
+    "eligible_symbol_count": 200,
+    "symbol_preview": [
+      "AA",
+      "AE",
+      "AEM",
+      "AEP",
+      "AIG",
+      "ALCO",
+      "ALE",
+      "ALX",
+      "AP",
+      "APOG",
+      "ASA",
+      "AVA",
+      "AVT",
+      "AVY",
+      "AWR",
+      "AXP",
+      "AXR",
+      "BA",
+      "BAC",
+      "BALL"
+    ],
+    "lookback_bars": 365,
+    "train_bars": 275,
+    "test_bars": 90,
+    "min_bars": 365
+  },
+  "baseline_metrics": {
+    "symbol_count": 163,
+    "trade_count": 448,
+    "winning_trades": 245,
+    "win_rate": 54.6875,
+    "mean_total_return_percent": 0.7115,
+    "mean_trade_count_per_symbol": 2.7485
+  },
+  "new_metrics": {
+    "symbol_count": 150,
+    "trade_count": 273,
+    "winning_trades": 166,
+    "win_rate": 60.8059,
+    "mean_total_return_percent": 1.5811,
+    "mean_trade_count_per_symbol": 1.82,
+    "published_symbol_count": 150,
+    "suppressed_symbol_count": 13
+  },
+  "suppression_diagnostics": {
+    "suppressed_symbols": [
+      {
+        "symbol": "ALE",
+        "selection_strategy": "mean_reversion",
+        "source_strategy": "rsi_reversion",
+        "suppressed_reasons": [
+          "signal-fit-weak"
+        ]
+      },
+      {
+        "symbol": "AVT",
+        "selection_strategy": "mean_reversion",
+        "source_strategy": "rsi_reversion",
+        "suppressed_reasons": [
+          "signal-fit-weak"
+        ]
+      },
+      {
+        "symbol": "CHE",
+        "selection_strategy": "mean_reversion",
+        "source_strategy": "rsi_reversion",
+        "suppressed_reasons": [
+          "signal-fit-weak"
+        ]
+      },
+      {
+        "symbol": "WDFC",
+        "selection_strategy": "mean_reversion",
+        "source_strategy": "rsi_reversion",
+        "suppressed_reasons": [
+          "signal-fit-weak"
+        ]
+      },
+      {
+        "symbol": "WHR",
+        "selection_strategy": "mean_reversion",
+        "source_strategy": "rsi_reversion",
+        "suppressed_reasons": [
+          "signal-fit-weak"
+        ]
+      },
+      {
+        "symbol": "FDX",
+        "selection_strategy": "mean_reversion",
+        "source_strategy": "rsi_reversion",
+        "suppressed_reasons": [
+          "signal-fit-weak"
+        ]
+      },
+      {
+        "symbol": "ACNT",
+        "selection_strategy": "mean_reversion",
+        "source_strategy": "rsi_reversion",
+        "suppressed_reasons": [
+          "signal-fit-weak"
+        ]
+      },
+      {
+        "symbol": "AFL",
+        "selection_strategy": "mean_reversion",
+        "source_strategy": "rsi_reversion",
+        "suppressed_reasons": [
+          "signal-fit-weak"
+        ]
+      },
+      {
+        "symbol": "BOH",
+        "selection_strategy": "mean_reversion",
+        "source_strategy": "rsi_reversion",
+        "suppressed_reasons": [
+          "signal-fit-weak"
+        ]
+      },
+      {
+        "symbol": "CHD",
+        "selection_strategy": "mean_reversion",
+        "source_strategy": "rsi_reversion",
+        "suppressed_reasons": [
+          "signal-fit-weak"
+        ]
+      },
+      {
+        "symbol": "FLO",
+        "selection_strategy": "mean_reversion",
+        "source_strategy": "rsi_reversion",
+        "suppressed_reasons": [
+          "signal-fit-weak"
+        ]
+      },
+      {
+        "symbol": "WMK",
+        "selection_strategy": "mean_reversion",
+        "source_strategy": "rsi_reversion",
+        "suppressed_reasons": [
+          "signal-fit-weak"
+        ]
+      },
+      {
+        "symbol": "WTRG",
+        "selection_strategy": "mean_reversion",
+        "source_strategy": "rsi_reversion",
+        "suppressed_reasons": [
+          "signal-fit-weak"
+        ]
+      }
+    ],
+    "baseline_on_suppressed_subset": {
+      "symbol_count": 13,
+      "trade_count": 23,
+      "winning_trades": 7,
+      "win_rate": 30.4348,
+      "mean_total_return_percent": -0.7395,
+      "mean_trade_count_per_symbol": 1.7692
+    },
+    "baseline_on_published_subset": {
+      "symbol_count": 150,
+      "trade_count": 425,
+      "winning_trades": 238,
+      "win_rate": 56.0,
+      "mean_total_return_percent": 0.8373,
+      "mean_trade_count_per_symbol": 2.8333
+    }
+  },
+  "ranking_batch": {
+    "as_of_date": "2026-04-09 21:36:02.231575+00:00",
+    "ranking_count": 7,
+    "rankings": [
+      {
+        "strategy_name": "rsi_reversion",
+        "timeframe": "1d",
+        "rank": 1,
+        "score": 25.2389,
+        "degradation": 3.8793,
+        "symbols_covered": 750,
+        "evidence": {
+          "strategy_name": "rsi_reversion",
+          "best_window_days": 180,
+          "best_score": 33.8884,
+          "weakest_window_days": 90,
+          "weakest_score": 20.9573,
+          "degradation": 3.8793,
+          "stable": true,
+          "windows": {
+            "90": {
+              "score": 20.9573,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "TTC",
+                  "return_percent": 16.1229,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "EDUC",
+                  "return_percent": 16.0224,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "WLYB",
+                  "return_percent": 13.8036,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "AE",
+                  "return_percent": 11.8254,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "EML",
+                  "return_percent": 11.3268,
+                  "trade_count": 2
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 0.406,
+                "max_drawdown_percent": 3.1858,
+                "trade_count": 252,
+                "win_rate": 45.2,
+                "avg_trade_return_percent": 0.213,
+                "sharpe_ratio": 0.6062,
+                "samples": 15749
+              }
+            },
+            "180": {
+              "score": 33.8884,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "ABEO",
+                  "return_percent": 44.03,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "FL",
+                  "return_percent": 25.2489,
+                  "trade_count": 3
+                },
+                {
+                  "symbol": "EML",
+                  "return_percent": 24.4288,
+                  "trade_count": 4
+                },
+                {
+                  "symbol": "FLXS",
+                  "return_percent": 22.74,
+                  "trade_count": 3
+                },
+                {
+                  "symbol": "BMI",
+                  "return_percent": 20.6608,
+                  "trade_count": 3
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 2.0595,
+                "max_drawdown_percent": 5.3987,
+                "trade_count": 541,
+                "win_rate": 66.68,
+                "avg_trade_return_percent": 0.822,
+                "sharpe_ratio": 1.6894,
+                "samples": 30939
+              }
+            },
+            "365": {
+              "score": 32.5088,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "ABEO",
+                  "return_percent": 50.4347,
+                  "trade_count": 5
+                },
+                {
+                  "symbol": "AXR",
+                  "return_percent": 43.7918,
+                  "trade_count": 6
+                },
+                {
+                  "symbol": "WWW",
+                  "return_percent": 38.9634,
+                  "trade_count": 4
+                },
+                {
+                  "symbol": "VMI",
+                  "return_percent": 33.515,
+                  "trade_count": 6
+                },
+                {
+                  "symbol": "AMD",
+                  "return_percent": 31.067,
+                  "trade_count": 6
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 4.088,
+                "max_drawdown_percent": 10.2473,
+                "trade_count": 1288,
+                "win_rate": 68.3028,
+                "avg_trade_return_percent": 0.7786,
+                "sharpe_ratio": 1.5744,
+                "samples": 62811
+              }
+            }
+          }
+        }
+      },
+      {
+        "strategy_name": "bollinger_reversion",
+        "timeframe": "1d",
+        "rank": 2,
+        "score": 24.6059,
+        "degradation": 7.9892,
+        "symbols_covered": 750,
+        "evidence": {
+          "strategy_name": "bollinger_reversion",
+          "best_window_days": 180,
+          "best_score": 45.0127,
+          "weakest_window_days": 90,
+          "weakest_score": 18.3819,
+          "degradation": 7.9892,
+          "stable": false,
+          "windows": {
+            "90": {
+              "score": 18.3819,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "VIRC",
+                  "return_percent": 21.4549,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "ARL",
+                  "return_percent": 20.0272,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "UFI",
+                  "return_percent": 18.8362,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "AGYS",
+                  "return_percent": 16.349,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "AXR",
+                  "return_percent": 15.2123,
+                  "trade_count": 2
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 0.4869,
+                "max_drawdown_percent": 4.2977,
+                "trade_count": 222,
+                "win_rate": 46.4667,
+                "avg_trade_return_percent": 0.2852,
+                "sharpe_ratio": 0.2967,
+                "samples": 15749
+              }
+            },
+            "180": {
+              "score": 45.0127,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "DXC",
+                  "return_percent": 50.6801,
+                  "trade_count": 6
+                },
+                {
+                  "symbol": "ABEO",
+                  "return_percent": 38.1232,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "VIRC",
+                  "return_percent": 35.1779,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "UFI",
+                  "return_percent": 33.3929,
+                  "trade_count": 5
+                },
+                {
+                  "symbol": "BKTI",
+                  "return_percent": 27.3196,
+                  "trade_count": 5
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 3.1762,
+                "max_drawdown_percent": 7.4729,
+                "trade_count": 507,
+                "win_rate": 70.8667,
+                "avg_trade_return_percent": 1.3144,
+                "sharpe_ratio": 3.0032,
+                "samples": 30939
+              }
+            },
+            "365": {
+              "score": 34.3907,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "ABEO",
+                  "return_percent": 123.0485,
+                  "trade_count": 4
+                },
+                {
+                  "symbol": "DXC",
+                  "return_percent": 104.206,
+                  "trade_count": 10
+                },
+                {
+                  "symbol": "WWW",
+                  "return_percent": 82.1473,
+                  "trade_count": 6
+                },
+                {
+                  "symbol": "AA",
+                  "return_percent": 78.1234,
+                  "trade_count": 7
+                },
+                {
+                  "symbol": "UFI",
+                  "return_percent": 77.5922,
+                  "trade_count": 8
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 7.1673,
+                "max_drawdown_percent": 13.0273,
+                "trade_count": 1109,
+                "win_rate": 69.121,
+                "avg_trade_return_percent": 1.3042,
+                "sharpe_ratio": 1.7376,
+                "samples": 62811
+              }
+            }
+          }
+        }
+      },
+      {
+        "strategy_name": "mean_reversion",
+        "timeframe": "1d",
+        "rank": 3,
+        "score": 21.5237,
+        "degradation": 7.6313,
+        "symbols_covered": 750,
+        "evidence": {
+          "strategy_name": "mean_reversion",
+          "best_window_days": 180,
+          "best_score": 31.726,
+          "weakest_window_days": 365,
+          "weakest_score": 24.061,
+          "degradation": 7.6313,
+          "stable": false,
+          "windows": {
+            "90": {
+              "score": 31.6779,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "ARL",
+                  "return_percent": 27.2431,
+                  "trade_count": 5
+                },
+                {
+                  "symbol": "AXR",
+                  "return_percent": 20.8176,
+                  "trade_count": 3
+                },
+                {
+                  "symbol": "EDUC",
+                  "return_percent": 20.5683,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "VXRT",
+                  "return_percent": 19.2982,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "BRN",
+                  "return_percent": 16.8923,
+                  "trade_count": 4
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 1.0695,
+                "max_drawdown_percent": 3.5519,
+                "trade_count": 495,
+                "win_rate": 58.439,
+                "avg_trade_return_percent": 0.4031,
+                "sharpe_ratio": 1.594,
+                "samples": 15749
+              }
+            },
+            "180": {
+              "score": 31.726,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "EDUC",
+                  "return_percent": 40.6703,
+                  "trade_count": 4
+                },
+                {
+                  "symbol": "ABEO",
+                  "return_percent": 32.8864,
+                  "trade_count": 3
+                },
+                {
+                  "symbol": "AXR",
+                  "return_percent": 29.7383,
+                  "trade_count": 5
+                },
+                {
+                  "symbol": "CECO",
+                  "return_percent": 29.1248,
+                  "trade_count": 4
+                },
+                {
+                  "symbol": "UFI",
+                  "return_percent": 28.0737,
+                  "trade_count": 8
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 3.4909,
+                "max_drawdown_percent": 6.2909,
+                "trade_count": 1105,
+                "win_rate": 68.4606,
+                "avg_trade_return_percent": 0.6361,
+                "sharpe_ratio": 1.3331,
+                "samples": 30939
+              }
+            },
+            "365": {
+              "score": 24.061,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "CECO",
+                  "return_percent": 70.6499,
+                  "trade_count": 8
+                },
+                {
+                  "symbol": "ELSE",
+                  "return_percent": 57.7633,
+                  "trade_count": 16
+                },
+                {
+                  "symbol": "AXR",
+                  "return_percent": 57.3504,
+                  "trade_count": 11
+                },
+                {
+                  "symbol": "AAME",
+                  "return_percent": 47.3622,
+                  "trade_count": 15
+                },
+                {
+                  "symbol": "AGYS",
+                  "return_percent": 42.0808,
+                  "trade_count": 10
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 4.4629,
+                "max_drawdown_percent": 11.4159,
+                "trade_count": 2415,
+                "win_rate": 64.0613,
+                "avg_trade_return_percent": 0.3716,
+                "sharpe_ratio": 0.6545,
+                "samples": 62811
+              }
+            }
+          }
+        }
+      },
+      {
+        "strategy_name": "buy_and_hold",
+        "timeframe": "1d",
+        "rank": 4,
+        "score": 14.2261,
+        "degradation": 1.1396,
+        "symbols_covered": 750,
+        "evidence": {
+          "strategy_name": "buy_and_hold",
+          "best_window_days": 180,
+          "best_score": 17.2698,
+          "weakest_window_days": 90,
+          "weakest_score": 13.4711,
+          "degradation": 1.1396,
+          "stable": true,
+          "windows": {
+            "90": {
+              "score": 13.4711,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "TSRI",
+                  "return_percent": 72.7566,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "CMTL",
+                  "return_percent": 69.1099,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "COKE",
+                  "return_percent": 29.8586,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "AGYS",
+                  "return_percent": 25.4311,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "CIA",
+                  "return_percent": 24.7664,
+                  "trade_count": 1
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 0.1223,
+                "max_drawdown_percent": 11.4971,
+                "trade_count": 250,
+                "win_rate": 47.2,
+                "avg_trade_return_percent": 0.1223,
+                "sharpe_ratio": 0.0,
+                "samples": 15749
+              }
+            },
+            "180": {
+              "score": 17.2698,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "CDE",
+                  "return_percent": 124.0602,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "CRS",
+                  "return_percent": 80.8563,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "AA",
+                  "return_percent": 58.8565,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "USAU",
+                  "return_percent": 54.4944,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "TSRI",
+                  "return_percent": 52.738,
+                  "trade_count": 1
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 5.2563,
+                "max_drawdown_percent": 16.8444,
+                "trade_count": 250,
+                "win_rate": 64.0,
+                "avg_trade_return_percent": 5.2563,
+                "sharpe_ratio": 0.0,
+                "samples": 30939
+              }
+            },
+            "365": {
+              "score": 15.3562,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "VIRC",
+                  "return_percent": 204.5202,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "CECO",
+                  "return_percent": 140.5772,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "CSPI",
+                  "return_percent": 130.7686,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "CDE",
+                  "return_percent": 113.6201,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "CRS",
+                  "return_percent": 84.4352,
+                  "trade_count": 1
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 8.4248,
+                "max_drawdown_percent": 24.3285,
+                "trade_count": 250,
+                "win_rate": 60.4,
+                "avg_trade_return_percent": 8.4248,
+                "sharpe_ratio": 0.0,
+                "samples": 62811
+              }
+            }
+          }
+        }
+      },
+      {
+        "strategy_name": "breakout",
+        "timeframe": "1d",
+        "rank": 5,
+        "score": 7.7925,
+        "degradation": 1.9785,
+        "symbols_covered": 750,
+        "evidence": {
+          "strategy_name": "breakout",
+          "best_window_days": 90,
+          "best_score": 11.1269,
+          "weakest_window_days": 180,
+          "weakest_score": 8.9548,
+          "degradation": 1.9785,
+          "stable": true,
+          "windows": {
+            "90": {
+              "score": 11.1269,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "WWW",
+                  "return_percent": 17.1479,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "CIA",
+                  "return_percent": 14.5749,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "FDX",
+                  "return_percent": 14.5024,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "VHI",
+                  "return_percent": 13.6619,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "ADI",
+                  "return_percent": 13.4036,
+                  "trade_count": 1
+                }
+              ],
+              "metrics": {
+                "total_return_percent": -0.3209,
+                "max_drawdown_percent": 3.1815,
+                "trade_count": 257,
+                "win_rate": 29.4,
+                "avg_trade_return_percent": -0.1109,
+                "sharpe_ratio": -0.1869,
+                "samples": 15749
+              }
+            },
+            "180": {
+              "score": 8.9548,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "CSPI",
+                  "return_percent": 44.6961,
+                  "trade_count": 3
+                },
+                {
+                  "symbol": "CDE",
+                  "return_percent": 41.8912,
+                  "trade_count": 3
+                },
+                {
+                  "symbol": "VHI",
+                  "return_percent": 28.8168,
+                  "trade_count": 3
+                },
+                {
+                  "symbol": "FDX",
+                  "return_percent": 27.2477,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "CRS",
+                  "return_percent": 25.2027,
+                  "trade_count": 4
+                }
+              ],
+              "metrics": {
+                "total_return_percent": -0.1506,
+                "max_drawdown_percent": 7.1308,
+                "trade_count": 647,
+                "win_rate": 38.9676,
+                "avg_trade_return_percent": -0.104,
+                "sharpe_ratio": -0.5344,
+                "samples": 30939
+              }
+            },
+            "365": {
+              "score": 9.2313,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "VIRC",
+                  "return_percent": 94.5094,
+                  "trade_count": 6
+                },
+                {
+                  "symbol": "EDUC",
+                  "return_percent": 87.3213,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "CSPI",
+                  "return_percent": 68.5278,
+                  "trade_count": 9
+                },
+                {
+                  "symbol": "ARL",
+                  "return_percent": 62.6007,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "CDE",
+                  "return_percent": 58.5022,
+                  "trade_count": 6
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 1.766,
+                "max_drawdown_percent": 11.8681,
+                "trade_count": 1389,
+                "win_rate": 38.5842,
+                "avg_trade_return_percent": 0.546,
+                "sharpe_ratio": -0.3908,
+                "samples": 62811
+              }
+            }
+          }
+        }
+      },
+      {
+        "strategy_name": "sma_cross",
+        "timeframe": "1d",
+        "rank": 6,
+        "score": 5.4986,
+        "degradation": 3.1557,
+        "symbols_covered": 750,
+        "evidence": {
+          "strategy_name": "sma_cross",
+          "best_window_days": 365,
+          "best_score": 14.1754,
+          "weakest_window_days": 180,
+          "weakest_score": 3.6563,
+          "degradation": 3.1557,
+          "stable": true,
+          "windows": {
+            "90": {
+              "score": 8.1313,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "TSRI",
+                  "return_percent": 70.4459,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "USAU",
+                  "return_percent": 25.0575,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "CDE",
+                  "return_percent": 19.9501,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "FDX",
+                  "return_percent": 19.0361,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "ADI",
+                  "return_percent": 17.6936,
+                  "trade_count": 1
+                }
+              ],
+              "metrics": {
+                "total_return_percent": -0.9533,
+                "max_drawdown_percent": 5.2388,
+                "trade_count": 292,
+                "win_rate": 28.6933,
+                "avg_trade_return_percent": -0.3791,
+                "sharpe_ratio": -0.4181,
+                "samples": 15749
+              }
+            },
+            "180": {
+              "score": 3.6563,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "CDE",
+                  "return_percent": 88.3256,
+                  "trade_count": 3
+                },
+                {
+                  "symbol": "TSRI",
+                  "return_percent": 61.2439,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "CRS",
+                  "return_percent": 61.1737,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "AEM",
+                  "return_percent": 42.3177,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "WWW",
+                  "return_percent": 33.5475,
+                  "trade_count": 3
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 0.4205,
+                "max_drawdown_percent": 11.1432,
+                "trade_count": 709,
+                "win_rate": 44.28,
+                "avg_trade_return_percent": 0.553,
+                "sharpe_ratio": -1.1861,
+                "samples": 30939
+              }
+            },
+            "365": {
+              "score": 14.1754,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "VIRC",
+                  "return_percent": 111.3933,
+                  "trade_count": 6
+                },
+                {
+                  "symbol": "CSPI",
+                  "return_percent": 89.568,
+                  "trade_count": 5
+                },
+                {
+                  "symbol": "TSRI",
+                  "return_percent": 79.9596,
+                  "trade_count": 6
+                },
+                {
+                  "symbol": "EDUC",
+                  "return_percent": 63.5472,
+                  "trade_count": 6
+                },
+                {
+                  "symbol": "CRS",
+                  "return_percent": 60.8924,
+                  "trade_count": 5
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 5.7661,
+                "max_drawdown_percent": 16.7969,
+                "trade_count": 1579,
+                "win_rate": 43.8538,
+                "avg_trade_return_percent": 1.539,
+                "sharpe_ratio": 0.0861,
+                "samples": 62811
+              }
+            }
+          }
+        }
+      },
+      {
+        "strategy_name": "trend_following",
+        "timeframe": "1d",
+        "rank": 7,
+        "score": 0.8832,
+        "degradation": 4.0407,
+        "symbols_covered": 750,
+        "evidence": {
+          "strategy_name": "trend_following",
+          "best_window_days": 365,
+          "best_score": 9.5977,
+          "weakest_window_days": 90,
+          "weakest_score": -3.8714,
+          "degradation": 4.0407,
+          "stable": true,
+          "windows": {
+            "90": {
+              "score": -3.8714,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "ERIC",
+                  "return_percent": 17.8503,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "WWW",
+                  "return_percent": 16.9832,
+                  "trade_count": 3
+                },
+                {
+                  "symbol": "FDX",
+                  "return_percent": 16.9478,
+                  "trade_count": 1
+                },
+                {
+                  "symbol": "ADI",
+                  "return_percent": 16.5969,
+                  "trade_count": 2
+                },
+                {
+                  "symbol": "COKE",
+                  "return_percent": 14.5424,
+                  "trade_count": 4
+                }
+              ],
+              "metrics": {
+                "total_return_percent": -0.3068,
+                "max_drawdown_percent": 4.8449,
+                "trade_count": 585,
+                "win_rate": 36.16,
+                "avg_trade_return_percent": 0.0352,
+                "sharpe_ratio": -2.1587,
+                "samples": 15749
+              }
+            },
+            "180": {
+              "score": 9.0455,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "CSPI",
+                  "return_percent": 65.8546,
+                  "trade_count": 5
+                },
+                {
+                  "symbol": "CRS",
+                  "return_percent": 40.3031,
+                  "trade_count": 10
+                },
+                {
+                  "symbol": "VHI",
+                  "return_percent": 38.5957,
+                  "trade_count": 4
+                },
+                {
+                  "symbol": "CDE",
+                  "return_percent": 38.3349,
+                  "trade_count": 9
+                },
+                {
+                  "symbol": "AEM",
+                  "return_percent": 33.2037,
+                  "trade_count": 5
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 0.0899,
+                "max_drawdown_percent": 9.3318,
+                "trade_count": 1490,
+                "win_rate": 35.9438,
+                "avg_trade_return_percent": 0.1565,
+                "sharpe_ratio": -0.3647,
+                "samples": 30939
+              }
+            },
+            "365": {
+              "score": 9.5977,
+              "symbols_covered": 250,
+              "top_symbols": [
+                {
+                  "symbol": "CSPI",
+                  "return_percent": 123.9385,
+                  "trade_count": 15
+                },
+                {
+                  "symbol": "VIRC",
+                  "return_percent": 81.9956,
+                  "trade_count": 13
+                },
+                {
+                  "symbol": "COKE",
+                  "return_percent": 50.3284,
+                  "trade_count": 8
+                },
+                {
+                  "symbol": "AROW",
+                  "return_percent": 49.8688,
+                  "trade_count": 9
+                },
+                {
+                  "symbol": "AZZ",
+                  "return_percent": 46.4932,
+                  "trade_count": 10
+                }
+              ],
+              "metrics": {
+                "total_return_percent": 2.4132,
+                "max_drawdown_percent": 14.2435,
+                "trade_count": 3123,
+                "win_rate": 33.9608,
+                "avg_trade_return_percent": 0.371,
+                "sharpe_ratio": -0.1619,
+                "samples": 62811
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "rankings_preview": [
+    {
+      "strategy_name": "rsi_reversion",
+      "timeframe": "1d",
+      "rank": 1,
+      "score": 25.2389,
+      "degradation": 3.8793,
+      "symbols_covered": 750,
+      "evidence": {
+        "strategy_name": "rsi_reversion",
+        "best_window_days": 180,
+        "best_score": 33.8884,
+        "weakest_window_days": 90,
+        "weakest_score": 20.9573,
+        "degradation": 3.8793,
+        "stable": true,
+        "windows": {
+          "90": {
+            "score": 20.9573,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "TTC",
+                "return_percent": 16.1229,
+                "trade_count": 1
+              },
+              {
+                "symbol": "EDUC",
+                "return_percent": 16.0224,
+                "trade_count": 2
+              },
+              {
+                "symbol": "WLYB",
+                "return_percent": 13.8036,
+                "trade_count": 1
+              },
+              {
+                "symbol": "AE",
+                "return_percent": 11.8254,
+                "trade_count": 2
+              },
+              {
+                "symbol": "EML",
+                "return_percent": 11.3268,
+                "trade_count": 2
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 0.406,
+              "max_drawdown_percent": 3.1858,
+              "trade_count": 252,
+              "win_rate": 45.2,
+              "avg_trade_return_percent": 0.213,
+              "sharpe_ratio": 0.6062,
+              "samples": 15749
+            }
+          },
+          "180": {
+            "score": 33.8884,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "ABEO",
+                "return_percent": 44.03,
+                "trade_count": 2
+              },
+              {
+                "symbol": "FL",
+                "return_percent": 25.2489,
+                "trade_count": 3
+              },
+              {
+                "symbol": "EML",
+                "return_percent": 24.4288,
+                "trade_count": 4
+              },
+              {
+                "symbol": "FLXS",
+                "return_percent": 22.74,
+                "trade_count": 3
+              },
+              {
+                "symbol": "BMI",
+                "return_percent": 20.6608,
+                "trade_count": 3
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 2.0595,
+              "max_drawdown_percent": 5.3987,
+              "trade_count": 541,
+              "win_rate": 66.68,
+              "avg_trade_return_percent": 0.822,
+              "sharpe_ratio": 1.6894,
+              "samples": 30939
+            }
+          },
+          "365": {
+            "score": 32.5088,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "ABEO",
+                "return_percent": 50.4347,
+                "trade_count": 5
+              },
+              {
+                "symbol": "AXR",
+                "return_percent": 43.7918,
+                "trade_count": 6
+              },
+              {
+                "symbol": "WWW",
+                "return_percent": 38.9634,
+                "trade_count": 4
+              },
+              {
+                "symbol": "VMI",
+                "return_percent": 33.515,
+                "trade_count": 6
+              },
+              {
+                "symbol": "AMD",
+                "return_percent": 31.067,
+                "trade_count": 6
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 4.088,
+              "max_drawdown_percent": 10.2473,
+              "trade_count": 1288,
+              "win_rate": 68.3028,
+              "avg_trade_return_percent": 0.7786,
+              "sharpe_ratio": 1.5744,
+              "samples": 62811
+            }
+          }
+        }
+      }
+    },
+    {
+      "strategy_name": "bollinger_reversion",
+      "timeframe": "1d",
+      "rank": 2,
+      "score": 24.6059,
+      "degradation": 7.9892,
+      "symbols_covered": 750,
+      "evidence": {
+        "strategy_name": "bollinger_reversion",
+        "best_window_days": 180,
+        "best_score": 45.0127,
+        "weakest_window_days": 90,
+        "weakest_score": 18.3819,
+        "degradation": 7.9892,
+        "stable": false,
+        "windows": {
+          "90": {
+            "score": 18.3819,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "VIRC",
+                "return_percent": 21.4549,
+                "trade_count": 1
+              },
+              {
+                "symbol": "ARL",
+                "return_percent": 20.0272,
+                "trade_count": 2
+              },
+              {
+                "symbol": "UFI",
+                "return_percent": 18.8362,
+                "trade_count": 2
+              },
+              {
+                "symbol": "AGYS",
+                "return_percent": 16.349,
+                "trade_count": 1
+              },
+              {
+                "symbol": "AXR",
+                "return_percent": 15.2123,
+                "trade_count": 2
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 0.4869,
+              "max_drawdown_percent": 4.2977,
+              "trade_count": 222,
+              "win_rate": 46.4667,
+              "avg_trade_return_percent": 0.2852,
+              "sharpe_ratio": 0.2967,
+              "samples": 15749
+            }
+          },
+          "180": {
+            "score": 45.0127,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "DXC",
+                "return_percent": 50.6801,
+                "trade_count": 6
+              },
+              {
+                "symbol": "ABEO",
+                "return_percent": 38.1232,
+                "trade_count": 1
+              },
+              {
+                "symbol": "VIRC",
+                "return_percent": 35.1779,
+                "trade_count": 2
+              },
+              {
+                "symbol": "UFI",
+                "return_percent": 33.3929,
+                "trade_count": 5
+              },
+              {
+                "symbol": "BKTI",
+                "return_percent": 27.3196,
+                "trade_count": 5
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 3.1762,
+              "max_drawdown_percent": 7.4729,
+              "trade_count": 507,
+              "win_rate": 70.8667,
+              "avg_trade_return_percent": 1.3144,
+              "sharpe_ratio": 3.0032,
+              "samples": 30939
+            }
+          },
+          "365": {
+            "score": 34.3907,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "ABEO",
+                "return_percent": 123.0485,
+                "trade_count": 4
+              },
+              {
+                "symbol": "DXC",
+                "return_percent": 104.206,
+                "trade_count": 10
+              },
+              {
+                "symbol": "WWW",
+                "return_percent": 82.1473,
+                "trade_count": 6
+              },
+              {
+                "symbol": "AA",
+                "return_percent": 78.1234,
+                "trade_count": 7
+              },
+              {
+                "symbol": "UFI",
+                "return_percent": 77.5922,
+                "trade_count": 8
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 7.1673,
+              "max_drawdown_percent": 13.0273,
+              "trade_count": 1109,
+              "win_rate": 69.121,
+              "avg_trade_return_percent": 1.3042,
+              "sharpe_ratio": 1.7376,
+              "samples": 62811
+            }
+          }
+        }
+      }
+    },
+    {
+      "strategy_name": "mean_reversion",
+      "timeframe": "1d",
+      "rank": 3,
+      "score": 21.5237,
+      "degradation": 7.6313,
+      "symbols_covered": 750,
+      "evidence": {
+        "strategy_name": "mean_reversion",
+        "best_window_days": 180,
+        "best_score": 31.726,
+        "weakest_window_days": 365,
+        "weakest_score": 24.061,
+        "degradation": 7.6313,
+        "stable": false,
+        "windows": {
+          "90": {
+            "score": 31.6779,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "ARL",
+                "return_percent": 27.2431,
+                "trade_count": 5
+              },
+              {
+                "symbol": "AXR",
+                "return_percent": 20.8176,
+                "trade_count": 3
+              },
+              {
+                "symbol": "EDUC",
+                "return_percent": 20.5683,
+                "trade_count": 2
+              },
+              {
+                "symbol": "VXRT",
+                "return_percent": 19.2982,
+                "trade_count": 1
+              },
+              {
+                "symbol": "BRN",
+                "return_percent": 16.8923,
+                "trade_count": 4
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 1.0695,
+              "max_drawdown_percent": 3.5519,
+              "trade_count": 495,
+              "win_rate": 58.439,
+              "avg_trade_return_percent": 0.4031,
+              "sharpe_ratio": 1.594,
+              "samples": 15749
+            }
+          },
+          "180": {
+            "score": 31.726,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "EDUC",
+                "return_percent": 40.6703,
+                "trade_count": 4
+              },
+              {
+                "symbol": "ABEO",
+                "return_percent": 32.8864,
+                "trade_count": 3
+              },
+              {
+                "symbol": "AXR",
+                "return_percent": 29.7383,
+                "trade_count": 5
+              },
+              {
+                "symbol": "CECO",
+                "return_percent": 29.1248,
+                "trade_count": 4
+              },
+              {
+                "symbol": "UFI",
+                "return_percent": 28.0737,
+                "trade_count": 8
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 3.4909,
+              "max_drawdown_percent": 6.2909,
+              "trade_count": 1105,
+              "win_rate": 68.4606,
+              "avg_trade_return_percent": 0.6361,
+              "sharpe_ratio": 1.3331,
+              "samples": 30939
+            }
+          },
+          "365": {
+            "score": 24.061,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "CECO",
+                "return_percent": 70.6499,
+                "trade_count": 8
+              },
+              {
+                "symbol": "ELSE",
+                "return_percent": 57.7633,
+                "trade_count": 16
+              },
+              {
+                "symbol": "AXR",
+                "return_percent": 57.3504,
+                "trade_count": 11
+              },
+              {
+                "symbol": "AAME",
+                "return_percent": 47.3622,
+                "trade_count": 15
+              },
+              {
+                "symbol": "AGYS",
+                "return_percent": 42.0808,
+                "trade_count": 10
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 4.4629,
+              "max_drawdown_percent": 11.4159,
+              "trade_count": 2415,
+              "win_rate": 64.0613,
+              "avg_trade_return_percent": 0.3716,
+              "sharpe_ratio": 0.6545,
+              "samples": 62811
+            }
+          }
+        }
+      }
+    },
+    {
+      "strategy_name": "buy_and_hold",
+      "timeframe": "1d",
+      "rank": 4,
+      "score": 14.2261,
+      "degradation": 1.1396,
+      "symbols_covered": 750,
+      "evidence": {
+        "strategy_name": "buy_and_hold",
+        "best_window_days": 180,
+        "best_score": 17.2698,
+        "weakest_window_days": 90,
+        "weakest_score": 13.4711,
+        "degradation": 1.1396,
+        "stable": true,
+        "windows": {
+          "90": {
+            "score": 13.4711,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "TSRI",
+                "return_percent": 72.7566,
+                "trade_count": 1
+              },
+              {
+                "symbol": "CMTL",
+                "return_percent": 69.1099,
+                "trade_count": 1
+              },
+              {
+                "symbol": "COKE",
+                "return_percent": 29.8586,
+                "trade_count": 1
+              },
+              {
+                "symbol": "AGYS",
+                "return_percent": 25.4311,
+                "trade_count": 1
+              },
+              {
+                "symbol": "CIA",
+                "return_percent": 24.7664,
+                "trade_count": 1
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 0.1223,
+              "max_drawdown_percent": 11.4971,
+              "trade_count": 250,
+              "win_rate": 47.2,
+              "avg_trade_return_percent": 0.1223,
+              "sharpe_ratio": 0.0,
+              "samples": 15749
+            }
+          },
+          "180": {
+            "score": 17.2698,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "CDE",
+                "return_percent": 124.0602,
+                "trade_count": 1
+              },
+              {
+                "symbol": "CRS",
+                "return_percent": 80.8563,
+                "trade_count": 1
+              },
+              {
+                "symbol": "AA",
+                "return_percent": 58.8565,
+                "trade_count": 1
+              },
+              {
+                "symbol": "USAU",
+                "return_percent": 54.4944,
+                "trade_count": 1
+              },
+              {
+                "symbol": "TSRI",
+                "return_percent": 52.738,
+                "trade_count": 1
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 5.2563,
+              "max_drawdown_percent": 16.8444,
+              "trade_count": 250,
+              "win_rate": 64.0,
+              "avg_trade_return_percent": 5.2563,
+              "sharpe_ratio": 0.0,
+              "samples": 30939
+            }
+          },
+          "365": {
+            "score": 15.3562,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "VIRC",
+                "return_percent": 204.5202,
+                "trade_count": 1
+              },
+              {
+                "symbol": "CECO",
+                "return_percent": 140.5772,
+                "trade_count": 1
+              },
+              {
+                "symbol": "CSPI",
+                "return_percent": 130.7686,
+                "trade_count": 1
+              },
+              {
+                "symbol": "CDE",
+                "return_percent": 113.6201,
+                "trade_count": 1
+              },
+              {
+                "symbol": "CRS",
+                "return_percent": 84.4352,
+                "trade_count": 1
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 8.4248,
+              "max_drawdown_percent": 24.3285,
+              "trade_count": 250,
+              "win_rate": 60.4,
+              "avg_trade_return_percent": 8.4248,
+              "sharpe_ratio": 0.0,
+              "samples": 62811
+            }
+          }
+        }
+      }
+    },
+    {
+      "strategy_name": "breakout",
+      "timeframe": "1d",
+      "rank": 5,
+      "score": 7.7925,
+      "degradation": 1.9785,
+      "symbols_covered": 750,
+      "evidence": {
+        "strategy_name": "breakout",
+        "best_window_days": 90,
+        "best_score": 11.1269,
+        "weakest_window_days": 180,
+        "weakest_score": 8.9548,
+        "degradation": 1.9785,
+        "stable": true,
+        "windows": {
+          "90": {
+            "score": 11.1269,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "WWW",
+                "return_percent": 17.1479,
+                "trade_count": 1
+              },
+              {
+                "symbol": "CIA",
+                "return_percent": 14.5749,
+                "trade_count": 1
+              },
+              {
+                "symbol": "FDX",
+                "return_percent": 14.5024,
+                "trade_count": 1
+              },
+              {
+                "symbol": "VHI",
+                "return_percent": 13.6619,
+                "trade_count": 2
+              },
+              {
+                "symbol": "ADI",
+                "return_percent": 13.4036,
+                "trade_count": 1
+              }
+            ],
+            "metrics": {
+              "total_return_percent": -0.3209,
+              "max_drawdown_percent": 3.1815,
+              "trade_count": 257,
+              "win_rate": 29.4,
+              "avg_trade_return_percent": -0.1109,
+              "sharpe_ratio": -0.1869,
+              "samples": 15749
+            }
+          },
+          "180": {
+            "score": 8.9548,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "CSPI",
+                "return_percent": 44.6961,
+                "trade_count": 3
+              },
+              {
+                "symbol": "CDE",
+                "return_percent": 41.8912,
+                "trade_count": 3
+              },
+              {
+                "symbol": "VHI",
+                "return_percent": 28.8168,
+                "trade_count": 3
+              },
+              {
+                "symbol": "FDX",
+                "return_percent": 27.2477,
+                "trade_count": 2
+              },
+              {
+                "symbol": "CRS",
+                "return_percent": 25.2027,
+                "trade_count": 4
+              }
+            ],
+            "metrics": {
+              "total_return_percent": -0.1506,
+              "max_drawdown_percent": 7.1308,
+              "trade_count": 647,
+              "win_rate": 38.9676,
+              "avg_trade_return_percent": -0.104,
+              "sharpe_ratio": -0.5344,
+              "samples": 30939
+            }
+          },
+          "365": {
+            "score": 9.2313,
+            "symbols_covered": 250,
+            "top_symbols": [
+              {
+                "symbol": "VIRC",
+                "return_percent": 94.5094,
+                "trade_count": 6
+              },
+              {
+                "symbol": "EDUC",
+                "return_percent": 87.3213,
+                "trade_count": 2
+              },
+              {
+                "symbol": "CSPI",
+                "return_percent": 68.5278,
+                "trade_count": 9
+              },
+              {
+                "symbol": "ARL",
+                "return_percent": 62.6007,
+                "trade_count": 2
+              },
+              {
+                "symbol": "CDE",
+                "return_percent": 58.5022,
+                "trade_count": 6
+              }
+            ],
+            "metrics": {
+              "total_return_percent": 1.766,
+              "max_drawdown_percent": 11.8681,
+              "trade_count": 1389,
+              "win_rate": 38.5842,
+              "avg_trade_return_percent": 0.546,
+              "sharpe_ratio": -0.3908,
+              "samples": 62811
+            }
+          }
+        }
+      }
+    }
+  ],
+  "skipped_symbols": [
+    {
+      "symbol": "BAC",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "BK",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "BP",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "CLX",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "DIOD",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "ED",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "EGP",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "EVRG",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "GATX",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "TXT",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "USB",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "VLGEA",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "WY",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "XEL",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "XRX",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "TSRI",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "ACU",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "ADI",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "ADM",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "ASB",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "BRID",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "CBSH",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "CET",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "CINF",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "DCI",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "DUK",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "EBF",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "EML",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "FHN",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "FITB",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "TYL",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "UDR",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "UMBF",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "USLM",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "WABC",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "WEC",
+      "reason": "snapshot_unavailable"
+    },
+    {
+      "symbol": "WEYS",
+      "reason": "snapshot_unavailable"
+    }
+  ],
+  "code_version": "master@97608c335b86+dirty"
+}

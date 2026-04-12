@@ -12,6 +12,7 @@ from apps.public_api.routers import (
     account,
     admin_auth,
     auth,
+    chart_data,
     monitoring,
     notifications,
     portfolio,
@@ -127,6 +128,7 @@ app.include_router(account.router, prefix="/v1")
 app.include_router(watchlist.router, prefix="/v1")
 app.include_router(portfolio.router, prefix="/v1")
 app.include_router(search.router, prefix="/v1")
+app.include_router(chart_data.router, prefix="/v1")
 app.include_router(notifications.router, prefix="/v1")
 app.include_router(sidecars.router)
 app.include_router(signal_ingest.router, prefix="/v1")

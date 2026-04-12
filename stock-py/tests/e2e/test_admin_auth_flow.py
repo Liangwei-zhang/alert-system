@@ -138,7 +138,7 @@ def test_admin_auth_flow(public_api_client: PublicApiClient, monkeypatch) -> Non
         "code": "654321",
         "locale": "en-US",
         "timezone": "UTC",
-        "device_info": {"ip": None, "user_agent": "pytest-admin-e2e"},
+        "device_info": {"ip": "testclient", "user_agent": "pytest-admin-e2e"},
     }
     assert calls["refresh_admin"] == "admin-refresh-token-1"
     assert calls["logout_tokens"] == {

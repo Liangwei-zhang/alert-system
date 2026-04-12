@@ -22,6 +22,7 @@ PLATFORM_TEXT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         (
             "Desktop Access",
             "Desktop Launchpad",
+            "Market Workbench",
             "桌面端验证码登录",
             "Execution Relay",
             "Research Relay",
@@ -43,6 +44,15 @@ PLATFORM_TEXT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "sendAdminCode()",
             "verifyAdminCode()",
             "refreshAdminSession(options = {})",
+        ),
+    ),
+    (
+        "market_script",
+        "/platform/js/platform-deck-market.js",
+        (
+            "searchMarketSymbols()",
+            "loadSelectedMarketChart(options = {})",
+            "pinSelectedSymbolToDeskWatchlist()",
         ),
     ),
 )

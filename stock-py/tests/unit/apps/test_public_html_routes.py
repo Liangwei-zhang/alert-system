@@ -40,10 +40,13 @@ class PublicHtmlRoutesTest(unittest.TestCase):
         self.assertIn("Desktop Workbench", platform_response.text)
         self.assertIn("Desktop Access", platform_response.text)
         self.assertIn("Desktop Launchpad", platform_response.text)
+        self.assertIn("Market Workbench", platform_response.text)
+        self.assertIn("市场工作台", platform_response.text)
         self.assertIn("桌面端验证码登录", platform_response.text)
         self.assertIn("Execution Relay", platform_response.text)
         self.assertIn("Research Relay", platform_response.text)
         self.assertIn("命令面板", platform_response.text)
+        self.assertIn("platform-deck-market.js", platform_response.text)
         self.assertIn("platform-deck-tradingagents.js", platform_response.text)
         self.assertIn("platform-deck-workspace.js", platform_response.text)
         self.assertIn("platform-deck.js", platform_response.text)
@@ -106,6 +109,12 @@ class PublicHtmlRoutesTest(unittest.TestCase):
         self.assertIn("submitTradingAgentsAnalysis()", tradingagents_script_response.text)
         self.assertIn("pollPendingTradingAgentsRuns(force = false)", tradingagents_script_response.text)
 
+        market_script_response = self.client.get("/platform/js/platform-deck-market.js")
+        self.assertEqual(market_script_response.status_code, 200)
+        self.assertIn("searchMarketSymbols()", market_script_response.text)
+        self.assertIn("loadSelectedMarketChart(options = {})", market_script_response.text)
+        self.assertIn("pinSelectedSymbolToDeskWatchlist()", market_script_response.text)
+
         platform_script_response = self.client.get("/platform/js/platform-deck.js")
         self.assertEqual(platform_script_response.status_code, 200)
         self.assertIn("sendAdminCode()", platform_script_response.text)
@@ -115,6 +124,7 @@ class PublicHtmlRoutesTest(unittest.TestCase):
         self.assertIn("const routeMode = String(params.get('mode') || '').trim().toLowerCase();", platform_script_response.text)
         self.assertIn("const routeSection = String(params.get('section') || '').trim();", platform_script_response.text)
         self.assertIn("const routeSymbol = String(params.get('symbol') || '').trim().toUpperCase();", platform_script_response.text)
+        self.assertIn("this.loadSelectedMarketChart({ silent: true, throwOnError: false });", platform_script_response.text)
         self.assertIn("window.platformDeck = platformDeck", platform_script_response.text)
 
 

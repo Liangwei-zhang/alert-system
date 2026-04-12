@@ -11,16 +11,26 @@ requires-python = ">=3.13"
 authors = [
     {name = "Stock Team", email = "team@example.com"}
 ]
-dependencies = []
+dynamic = ["dependencies"]
 
 [project.optional-dependencies]
 dev = [
+    "bandit",
     "black",
     "isort",
     "mypy",
+    "pip-audit",
     "pytest",
     "pytest-asyncio",
 ]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["apps*", "domains*", "infra*"]
+namespaces = true
 
 [tool.black]
 line-length = 100
@@ -35,6 +45,7 @@ python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
+explicit_package_bases = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

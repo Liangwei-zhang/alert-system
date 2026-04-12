@@ -8,12 +8,12 @@ from infra.observability.external_operation_metrics import ExternalOperationSnap
 class PlatformRuntimeMetricsServiceTest(unittest.IsolatedAsyncioTestCase):
     async def test_collect_metric_points_emits_platform_capacity_and_failure_metrics(self) -> None:
         settings = Settings(
-            database_url="postgresql+asyncpg://stock_py:stock_py@pgbouncer:6432/stock_py",
-            database_pool_mode="pgbouncer",
-            pgbouncer_admin_url="postgresql://stock_py:stock_py@pgbouncer:6432/pgbouncer",
-            analytics_backend="clickhouse",
-            object_storage_backend="s3",
-            runtime_metrics_window_minutes=15,
+            DATABASE_URL="postgresql+asyncpg://stock_py:stock_py@pgbouncer:6432/stock_py",
+            DATABASE_POOL_MODE="pgbouncer",
+            PGBOUNCER_ADMIN_URL="postgresql://stock_py:stock_py@pgbouncer:6432/pgbouncer",
+            ANALYTICS_BACKEND="clickhouse",
+            OBJECT_STORAGE_BACKEND="s3",
+            RUNTIME_METRICS_WINDOW_MINUTES=15,
         )
 
         async def redis_info_provider() -> dict[str, object]:
@@ -125,16 +125,16 @@ class PlatformRuntimeMetricsServiceTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_collect_alerts_surfaces_capacity_and_error_conditions(self) -> None:
         settings = Settings(
-            database_url="postgresql+asyncpg://stock_py:stock_py@pgbouncer:6432/stock_py",
-            database_pool_mode="pgbouncer",
-            pgbouncer_admin_url="postgresql://stock_py:stock_py@pgbouncer:6432/pgbouncer",
-            analytics_backend="clickhouse",
-            object_storage_backend="s3",
-            runtime_alert_broker_lag_threshold=100,
-            runtime_alert_pgbouncer_waiting_clients_threshold=5,
-            runtime_alert_redis_memory_percent_threshold=80,
-            runtime_alert_clickhouse_write_failure_rate_threshold=5,
-            runtime_alert_object_storage_archive_failure_rate_threshold=5,
+            DATABASE_URL="postgresql+asyncpg://stock_py:stock_py@pgbouncer:6432/stock_py",
+            DATABASE_POOL_MODE="pgbouncer",
+            PGBOUNCER_ADMIN_URL="postgresql://stock_py:stock_py@pgbouncer:6432/pgbouncer",
+            ANALYTICS_BACKEND="clickhouse",
+            OBJECT_STORAGE_BACKEND="s3",
+            RUNTIME_ALERT_BROKER_LAG_THRESHOLD=100,
+            RUNTIME_ALERT_PGBOUNCER_WAITING_CLIENTS_THRESHOLD=5,
+            RUNTIME_ALERT_REDIS_MEMORY_PERCENT_THRESHOLD=80,
+            RUNTIME_ALERT_CLICKHOUSE_WRITE_FAILURE_RATE_THRESHOLD=5,
+            RUNTIME_ALERT_OBJECT_STORAGE_ARCHIVE_FAILURE_RATE_THRESHOLD=5,
         )
 
         async def redis_info_provider() -> dict[str, object]:

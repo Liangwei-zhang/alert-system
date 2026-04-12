@@ -1,5 +1,6 @@
 const platformDeckConstants = window.PlatformDeckConstants || {};
 const platformDeckUtils = window.PlatformDeckUtils || {};
+const platformDeckMarket = window.PlatformDeckMarket || {};
 const platformDeckTradingAgents = window.PlatformDeckTradingAgents || {};
 const platformDeckWorkspace = window.PlatformDeckWorkspace || {};
 
@@ -9,6 +10,12 @@ function platformDeck() {
         : {};
     const tradingAgentsModule = platformDeckTradingAgents.createModule
         ? platformDeckTradingAgents.createModule(platformDeckUtils)
+        : {};
+    const marketState = platformDeckMarket.createState
+        ? platformDeckMarket.createState()
+        : {};
+    const marketModule = platformDeckMarket.createModule
+        ? platformDeckMarket.createModule()
         : {};
     const workspaceState = platformDeckWorkspace.createState
         ? platformDeckWorkspace.createState()
@@ -48,6 +55,7 @@ function platformDeck() {
             statusMessage: '等待管理员登录',
             statusType: 'info'
         },
+        ...marketState,
         ...workspaceState,
         ...tradingAgentsState,
         summary: {
@@ -85,8 +93,12 @@ function platformDeck() {
                 : Promise.resolve(false);
             Promise.resolve(bootPromise).finally(() => {
                 this.loadAll();
+                this.loadSelectedMarketChart({ silent: true, throwOnError: false });
             });
             this.refreshHandle = setInterval(() => this.loadAll({ silent: true }), 45000);
+            this.marketRefreshHandle = setInterval(() => {
+                this.loadSelectedMarketChart({ silent: true, throwOnError: false });
+            }, 60000);
             this.tradingAgentsPollHandle = setInterval(() => {
                 this.pollPendingTradingAgentsRuns();
             }, 8000);
@@ -189,6 +201,7 @@ function platformDeck() {
                 routeSection || storedWorkspaceSection || 'trading-agents-panel'
             ).trim() || 'trading-agents-panel';
             this.selectedSymbol = routeSymbol;
+            this.restoreDeskWatchlistEntries(routeSymbol);
             this.workspacePinned = Boolean(routeMode || routeSection || routeSymbol || storedWorkspaceMode || storedWorkspaceSection);
             this.workspaceAutoRouted = false;
         },
@@ -630,6 +643,7 @@ function platformDeck() {
         },
 
         ...workspaceModule,
+    ...marketModule,
 
         async apiRequest(path, options = {}) {
             const normalizedPath = String(path || '').startsWith('/') ? String(path) : `/${String(path || '')}`;
@@ -824,6 +838,7 @@ function platformDeck() {
                 this.consumeHealth(healthRes);
                 this.consumeRuns(runsRes);
                 this.consumeTradingAgentsAnalyses(analysesRes);
+                await this.loadSelectedMarketChart({ silent: true, throwOnError: false });
                 this.applyWorkspaceFirstScreenState({ scroll: !silent });
 
                 this.lastUpdatedLabel = this.formatDateTime(new Date().toISOString());
@@ -1026,7 +1041,7 @@ function platformDeck() {
 
         consumeSignals(payload) {
             const rows = Array.isArray(payload && payload.data) ? payload.data : [];
-            this.watchlist = rows.map((item) => {
+            this.signalWatchlist = rows.map((item) => {
                 const signalType = this.normalizeSignalType(item.signal_type);
                 const metadata = this.parseSignalMetadata(item);
                 const strategyCode = this.resolveStrategyCode(
@@ -1092,6 +1107,7 @@ function platformDeck() {
                     raw: item
                 };
             });
+            this.rebuildMarketWatchlist();
 
             if (!this.watchlist.length) {
                 this.selectedSymbol = '';
@@ -1171,7 +1187,14 @@ function platformDeck() {
             if (!this.selectedSymbol) {
                 return null;
             }
-            return this.watchlist.find((item) => item.symbol === this.selectedSymbol) || null;
+            const selected = this.watchlist.find((item) => item.symbol === this.selectedSymbol) || null;
+            if (selected) {
+                return selected;
+            }
+            if (this.marketFocusEntry && this.marketFocusEntry.symbol === this.selectedSymbol) {
+                return this.marketFocusEntry;
+            }
+            return null;
         },
 
         filteredWatchlist() {

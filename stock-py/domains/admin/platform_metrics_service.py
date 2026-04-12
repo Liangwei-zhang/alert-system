@@ -517,16 +517,13 @@ class PlatformRuntimeMetricsService:
                 "max_partition_lag": pending,
                 "partitions": max(consumers, 1 if group else 0),
             }
-
-        return await asyncio.to_thread(self._collect_kafka_lag_sync)
-
-    def _collect_kafka_lag_sync(self) -> dict[str, object]:
         try:
-            from kafka import KafkaConsumer, TopicPartition
+            from aiokafka import AIOKafkaConsumer
+            from aiokafka.structs import TopicPartition
         except ImportError as exc:
-            raise RuntimeError("Kafka lag metrics require kafka-python") from exc
+            raise RuntimeError("Kafka lag metrics require aiokafka") from exc
 
-        consumer = KafkaConsumer(
+        consumer = AIOKafkaConsumer(
             bootstrap_servers=[
                 item.strip()
                 for item in self.settings.event_broker_kafka_bootstrap_servers.split(",")
@@ -538,9 +535,10 @@ class PlatformRuntimeMetricsService:
             api_version_auto_timeout_ms=3000,
             request_timeout_ms=5000,
         )
+        await consumer.start()
         try:
             partitions = sorted(
-                consumer.partitions_for_topic(self.settings.event_broker_kafka_topic) or []
+                await consumer.partitions_for_topic(self.settings.event_broker_kafka_topic) or []
             )
             topic_partitions = [
                 TopicPartition(self.settings.event_broker_kafka_topic, partition)
@@ -556,12 +554,12 @@ class PlatformRuntimeMetricsService:
                     "partitions": 0,
                 }
             consumer.assign(topic_partitions)
-            end_offsets = consumer.end_offsets(topic_partitions)
+            end_offsets = await consumer.end_offsets(topic_partitions)
             lag_total = 0
             max_partition_lag = 0
             for topic_partition in topic_partitions:
                 end_offset = _safe_int(end_offsets.get(topic_partition))
-                committed = _safe_int(consumer.committed(topic_partition))
+                committed = _safe_int(await consumer.committed(topic_partition))
                 lag = max(end_offset - committed, 0)
                 lag_total += lag
                 max_partition_lag = max(max_partition_lag, lag)
@@ -574,7 +572,7 @@ class PlatformRuntimeMetricsService:
                 "partitions": len(topic_partitions),
             }
         finally:
-            consumer.close()
+            await consumer.stop()
 
     async def _default_pgbouncer_stats_provider(self, admin_dsn: str) -> dict[str, object]:
         try:

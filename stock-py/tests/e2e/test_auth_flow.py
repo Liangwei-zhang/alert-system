@@ -122,7 +122,7 @@ def test_auth_flow(public_api_client: PublicApiClient, monkeypatch) -> None:
         "code": "123456",
         "locale": "en-US",
         "timezone": "UTC",
-        "device_info": {"ip": None, "user_agent": "pytest-e2e"},
+        "device_info": {"ip": "testclient", "user_agent": "pytest-e2e"},
     }
     assert calls["refresh"] == "refresh-token-1"
     assert calls["logout"] == "access-token-2"

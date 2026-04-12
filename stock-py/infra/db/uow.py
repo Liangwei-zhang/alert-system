@@ -4,27 +4,11 @@ from typing import Self
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from infra.cache.account_dashboard_cache import (
-    apply_account_dashboard_cache_operations,
-    pop_pending_account_dashboard_cache_operations,
-)
-from infra.cache.account_profile_cache import (
-    apply_account_profile_cache_operations,
-    pop_pending_account_profile_cache_operations,
-)
-from infra.cache.push_devices_cache import (
-    apply_push_devices_cache_operations,
-    pop_pending_push_devices_cache_operations,
-)
-from infra.cache.trade_info_cache import (
-    apply_trade_info_cache_operations,
-    pop_pending_trade_info_cache_operations,
+from infra.cache.registry import (
+    apply_registered_cache_operations,
+    clear_registered_cache_operations,
 )
 from infra.db.session import get_session_factory
-from infra.security.session_cache import (
-    apply_session_cache_operations,
-    pop_pending_session_cache_operations,
-)
 
 
 class AsyncUnitOfWork:
@@ -57,30 +41,14 @@ class AsyncUnitOfWork:
             raise RuntimeError("Unit of work has not been entered")
 
         await self.session.commit()
-        await apply_session_cache_operations(pop_pending_session_cache_operations(self.session))
-        await apply_account_dashboard_cache_operations(
-            pop_pending_account_dashboard_cache_operations(self.session)
-        )
-        await apply_account_profile_cache_operations(
-            pop_pending_account_profile_cache_operations(self.session)
-        )
-        await apply_push_devices_cache_operations(
-            pop_pending_push_devices_cache_operations(self.session)
-        )
-        await apply_trade_info_cache_operations(
-            pop_pending_trade_info_cache_operations(self.session)
-        )
+        await apply_registered_cache_operations(self.session)
         self._committed = True
 
     async def rollback(self) -> None:
         if self.session is None:
             return
 
-        pop_pending_session_cache_operations(self.session)
-        pop_pending_account_dashboard_cache_operations(self.session)
-        pop_pending_account_profile_cache_operations(self.session)
-        pop_pending_push_devices_cache_operations(self.session)
-        pop_pending_trade_info_cache_operations(self.session)
+        clear_registered_cache_operations(self.session)
         await self.session.rollback()
 
     async def flush(self) -> None:

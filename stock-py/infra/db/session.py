@@ -13,27 +13,11 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 
-from infra.cache.account_dashboard_cache import (
-    apply_account_dashboard_cache_operations,
-    pop_pending_account_dashboard_cache_operations,
-)
-from infra.cache.account_profile_cache import (
-    apply_account_profile_cache_operations,
-    pop_pending_account_profile_cache_operations,
-)
-from infra.cache.push_devices_cache import (
-    apply_push_devices_cache_operations,
-    pop_pending_push_devices_cache_operations,
-)
-from infra.cache.trade_info_cache import (
-    apply_trade_info_cache_operations,
-    pop_pending_trade_info_cache_operations,
+from infra.cache.registry import (
+    apply_registered_cache_operations,
+    clear_registered_cache_operations,
 )
 from infra.core.config import Settings, get_settings
-from infra.security.session_cache import (
-    apply_session_cache_operations,
-    pop_pending_session_cache_operations,
-)
 
 _engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None
@@ -112,25 +96,9 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
             await session.commit()
-            await apply_session_cache_operations(pop_pending_session_cache_operations(session))
-            await apply_account_dashboard_cache_operations(
-                pop_pending_account_dashboard_cache_operations(session)
-            )
-            await apply_account_profile_cache_operations(
-                pop_pending_account_profile_cache_operations(session)
-            )
-            await apply_push_devices_cache_operations(
-                pop_pending_push_devices_cache_operations(session)
-            )
-            await apply_trade_info_cache_operations(
-                pop_pending_trade_info_cache_operations(session)
-            )
+            await apply_registered_cache_operations(session)
         except Exception:
-            pop_pending_session_cache_operations(session)
-            pop_pending_account_dashboard_cache_operations(session)
-            pop_pending_account_profile_cache_operations(session)
-            pop_pending_push_devices_cache_operations(session)
-            pop_pending_trade_info_cache_operations(session)
+            clear_registered_cache_operations(session)
             await session.rollback()
             raise
 

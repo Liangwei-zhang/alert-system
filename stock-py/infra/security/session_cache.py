@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import TypeAlias
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,7 +27,7 @@ class SessionCacheDelete:
     token_hashes: tuple[str, ...]
 
 
-type SessionCacheOperation = SessionCacheUpsert | SessionCacheDelete
+SessionCacheOperation: TypeAlias = SessionCacheUpsert | SessionCacheDelete
 
 
 def _session_cache_key(token_hash: str) -> str:

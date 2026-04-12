@@ -14,7 +14,8 @@ const PLATFORM_DECK_STORAGE_KEYS = Object.freeze({
     windowHours: 'platform_window_hours',
     taIncludeFullPayload: 'platform_tradingagents_include_full_payload',
     workspaceMode: 'platform_workspace_mode',
-    workspaceSection: 'platform_workspace_section'
+    workspaceSection: 'platform_workspace_section',
+    deskWatchlist: 'platform_desk_watchlist'
 });
 
 const PLATFORM_DECK_WORKSPACE_MODES = Object.freeze([

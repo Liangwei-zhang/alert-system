@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import subprocess
+import shutil
+import subprocess  # nosec B404
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -113,14 +114,17 @@ def capture_code_version(repo_root: str | Path | None = None) -> str | None:
 
 
 def _run_git_command(repo_root: Path, args: list[str]) -> str | None:
+    git_executable = shutil.which("git")
+    if not git_executable:
+        return None
     try:
         result = subprocess.run(
-            ["git", *args],
+            [git_executable, *args],
             cwd=repo_root,
             capture_output=True,
             text=True,
             check=True,
-        )
+        )  # nosec B603 - internal git metadata lookup with fixed executable path
     except (FileNotFoundError, subprocess.CalledProcessError):
         return None
     output = result.stdout.strip()

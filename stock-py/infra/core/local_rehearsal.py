@@ -88,7 +88,7 @@ CALIBRATION_RULES: tuple[CalibrationRule, ...] = (
 )
 
 DEFAULT_K8S_IMAGE_NAME = "ghcr.io/openclaw/stock-py"
-DEFAULT_K8S_MONITORING_SECRET_NAME = "stock-py-monitoring-secret"
+DEFAULT_K8S_MONITORING_SECRET_NAME = "stock-py-monitoring-secret"  # nosec B105 - resource name only
 
 PROMETHEUS_THRESHOLD_RULES: tuple[PrometheusThresholdRule, ...] = (
     PrometheusThresholdRule(
@@ -222,7 +222,11 @@ def _default_namespace(environment: str) -> str:
 
 def _default_ingress_host(environment: str) -> str:
     normalized = environment.strip().lower()
-    return "stock-py.example.com" if normalized == "production" else f"stock-py-{normalized}.example.com"
+    return (
+        "stock-py.example.com"
+        if normalized == "production"
+        else f"stock-py-{normalized}.example.com"
+    )
 
 
 def _resolve_kustomize_path(raw_path: str, *, environment: str) -> Path:
@@ -316,66 +320,72 @@ def _build_runtime_threshold_json_patch(values: dict[str, str]) -> str:
 
 
 def _build_ingress_patch(host: str) -> str:
-    return "\n".join(
-        [
-            "apiVersion: networking.k8s.io/v1",
-            "kind: Ingress",
-            "metadata:",
-            "  name: stock-py",
-            "spec:",
-            "  rules:",
-            f"    - host: {host}",
-            "      http:",
-            "        paths:",
-            "          - path: /",
-            "            pathType: Prefix",
-            "            backend:",
-            "              service:",
-            "                name: public-api",
-            "                port:",
-            "                  number: 8000",
-            "          - path: /v1/admin",
-            "            pathType: Prefix",
-            "            backend:",
-            "              service:",
-            "                name: admin-api",
-            "                port:",
-            "                  number: 8001",
-        ]
-    ) + "\n"
+    return (
+        "\n".join(
+            [
+                "apiVersion: networking.k8s.io/v1",
+                "kind: Ingress",
+                "metadata:",
+                "  name: stock-py",
+                "spec:",
+                "  rules:",
+                f"    - host: {host}",
+                "      http:",
+                "        paths:",
+                "          - path: /",
+                "            pathType: Prefix",
+                "            backend:",
+                "              service:",
+                "                name: public-api",
+                "                port:",
+                "                  number: 8000",
+                "          - path: /v1/admin",
+                "            pathType: Prefix",
+                "            backend:",
+                "              service:",
+                "                name: admin-api",
+                "                port:",
+                "                  number: 8001",
+            ]
+        )
+        + "\n"
+    )
 
 
 def _build_monitoring_secret_patch(secret_name: str) -> str:
-    return "---\n".join(
-        [
-            "\n".join(
-                [
-                    "apiVersion: monitoring.coreos.com/v1",
-                    "kind: ServiceMonitor",
-                    "metadata:",
-                    "  name: public-api",
-                    "spec:",
-                    "  endpoints:",
-                    "    - bearerTokenSecret:",
-                    f"        name: {secret_name}",
-                    "        key: publicMonitoringBearer",
-                ]
-            ),
-            "\n".join(
-                [
-                    "apiVersion: monitoring.coreos.com/v1",
-                    "kind: ServiceMonitor",
-                    "metadata:",
-                    "  name: admin-api",
-                    "spec:",
-                    "  endpoints:",
-                    "    - bearerTokenSecret:",
-                    f"        name: {secret_name}",
-                    "        key: adminMetricsBearer",
-                ]
-            ),
-        ]
-    ) + "\n"
+    return (
+        "---\n".join(
+            [
+                "\n".join(
+                    [
+                        "apiVersion: monitoring.coreos.com/v1",
+                        "kind: ServiceMonitor",
+                        "metadata:",
+                        "  name: public-api",
+                        "spec:",
+                        "  endpoints:",
+                        "    - bearerTokenSecret:",
+                        f"        name: {secret_name}",
+                        "        key: publicMonitoringBearer",
+                    ]
+                ),
+                "\n".join(
+                    [
+                        "apiVersion: monitoring.coreos.com/v1",
+                        "kind: ServiceMonitor",
+                        "metadata:",
+                        "  name: admin-api",
+                        "spec:",
+                        "  endpoints:",
+                        "    - bearerTokenSecret:",
+                        f"        name: {secret_name}",
+                        "        key: adminMetricsBearer",
+                    ]
+                ),
+            ]
+        )
+        + "\n"
+    )
 
 
 def load_local_dev_settings(root: Path | None = None) -> None:
@@ -543,7 +553,10 @@ def render_k8s_cutover_overrides(
         "      kind: PrometheusRule",
         "      name: stock-py-runtime",
     ]
-    if monitoring_secret_name.strip() and monitoring_secret_name != DEFAULT_K8S_MONITORING_SECRET_NAME:
+    if (
+        monitoring_secret_name.strip()
+        and monitoring_secret_name != DEFAULT_K8S_MONITORING_SECRET_NAME
+    ):
         kustomization_lines.append("  - path: monitoring-secret.patch.yaml")
 
     image_block = _build_images_block(resolved_release_image)
@@ -555,12 +568,17 @@ def render_k8s_cutover_overrides(
         output_root / "runtime-alert-thresholds.patch.yaml",
         _build_runtime_threshold_config_patch(threshold_values),
     )
-    _write_text(output_root / "ingress-host.patch.yaml", _build_ingress_patch(resolved_ingress_host))
+    _write_text(
+        output_root / "ingress-host.patch.yaml", _build_ingress_patch(resolved_ingress_host)
+    )
     _write_text(
         output_root / "prometheus-runtime-thresholds.patch.yaml",
         _build_runtime_threshold_json_patch(threshold_values),
     )
-    if monitoring_secret_name.strip() and monitoring_secret_name != DEFAULT_K8S_MONITORING_SECRET_NAME:
+    if (
+        monitoring_secret_name.strip()
+        and monitoring_secret_name != DEFAULT_K8S_MONITORING_SECRET_NAME
+    ):
         _write_text(
             output_root / "monitoring-secret.patch.yaml",
             _build_monitoring_secret_patch(monitoring_secret_name.strip()),
@@ -578,7 +596,9 @@ def render_k8s_cutover_overrides(
         "monitoring_secret_name": monitoring_secret_name.strip()
         or DEFAULT_K8S_MONITORING_SECRET_NAME,
     }
-    resolved_output_json = Path(output_json).resolve() if output_json else output_root / "summary.json"
+    resolved_output_json = (
+        Path(output_json).resolve() if output_json else output_root / "summary.json"
+    )
     _write_json(resolved_output_json, summary)
     summary["output_json"] = str(resolved_output_json)
     return summary

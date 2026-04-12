@@ -13,6 +13,7 @@ class FakeRepository:
         self.saved_runs = []
         self.saved_results = []
         self.saved_rankings = []
+        self.bulk_load_calls = []
 
     async def save_run(self, payload):
         self.saved_runs.append(payload)
@@ -31,6 +32,16 @@ class FakeRepository:
     async def load_window_data(self, symbol, window_days, timeframe="1d"):
         del window_days, timeframe
         return list(self.window_data.get(symbol, []))
+
+    async def load_window_data_for_symbols(self, symbols, window_days, timeframe="1d"):
+        self.bulk_load_calls.append(
+            {
+                "symbols": list(symbols),
+                "window_days": window_days,
+                "timeframe": timeframe,
+            }
+        )
+        return {str(symbol): list(self.window_data.get(symbol, [])) for symbol in symbols}
 
 
 class FakePublisher:
@@ -122,6 +133,7 @@ class BacktestServiceTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["code_version"], "main@abc123def456")
         self.assertTrue(result["dataset_fingerprint"])
         self.assertTrue(result["run_key"].startswith("backtest-ranking-refresh:1d:"))
+        self.assertEqual(repository.bulk_load_calls[0]["symbols"], ["AAPL", "MSFT"])
         self.assertEqual(repository.saved_runs[0]["config"]["universe"]["count"], 2)
         self.assertEqual(
             repository.saved_runs[0]["config"]["strategy_names"],
@@ -129,7 +141,9 @@ class BacktestServiceTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(repository.saved_runs[0]["code_version"], "main@abc123def456")
         self.assertTrue(repository.saved_runs[0]["dataset_fingerprint"])
-        self.assertEqual(repository.saved_results[0][1]["artifacts"]["entries"][0]["name"], "backtest_run")
+        self.assertEqual(
+            repository.saved_results[0][1]["artifacts"]["entries"][0]["name"], "backtest_run"
+        )
         self.assertEqual(
             repository.saved_results[0][1]["artifacts"]["entries"][1]["name"],
             "strategy_rankings",
@@ -197,7 +211,9 @@ class BacktestServiceTest(unittest.IsolatedAsyncioTestCase):
             repository.saved_results[-1][1]["error_message"],
             "rankings write failed",
         )
-        self.assertEqual(repository.saved_results[-1][1]["artifacts"]["entries"][0]["name"], "backtest_run")
+        self.assertEqual(
+            repository.saved_results[-1][1]["artifacts"]["entries"][0]["name"], "backtest_run"
+        )
 
 
 if __name__ == "__main__":

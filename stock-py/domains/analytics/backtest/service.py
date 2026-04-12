@@ -90,9 +90,9 @@ class BacktestService:
         resolved_strategies = self._normalize_strategy_names(strategy_names)
         resolved_windows = tuple(int(window) for window in (windows or self.DEFAULT_WINDOWS))
         normalized_timeframe = timeframe.strip().lower()
-        normalized_experiment_name = str(
-            experiment_name or "backtest.ranking-refresh"
-        ).strip() or "backtest.ranking-refresh"
+        normalized_experiment_name = (
+            str(experiment_name or "backtest.ranking-refresh").strip() or "backtest.ranking-refresh"
+        )
         normalized_experiment_context = dict(experiment_context or {})
         started_at = datetime.now(timezone.utc)
         config_snapshot = build_experiment_config(
@@ -118,10 +118,12 @@ class BacktestService:
         preloaded_bars: dict[str, list[dict[str, Any]]] = {}
 
         if max_window > 0:
-            for symbol in resolved_symbols:
-                bars = await repository.load_window_data(symbol, max_window, normalized_timeframe)
-                if bars:
-                    preloaded_bars[symbol] = bars
+            preloaded_bars = await self._preload_bars(
+                repository,
+                resolved_symbols,
+                max_window,
+                normalized_timeframe,
+            )
 
         run = await repository.save_run(
             {
@@ -458,12 +460,17 @@ class BacktestService:
         }
 
     def _ranking_score(self, metrics: dict[str, Any]) -> float:
+        total_return_percent = float(metrics["total_return_percent"])
+        win_rate = float(metrics["win_rate"])
+        sharpe_ratio = float(metrics["sharpe_ratio"])
+        max_drawdown_percent = float(metrics["max_drawdown_percent"])
+        trade_count = int(metrics["trade_count"])
         return round(
-            (metrics["total_return_percent"] * 0.45)
-            + (metrics["win_rate"] * 0.2)
-            + (metrics["sharpe_ratio"] * 8.0)
-            - (metrics["max_drawdown_percent"] * 0.35)
-            + min(metrics["trade_count"], 20) * 0.4,
+            (total_return_percent * 0.45)
+            + (win_rate * 0.2)
+            + (sharpe_ratio * 8.0)
+            - (max_drawdown_percent * 0.35)
+            + min(trade_count, 20) * 0.4,
             4,
         )
 
@@ -491,6 +498,31 @@ class BacktestService:
                 "rankings": rankings,
             },
         )
+
+    async def _preload_bars(
+        self,
+        repository: Any,
+        symbols: list[str],
+        window_days: int,
+        timeframe: str,
+    ) -> dict[str, list[dict[str, Any]]]:
+        batch_loader = getattr(repository, "load_window_data_for_symbols", None)
+        if callable(batch_loader):
+            payload = batch_loader(symbols, window_days, timeframe)
+            if hasattr(payload, "__await__"):
+                payload = await payload
+            return {
+                str(symbol).strip().upper(): list(bars)
+                for symbol, bars in dict(payload or {}).items()
+                if str(symbol).strip()
+            }
+
+        preloaded: dict[str, list[dict[str, Any]]] = {}
+        for symbol in symbols:
+            bars = await repository.load_window_data(symbol, window_days, timeframe)
+            if bars:
+                preloaded[symbol] = bars
+        return preloaded
 
     async def _list_symbols(self) -> list[str]:
         if self.symbol_provider is not None:

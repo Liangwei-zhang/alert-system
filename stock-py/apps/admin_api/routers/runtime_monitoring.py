@@ -308,9 +308,9 @@ def _build_runtime_metrics_payload(
 async def _collect_runtime_operational_metrics(
     *,
     component_kind: str | None,
-    db: AsyncSession,
+    db: AsyncSession | None,
 ) -> list[RuntimeMetricPointResponse]:
-    if component_kind == "scheduler":
+    if component_kind == "scheduler" or db is None:
         return []
     service = RuntimeOperationalMetricsService(db)
     return [
@@ -330,7 +330,7 @@ async def _collect_platform_operational_metrics() -> list[RuntimeMetricPointResp
 async def collect_runtime_metrics_payload(
     *,
     component_kind: str | None,
-    db: AsyncSession,
+    db: AsyncSession | None = None,
 ) -> RuntimeMetricsResponse:
     components = await list_runtime_components(component_kind=component_kind)
     operational_metrics = await _collect_runtime_operational_metrics(

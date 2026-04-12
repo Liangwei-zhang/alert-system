@@ -39,9 +39,7 @@ class BacktestRepository:
         if strategy_name:
             statement = statement.where(BacktestRunModel.strategy_name == strategy_name.strip())
         if experiment_name:
-            statement = statement.where(
-                BacktestRunModel.experiment_name == experiment_name.strip()
-            )
+            statement = statement.where(BacktestRunModel.experiment_name == experiment_name.strip())
         if run_key:
             statement = statement.where(BacktestRunModel.run_key == run_key.strip())
         if timeframe:
@@ -73,9 +71,7 @@ class BacktestRepository:
         if strategy_name:
             statement = statement.where(BacktestRunModel.strategy_name == strategy_name.strip())
         if experiment_name:
-            statement = statement.where(
-                BacktestRunModel.experiment_name == experiment_name.strip()
-            )
+            statement = statement.where(BacktestRunModel.experiment_name == experiment_name.strip())
         if run_key:
             statement = statement.where(BacktestRunModel.run_key == run_key.strip())
         if timeframe:
@@ -225,19 +221,65 @@ class BacktestRepository:
             .order_by(OhlcvModel.bar_time.asc())
         )
         rows = list(result.scalars().all())
-        return [
-            {
-                "timestamp": row.bar_time,
-                "open": float(row.open),
-                "high": float(row.high),
-                "low": float(row.low),
-                "close": float(row.close),
-                "volume": float(row.volume),
-                "symbol": row.symbol,
-                "timeframe": row.timeframe,
-            }
-            for row in rows
-        ]
+        return [self._serialize_ohlcv_row(row) for row in rows]
+
+    async def load_window_data_for_symbols(
+        self,
+        symbols: list[str],
+        window_days: int,
+        timeframe: str = "1d",
+    ) -> dict[str, list[dict[str, Any]]]:
+        normalized_symbols = sorted(
+            {symbol.strip().upper() for symbol in symbols if symbol.strip()}
+        )
+        if not normalized_symbols:
+            return {}
+
+        normalized_timeframe = timeframe.strip().lower()
+        latest_result = await self.session.execute(
+            select(OhlcvModel.symbol, func.max(OhlcvModel.bar_time).label("latest_bar_time"))
+            .where(
+                OhlcvModel.symbol.in_(normalized_symbols),
+                OhlcvModel.timeframe == normalized_timeframe,
+            )
+            .group_by(OhlcvModel.symbol)
+        )
+        latest_by_symbol = {
+            str(symbol): latest_bar_time
+            for symbol, latest_bar_time in latest_result.all()
+            if latest_bar_time is not None
+        }
+        if not latest_by_symbol:
+            return {symbol: [] for symbol in normalized_symbols}
+
+        min_cutoff = min(
+            latest_bar_time - timedelta(days=window_days)
+            for latest_bar_time in latest_by_symbol.values()
+        )
+        max_latest = max(latest_by_symbol.values())
+        result = await self.session.execute(
+            select(OhlcvModel)
+            .where(
+                OhlcvModel.symbol.in_(list(latest_by_symbol.keys())),
+                OhlcvModel.timeframe == normalized_timeframe,
+                OhlcvModel.bar_time >= min_cutoff,
+                OhlcvModel.bar_time <= max_latest,
+            )
+            .order_by(OhlcvModel.symbol.asc(), OhlcvModel.bar_time.asc())
+        )
+        rows = list(result.scalars().all())
+        grouped_rows: dict[str, list[dict[str, Any]]] = {
+            symbol: [] for symbol in normalized_symbols
+        }
+        for row in rows:
+            latest_bar_time = latest_by_symbol.get(row.symbol)
+            if latest_bar_time is None:
+                continue
+            cutoff = latest_bar_time - timedelta(days=window_days)
+            if row.bar_time < cutoff or row.bar_time > latest_bar_time:
+                continue
+            grouped_rows.setdefault(row.symbol, []).append(self._serialize_ohlcv_row(row))
+        return grouped_rows
 
     async def _get_run(self, run_id: int) -> BacktestRunModel | None:
         result = await self.session.execute(
@@ -250,3 +292,16 @@ class BacktestRepository:
         if value in (None, "", [], {}):
             return None
         return json.dumps(value, default=str)
+
+    @staticmethod
+    def _serialize_ohlcv_row(row: OhlcvModel) -> dict[str, Any]:
+        return {
+            "timestamp": row.bar_time,
+            "open": float(row.open),
+            "high": float(row.high),
+            "low": float(row.low),
+            "close": float(row.close),
+            "volume": float(row.volume),
+            "symbol": row.symbol,
+            "timeframe": row.timeframe,
+        }

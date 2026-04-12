@@ -63,7 +63,7 @@ class RunPlatformWorkbenchSmokeTest(unittest.TestCase):
         check_names = {name for name, _, _ in smoke.PLATFORM_TEXT_CHECKS}
         self.assertEqual(
             check_names,
-            {"platform_html", "workspace_script", "platform_script"},
+            {"platform_html", "workspace_script", "platform_script", "market_script"},
         )
 
 

@@ -14,11 +14,6 @@ from infra.security.auth import require_admin
 class AdminMetricsEndpointTest(unittest.TestCase):
     def setUp(self) -> None:
         admin_main.metrics.reset()
-
-        async def override_db_session():
-            yield object()
-
-        admin_main.app.dependency_overrides[admin_main.get_db_session] = override_db_session
         admin_main.app.dependency_overrides[require_admin] = lambda: {"sub": "unit-test"}
         self.client = TestClient(admin_main.app)
 
@@ -60,6 +55,7 @@ class AdminMetricsEndpointTest(unittest.TestCase):
         )
         self.assertIn("stock_signal_admin_runtime_coverage_percent 100.0", response.text)
         collect_metrics.assert_awaited_once()
+        self.assertIsNone(collect_metrics.await_args.kwargs["db"])
         self.assertIsNone(collect_metrics.await_args.kwargs["component_kind"])
 
 

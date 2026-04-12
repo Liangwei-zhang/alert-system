@@ -240,6 +240,15 @@
         ]
       }
     },
+    "/v1/internal/tradingagents/stock-result/{request_id}": {
+      "get": {
+        "operationId": "get_tradingagents_stock_result_v1_internal_tradingagents_stock_result__request_id__get",
+        "summary": "Get Tradingagents Stock Result",
+        "tags": [
+          "tradingagents"
+        ]
+      }
+    },
     "/v1/internal/tradingagents/submit": {
       "post": {
         "operationId": "submit_tradingagents_job_v1_internal_tradingagents_submit_post",
@@ -249,10 +258,28 @@
         ]
       }
     },
+    "/v1/market/chart/{symbol}": {
+      "get": {
+        "operationId": "get_market_chart_v1_market_chart__symbol__get",
+        "summary": "Get Market Chart",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
     "/v1/notifications": {
       "get": {
         "operationId": "list_notifications_v1_notifications_get",
         "summary": "List Notifications",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/v1/notifications/push-config": {
+      "get": {
+        "operationId": "get_push_config_v1_notifications_push_config_get",
+        "summary": "Get Push Config",
         "tags": [
           "notifications"
         ]

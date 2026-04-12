@@ -47,6 +47,16 @@ function createPlatformDeckWorkspaceModule() {
             this.activeDesktopSectionId = String(sectionId || '').trim() || 'trading-agents-panel';
             localStorage.setItem(this.storageKeys.workspaceSection, this.activeDesktopSectionId);
             if (userInitiated) {
+                {
+                    id: 'open-market-workbench',
+                    group: '动作',
+                    label: '打开市场工作台',
+                    meta: this.marketChart && this.marketChart.symbol
+                        ? `${this.marketChart.symbol} · 查看图表与报价快照。`
+                        : '搜索标的、查看图表并整理桌面盯盘。',
+                    hint: '信号',
+                    search: 'market chart watchlist search 市场 图表 盯盘',
+                    run: () => this.focusSection('market-workbench-panel', 'signals')
                 this.workspacePinned = true;
             }
         },
@@ -59,6 +69,9 @@ function createPlatformDeckWorkspaceModule() {
             this.selectedSymbol = normalizedSymbol;
             this.executionContextSource = String(options.source || this.executionContextSource || 'workspace').trim() || 'workspace';
             this.executionContextUpdatedAt = new Date().toISOString();
+            if (typeof this.loadSelectedMarketChart === 'function') {
+                this.loadSelectedMarketChart({ silent: true, throwOnError: false });
+            }
             if (options.sectionId || options.mode) {
                 this.focusSection(options.sectionId || 'decision-tape-panel', options.mode || null, {
                     userInitiated: options.userInitiated !== false,
@@ -87,6 +100,7 @@ function createPlatformDeckWorkspaceModule() {
             const mapping = {
                 'auto-sync': '自动聚焦',
                 watchlist: '盯盘雷达',
+                'market-workbench': '市场工作台',
                 'decision-tape': '判定流',
                 'command-palette': '命令面板',
                 'quick-action': '快捷动作',
@@ -924,6 +938,13 @@ function createPlatformDeckWorkspaceModule() {
                     label: '首屏 盯盘雷达'
                 };
             }
+            if (this.marketChart && this.marketChart.symbol) {
+                return {
+                    mode: 'signals',
+                    sectionId: 'market-workbench-panel',
+                    label: '首屏 市场工作台'
+                };
+            }
             if (this.signalTape.length) {
                 return {
                     mode: 'signals',
@@ -981,6 +1002,9 @@ function createPlatformDeckWorkspaceModule() {
             }
             if (this.watchlist.length) {
                 return `已同步 ${this.formatInt(this.watchlist.length)} 个盯盘候选，先从雷达里挑一个标的建立桌面焦点。`;
+            }
+            if (this.marketChart && this.marketChart.symbol) {
+                return `${this.marketChart.symbol} 已进入市场工作台，可继续刷新图表、整理桌面盯盘，再接到执行或研究面。`;
             }
             if (this.workspaceHasResearchData()) {
                 return '信号面当前偏空，但研究台已有数据，首屏会优先带你进入回测与健康视图。';
@@ -1134,33 +1158,47 @@ function createPlatformDeckWorkspaceModule() {
                         secondaryActionId: 'open-decision',
                         secondaryActionLabel: '查看判定流'
                     }
-                    : (researchReady
+                    : (this.marketChart && this.marketChart.symbol
                         ? {
                             id: 'focus',
                             eyebrow: 'Focus',
-                            status: '研究先行',
-                            badgeClass: 'bg-sun/15 text-sun',
-                            panelClass: 'border-sun/15 bg-sun/5',
-                            title: '实时信号为空，先从研究台进入',
-                            body: '回测排名或健康卡已在线，首屏会优先引导到研究工作区。',
-                            actionId: 'open-backtest',
-                            actionLabel: '打开研究台',
-                            secondaryActionId: this.strategyHealth.length ? 'open-health' : 'open-tradingagents',
-                            secondaryActionLabel: this.strategyHealth.length ? '看策略健康' : '打开 TradingAgents'
+                            status: '图表在线',
+                            badgeClass: 'bg-tide/10 text-tide',
+                            panelClass: 'border-tide/15 bg-tide/5',
+                            title: `${this.marketChart.symbol} 已进入市场工作台`,
+                            body: `${this.marketSourceLabel()} · ${this.marketChart.period} 图表已就绪，可先加入桌面盯盘再继续接力。`,
+                            actionId: 'open-market',
+                            actionLabel: '打开市场工作台',
+                            secondaryActionId: this.selectedSymbolPinned() ? 'open-watchlist' : 'pin-market-symbol',
+                            secondaryActionLabel: this.selectedSymbolPinned() ? '查看盯盘清单' : '加入桌面盯盘'
                         }
-                        : {
-                            id: 'focus',
-                            eyebrow: 'Focus',
-                            status: '等待焦点',
-                            badgeClass: 'bg-ink/10 text-ink/70',
-                            panelClass: 'border-ink/10 bg-white/75',
-                            title: '还没有首个工作台焦点',
-                            body: '先同步数据，桌面会根据实时结果自动把你带到最有价值的工作区。',
-                            actionId: 'sync-platform',
-                            actionLabel: '立即同步',
-                            secondaryActionId: 'open-tradingagents',
-                            secondaryActionLabel: '先看 TradingAgents'
-                        }));
+                        : (researchReady
+                            ? {
+                                id: 'focus',
+                                eyebrow: 'Focus',
+                                status: '研究先行',
+                                badgeClass: 'bg-sun/15 text-sun',
+                                panelClass: 'border-sun/15 bg-sun/5',
+                                title: '实时信号为空，先从研究台进入',
+                                body: '回测排名或健康卡已在线，首屏会优先引导到研究工作区。',
+                                actionId: 'open-backtest',
+                                actionLabel: '打开研究台',
+                                secondaryActionId: this.strategyHealth.length ? 'open-health' : 'open-tradingagents',
+                                secondaryActionLabel: this.strategyHealth.length ? '看策略健康' : '打开 TradingAgents'
+                            }
+                            : {
+                                id: 'focus',
+                                eyebrow: 'Focus',
+                                status: '等待焦点',
+                                badgeClass: 'bg-ink/10 text-ink/70',
+                                panelClass: 'border-ink/10 bg-white/75',
+                                title: '还没有首个工作台焦点',
+                                body: '先同步数据，桌面会根据实时结果自动把你带到最有价值的工作区。',
+                                actionId: 'sync-platform',
+                                actionLabel: '立即同步',
+                                secondaryActionId: 'open-tradingagents',
+                                secondaryActionLabel: '先看 TradingAgents'
+                            })));
 
             return [accessCard, syncCard, focusCard];
         },
@@ -1184,9 +1222,11 @@ function createPlatformDeckWorkspaceModule() {
                 if (researchReady) {
                     return {
                         title: '当前没有盯盘候选',
-                        body: '实时候选为空，但研究数据已在线，可以先从回测和健康视图开工。',
-                        actionId: 'open-backtest',
-                        actionLabel: '打开研究台',
+                        body: this.marketChart && this.marketChart.symbol
+                            ? '实时候选为空，但市场工作台已在线，可以先看图表并把重点标的加入桌面盯盘。'
+                            : '实时候选为空，但研究数据已在线，可以先从回测和健康视图开工。',
+                        actionId: this.marketChart && this.marketChart.symbol ? 'open-market' : 'open-backtest',
+                        actionLabel: this.marketChart && this.marketChart.symbol ? '打开市场工作台' : '打开研究台',
                         secondaryActionId: 'sync-platform',
                         secondaryActionLabel: '再同步一次'
                     };
@@ -1195,9 +1235,11 @@ function createPlatformDeckWorkspaceModule() {
                     title: this.loading ? '正在拉取盯盘候选' : '暂无信号候选',
                     body: this.loading
                         ? '同步完成后，这里会列出可接力到执行台和研究面的标的。'
-                        : '确认连接与策略会话后，重新同步即可更新实时候选。',
-                    actionId: 'sync-platform',
-                    actionLabel: this.loading ? '同步中...' : '立即同步',
+                        : (this.marketChart && this.marketChart.symbol
+                            ? '当前可以先在市场工作台搜索标的、查看走势，再决定是否加入桌面盯盘。'
+                            : '确认连接与策略会话后，重新同步即可更新实时候选。'),
+                    actionId: this.marketChart && this.marketChart.symbol ? 'open-market' : 'sync-platform',
+                    actionLabel: this.loading ? '同步中...' : (this.marketChart && this.marketChart.symbol ? '打开市场工作台' : '立即同步'),
                     secondaryActionId: 'focus-access',
                     secondaryActionLabel: '检查连接'
                 };
@@ -1386,6 +1428,18 @@ function createPlatformDeckWorkspaceModule() {
                 this.loadAll();
                 return;
             }
+            if (normalized === 'open-market') {
+                this.focusSection('market-workbench-panel', 'signals');
+                return;
+            }
+            if (normalized === 'pin-market-symbol') {
+                if (this.selectedSymbolPinned()) {
+                    this.focusSection('watchlist-panel', 'signals');
+                    return;
+                }
+                this.pinSelectedSymbolToDeskWatchlist();
+                return;
+            }
             if (normalized === 'open-watchlist') {
                 this.focusSection('watchlist-panel', 'signals');
                 return;
@@ -1489,10 +1543,21 @@ function createPlatformDeckWorkspaceModule() {
                     : {
                         id: 'select-signal',
                         label: '挑选观察标的',
-                        meta: `${this.formatInt(this.watchlist.length)} 个候选 · 进入盯盘雷达`,
-                        sectionId: 'watchlist-panel',
+                        meta: this.marketChart && this.marketChart.symbol
+                            ? `${this.marketChart.symbol} 图表在线 · 进入市场工作台`
+                            : `${this.formatInt(this.watchlist.length)} 个候选 · 进入盯盘雷达`,
+                        sectionId: this.marketChart && this.marketChart.symbol ? 'market-workbench-panel' : 'watchlist-panel',
                         mode: 'signals'
                     },
+                {
+                    id: 'market-workbench',
+                    label: this.marketChart && this.marketChart.symbol ? `${this.marketChart.symbol} 市场工作台` : '市场工作台',
+                    meta: this.marketChartHasData()
+                        ? `${this.marketSourceLabel()} · ${this.marketChart.period} OHLCV 图表`
+                        : '搜索标的、打开图表并整理桌面盯盘',
+                    sectionId: 'market-workbench-panel',
+                    mode: 'signals'
+                },
                 {
                     id: 'tradingagents',
                     label: pendingRuns ? '跟进待完成分析' : 'TradingAgents 分析台',
@@ -1844,6 +1909,15 @@ function createPlatformDeckWorkspaceModule() {
 
         desktopSections() {
             return [
+                {
+                    id: 'market-workbench-panel',
+                    label: '市场工作台',
+                    mode: 'signals',
+                    modeLabel: '信号',
+                    meta: this.marketChartHasData()
+                        ? `${this.marketChart.symbol} · ${this.marketSourceLabel()} · ${this.marketChart.period} OHLCV`
+                        : `${this.formatInt(this.deskPinnedCount())} 个手动盯盘 · 搜索与图表主屏`
+                },
                 {
                     id: 'trading-agents-panel',
                     label: 'TradingAgents 分析台',

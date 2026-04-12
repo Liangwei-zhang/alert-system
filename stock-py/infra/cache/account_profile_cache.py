@@ -6,7 +6,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Any
+from typing import Any, TypeAlias
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,7 +35,7 @@ class AccountProfileCacheDelete:
     user_ids: tuple[int, ...]
 
 
-type AccountProfileCacheOperation = AccountProfileCacheDelete
+AccountProfileCacheOperation: TypeAlias = AccountProfileCacheDelete
 
 
 def _account_profile_cache_key(user_id: int) -> str:

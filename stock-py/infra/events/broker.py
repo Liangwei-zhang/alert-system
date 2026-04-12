@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 from dataclasses import dataclass
 from functools import lru_cache
@@ -215,15 +216,19 @@ class KafkaEventBroker:
         self._pending_acks: dict[str, str] = {}
 
     async def publish(self, event: OutboxEvent) -> str:
-        producer = self._get_producer()
+        producer = await self._get_producer()
         serialized = self._serialize_event(event)
         key = serialized["key"].encode("utf-8") if serialized["key"] else None
+        if hasattr(producer, "send_and_wait"):
+            metadata = await self._maybe_await(
+                producer.send_and_wait(self.topic_name, key=key, value=serialized)
+            )
+        else:
+            def _send() -> Any:
+                future = producer.send(self.topic_name, key=key, value=serialized)
+                return future.get(timeout=10)
 
-        def _send() -> Any:
-            future = producer.send(self.topic_name, key=key, value=serialized)
-            return future.get(timeout=10)
-
-        metadata = await self._to_thread(_send)
+            metadata = await self._to_thread(_send)
         return self._message_id(
             topic=str(getattr(metadata, "topic", self.topic_name)),
             partition=int(getattr(metadata, "partition", 0)),
@@ -233,8 +238,8 @@ class KafkaEventBroker:
     async def publish_batch(self, events: list[OutboxEvent]) -> list[str]:
         message_ids = [await self.publish(event) for event in events]
         producer = self._producer
-        if producer is not None:
-            await self._to_thread(producer.flush)
+        if producer is not None and hasattr(producer, "flush"):
+            await self._maybe_await(producer.flush())
         return message_ids
 
     async def consume_batch(
@@ -244,12 +249,16 @@ class KafkaEventBroker:
         count: int,
         block_ms: int,
     ) -> list[BrokerMessage]:
-        consumer = self._get_consumer(consumer_name)
+        consumer = await self._get_consumer(consumer_name)
+        if hasattr(consumer, "getmany"):
+            response = await self._maybe_await(
+                consumer.getmany(timeout_ms=max(int(block_ms), 1), max_records=count)
+            )
+        else:
+            def _poll() -> dict[Any, list[Any]]:
+                return consumer.poll(timeout_ms=max(int(block_ms), 1), max_records=count)
 
-        def _poll() -> dict[Any, list[Any]]:
-            return consumer.poll(timeout_ms=max(int(block_ms), 1), max_records=count)
-
-        response = await self._to_thread(_poll)
+            response = await self._to_thread(_poll)
         messages: list[BrokerMessage] = []
         for topic_partition, records in response.items():
             for record in records:
@@ -282,35 +291,44 @@ class KafkaEventBroker:
         topic, partition, offset = self._parse_message_id(message_id)
         topic_partition = self._build_topic_partition(topic, partition)
         offset_and_metadata = self._build_offset_and_metadata(offset + 1)
+        if hasattr(consumer, "getmany"):
+            await self._maybe_await(
+                consumer.commit(offsets={topic_partition: offset_and_metadata})
+            )
+        else:
+            def _commit() -> None:
+                consumer.commit(offsets={topic_partition: offset_and_metadata})
 
-        def _commit() -> None:
-            consumer.commit(offsets={topic_partition: offset_and_metadata})
-
-        await self._to_thread(_commit)
+            await self._to_thread(_commit)
         return 1
 
-    def _get_producer(self):
+    async def _get_producer(self):
         if self._producer is None:
-            self._producer = self._build_producer()
+            producer = self._build_producer()
+            if hasattr(producer, "start"):
+                await self._maybe_await(producer.start())
+            self._producer = producer
         return self._producer
 
     def _build_producer(self):
         if self._producer_factory is not None:
             return self._producer_factory()
         try:
-            from kafka import KafkaProducer
+            from aiokafka import AIOKafkaProducer
         except ImportError as exc:
-            raise RuntimeError("Kafka event broker backend requires kafka-python") from exc
-        return KafkaProducer(
-            bootstrap_servers=[item.strip() for item in self.bootstrap_servers.split(",") if item],
+            raise RuntimeError("Kafka event broker backend requires aiokafka") from exc
+        return AIOKafkaProducer(
+            bootstrap_servers=self._bootstrap_server_list(),
             value_serializer=lambda value: json.dumps(value, separators=(",", ":")).encode("utf-8"),
             linger_ms=5,
         )
 
-    def _get_consumer(self, consumer_name: str):
+    async def _get_consumer(self, consumer_name: str):
         consumer = self._consumers.get(consumer_name)
         if consumer is None:
             consumer = self._build_consumer(consumer_name)
+            if hasattr(consumer, "start"):
+                await self._maybe_await(consumer.start())
             self._consumers[consumer_name] = consumer
         return consumer
 
@@ -318,36 +336,40 @@ class KafkaEventBroker:
         if self._consumer_factory is not None:
             return self._consumer_factory(consumer_name)
         try:
-            from kafka import KafkaConsumer
+            from aiokafka import AIOKafkaConsumer
         except ImportError as exc:
-            raise RuntimeError("Kafka event broker backend requires kafka-python") from exc
-        return KafkaConsumer(
+            raise RuntimeError("Kafka event broker backend requires aiokafka") from exc
+        return AIOKafkaConsumer(
             self.topic_name,
-            bootstrap_servers=[item.strip() for item in self.bootstrap_servers.split(",") if item],
+            bootstrap_servers=self._bootstrap_server_list(),
             group_id=self.group_name,
             client_id=consumer_name,
             enable_auto_commit=False,
             auto_offset_reset=self.auto_offset_reset,
-            value_deserializer=lambda value: value,
         )
 
     def _build_topic_partition(self, topic: str, partition: int):
         if self._topic_partition_factory is not None:
             return self._topic_partition_factory(topic, partition)
         try:
-            from kafka import TopicPartition
+            from aiokafka.structs import TopicPartition
         except ImportError as exc:
-            raise RuntimeError("Kafka event broker backend requires kafka-python") from exc
+            raise RuntimeError("Kafka event broker backend requires aiokafka") from exc
         return TopicPartition(topic, partition)
 
     def _build_offset_and_metadata(self, offset: int):
         if self._offset_and_metadata_factory is not None:
             return self._offset_and_metadata_factory(offset, None)
-        try:
-            from kafka.structs import OffsetAndMetadata
-        except ImportError as exc:
-            raise RuntimeError("Kafka event broker backend requires kafka-python") from exc
-        return OffsetAndMetadata(offset, None)
+        return offset
+
+    def _bootstrap_server_list(self) -> list[str]:
+        return [item.strip() for item in self.bootstrap_servers.split(",") if item.strip()]
+
+    @staticmethod
+    async def _maybe_await(result: Any) -> Any:
+        if inspect.isawaitable(result):
+            return await result
+        return result
 
     @staticmethod
     def _serialize_event(event: OutboxEvent) -> dict[str, str]:

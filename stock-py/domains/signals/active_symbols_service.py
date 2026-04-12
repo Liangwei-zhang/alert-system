@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import hashlib
+import zlib
 from collections.abc import Iterable
 
 
@@ -61,8 +61,7 @@ class ActiveSymbolsService:
 
     @staticmethod
     def build_bucket_id(symbol: str, bucket_count: int) -> int:
-        digest = hashlib.sha1(symbol.encode("utf-8")).hexdigest()
-        return int(digest[:8], 16) % bucket_count
+        return zlib.crc32(symbol.encode("utf-8")) % bucket_count
 
     @classmethod
     def build_bucket_map(cls, symbols: Iterable[str], bucket_count: int) -> dict[int, list[str]]:

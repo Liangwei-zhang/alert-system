@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import shlex
 import shutil
 from collections import defaultdict
@@ -25,6 +26,8 @@ def _normalized_table_name(table: str) -> str:
     normalized = table.strip().lower().replace("-", "_")
     if not normalized:
         raise ValueError("table name is required")
+    if not re.fullmatch(r"[a-z0-9_]+", normalized):
+        raise ValueError("table name contains unsupported characters")
     return normalized
 
 
@@ -402,8 +405,9 @@ class ClickHouseHttpBackend:
             clauses.append(
                 f"{time_column} <= toDateTime64('{_format_clickhouse_datetime(end_at)}', 6, 'UTC')"
             )
+        # Identifiers are normalized and timestamp clauses are built from internal values.
         query = (
-            f"SELECT payload FROM {normalized_table} WHERE {' AND '.join(clauses)} "
+            f"SELECT payload FROM {normalized_table} WHERE {' AND '.join(clauses)} "  # nosec B608
             f"ORDER BY {time_column} {'DESC' if descending else 'ASC'} FORMAT JSONEachRow"
         )
         try:
@@ -434,7 +438,7 @@ class ClickHouseHttpBackend:
         normalized_table = _normalized_table_name(table)
         try:
             response_text = await self._post_query(
-                f"SELECT DISTINCT partition_key FROM {normalized_table} "
+                f"SELECT DISTINCT partition_key FROM {normalized_table} "  # nosec B608 - normalized internal table name
                 "ORDER BY partition_key FORMAT JSONEachRow"
             )
         except httpx.HTTPStatusError as exc:
@@ -511,7 +515,9 @@ class ClickHouseHttpBackend:
             return True
 
         response_text = response.text.upper()
-        return any(marker in response_text for marker in ClickHouseHttpBackend._MISSING_ENTITY_MARKERS)
+        return any(
+            marker in response_text for marker in ClickHouseHttpBackend._MISSING_ENTITY_MARKERS
+        )
 
 
 class ClickHouseClient:

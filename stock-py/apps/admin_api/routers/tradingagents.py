@@ -2,6 +2,7 @@
 Admin router for TradingAgents management.
 """
 
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
@@ -28,20 +29,18 @@ router = APIRouter(prefix="/v1/admin/tradingagents", tags=["admin", "tradingagen
 
 def _record_to_response(record) -> TradingAgentsAnalysisResponse:
     """Convert a database record to response schema."""
-    import json
-
     selected_analysts = None
     if record.selected_analysts:
         try:
             selected_analysts = json.loads(record.selected_analysts)
-        except:
+        except (TypeError, ValueError, json.JSONDecodeError):
             pass
 
     trigger_context = None
     if record.trigger_context:
         try:
             trigger_context = json.loads(record.trigger_context)
-        except:
+        except (TypeError, ValueError, json.JSONDecodeError):
             pass
 
     return TradingAgentsAnalysisResponse(

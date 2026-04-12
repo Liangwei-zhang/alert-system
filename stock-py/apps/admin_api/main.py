@@ -7,7 +7,6 @@ from typing import Literal
 from fastapi import Depends, FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.admin_api.routers import (
     acceptance,
@@ -31,7 +30,7 @@ from infra.core.config import get_settings
 from infra.core.context import build_request_context, reset_request_context, set_request_context
 from infra.core.errors import register_exception_handlers
 from infra.core.logging import configure_logging
-from infra.db.session import dispose_engine, get_db_session
+from infra.db.session import dispose_engine
 from infra.http.health import router as health_router
 from infra.http.http_client import get_http_client_factory
 from infra.observability.metrics import (
@@ -144,10 +143,9 @@ async def root() -> dict[str, str]:
 @app.get("/metrics", response_model=None)
 async def metrics_endpoint(
     format: Literal["json", "prometheus"] = Query(default="json"),
-    db: AsyncSession = Depends(get_db_session),
 ):
     if format == "prometheus":
-        runtime_metrics = await collect_runtime_metrics_payload(component_kind=None, db=db)
+        runtime_metrics = await collect_runtime_metrics_payload(component_kind=None, db=None)
         runtime_payload = prometheus_samples_text(
             [
                 PrometheusMetricSample(

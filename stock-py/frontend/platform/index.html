@@ -709,8 +709,185 @@
                 </div>
             </section>
 
+            <section id="market-workbench-panel" x-show="sectionVisible(['overview', 'signals'])" x-cloak class="reveal rounded-3xl border border-ink/10 bg-panel p-4 shadow-panel lg:col-span-8">
+                <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">Market Workbench</p>
+                        <h2 class="mt-1 text-lg font-semibold">市场工作台</h2>
+                        <p class="mt-1 text-xs text-ink/60">把 symbol search、OHLCV 图表、报价快照与桌面盯盘串成同一个工作流，优先服务当前稳定版 `/platform`。</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                        <span class="rounded-full border border-ink/15 bg-white/85 px-3 py-1 text-ink/70" x-text="marketChart.symbol ? ('聚焦 ' + marketChart.symbol) : '等待聚焦标的'"></span>
+                        <span class="rounded-full border border-ink/15 bg-white/85 px-3 py-1 text-ink/70" x-text="'桌面盯盘 ' + formatInt(deskPinnedCount())"></span>
+                        <button @click="loadSelectedMarketChart({ throwOnError: false })" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1 text-ink/70 transition hover:bg-white">刷新图表</button>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl border border-ink/10 bg-white/75 p-3">
+                    <div class="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_180px_160px_auto]">
+                        <label>
+                            <span class="mb-1 block text-[11px] uppercase tracking-[0.18em] text-ink/45">Symbol Search</span>
+                            <input x-model="marketSearch.query" @keydown.enter.prevent="searchMarketSymbols()" type="text" class="mono w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm uppercase outline-none transition focus:border-tide" :placeholder="marketQueryPlaceholder()">
+                        </label>
+                        <label>
+                            <span class="mb-1 block text-[11px] uppercase tracking-[0.18em] text-ink/45">资产类型</span>
+                            <select x-model="marketSearch.assetType" class="w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-tide">
+                                <option value="">全部</option>
+                                <option value="stock">stock</option>
+                                <option value="etf">etf</option>
+                                <option value="crypto">crypto</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span class="mb-1 block text-[11px] uppercase tracking-[0.18em] text-ink/45">图表周期</span>
+                            <select x-model="marketChart.period" @change="loadSelectedMarketChart({ period: marketChart.period, throwOnError: false })" class="w-full rounded-2xl border border-ink/15 bg-white/90 px-3 py-2 text-sm outline-none transition focus:border-tide">
+                                <option value="1mo">1mo</option>
+                                <option value="3mo">3mo</option>
+                                <option value="6mo">6mo</option>
+                                <option value="1y">1y</option>
+                                <option value="2y">2y</option>
+                                <option value="5y">5y</option>
+                            </select>
+                        </label>
+                        <div class="flex items-end gap-2">
+                            <button @click="searchMarketSymbols()" :disabled="marketSearch.loading" class="w-full rounded-2xl bg-ink px-3 py-2 text-sm font-semibold text-panel transition hover:bg-ink/85" x-text="marketSearch.loading ? '搜索中...' : '搜索标的'"></button>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button @click="openMarketSymbol(marketSearch.query, { source: 'market-workbench' })" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">直接打开图表</button>
+                        <button @click="pinSelectedSymbolToDeskWatchlist()" x-show="marketChart.symbol && !selectedSymbolPinned()" x-cloak class="rounded-full border border-tide/20 bg-tide/10 px-3 py-1.5 text-xs text-tide transition hover:bg-tide/15">加入桌面盯盘</button>
+                        <button @click="unpinSelectedSymbolFromDeskWatchlist()" x-show="selectedSymbolPinned()" x-cloak class="rounded-full border border-coral/20 bg-coral/10 px-3 py-1.5 text-xs text-coral transition hover:bg-coral/15">移出桌面盯盘</button>
+                        <button @click="clearDeskWatchlist()" x-show="deskPinnedCount()" x-cloak class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">清空手动盯盘</button>
+                        <span class="rounded-full border border-ink/10 bg-white/80 px-3 py-1.5 text-xs text-ink/60" x-text="marketSearch.error || '支持搜索 -> 开图 -> 加入桌面盯盘'"></span>
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap gap-2" x-show="marketSearch.resultsVisible && marketSearch.results.length" x-cloak>
+                        <template x-for="item in marketSearch.results" :key="item.symbol + '-' + (item.exchange || '')">
+                            <button @click="openMarketSymbol(item, { source: 'market-workbench' })" class="rounded-2xl border border-ink/10 bg-white/85 px-3 py-2 text-left transition hover:bg-white">
+                                <p class="mono text-xs font-semibold text-ink" x-text="item.symbol"></p>
+                                <p class="mt-1 text-[11px] text-ink/60" x-text="item.name || item.symbol"></p>
+                                <p class="mt-1 text-[11px] text-ink/45" x-text="marketSearchResultMeta(item)"></p>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.45fr)_320px]">
+                    <div class="rounded-2xl border border-ink/10 bg-white/78 p-3">
+                        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">OHLCV Chart</p>
+                                <p class="mt-1 text-sm font-semibold text-ink" x-text="marketChart.symbol ? (marketChart.symbol + ' · ' + marketSourceLabel()) : '等待打开标的图表'"></p>
+                            </div>
+                            <div class="flex flex-wrap gap-2 text-[11px] text-ink/55">
+                                <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1" x-text="marketChart.symbol ? ('周期 ' + marketChart.period) : '周期 --'"></span>
+                                <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1" x-text="'刷新 ' + marketChartLastLabel()"></span>
+                            </div>
+                        </div>
+
+                        <template x-if="marketChart.loading && !marketChartHasData()">
+                            <div class="flex h-[320px] items-center justify-center rounded-2xl border border-dashed border-ink/15 bg-panel/60 text-sm text-ink/55">正在加载市场图表...</div>
+                        </template>
+                        <template x-if="!marketChart.loading && !marketChartHasData()">
+                            <div class="flex h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-ink/15 bg-panel/60 px-6 text-center">
+                                <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">Chart Empty</p>
+                                <p class="mt-2 text-sm font-semibold text-ink">搜索一个标的或直接输入代码开图</p>
+                                <p class="mt-1 text-sm text-ink/60">图表会叠加当前信号的 Entry / Stop / TP1 水位，不只是静态价格线。</p>
+                            </div>
+                        </template>
+
+                        <template x-if="marketChartHasData()">
+                            <div class="overflow-hidden rounded-2xl border border-ink/10 bg-panel/70 p-2">
+                                <svg viewBox="0 0 720 300" class="h-[320px] w-full" role="img" aria-label="OHLCV chart">
+                                    <rect x="0" y="0" width="720" height="300" fill="rgba(255,255,255,0.5)"></rect>
+                                    <template x-for="line in marketChartGridLines()" :key="line.id">
+                                        <g>
+                                            <line x1="0" x2="720" :y1="line.y" :y2="line.y" stroke="rgba(16,32,39,0.08)" stroke-width="1"></line>
+                                            <text x="8" :y="line.y - 4" fill="rgba(16,32,39,0.48)" font-size="11" font-family="IBM Plex Mono, monospace" x-text="line.label"></text>
+                                        </g>
+                                    </template>
+                                    <template x-for="volume in marketChartVolumeBars()" :key="volume.id">
+                                        <rect :x="volume.x" :y="volume.y" :width="volume.width" :height="volume.height" :fill="volume.bullish ? 'rgba(16,185,129,0.32)' : 'rgba(239,68,68,0.24)'" rx="1.5"></rect>
+                                    </template>
+                                    <template x-for="overlay in marketChartOverlayLines()" :key="overlay.id">
+                                        <g>
+                                            <line x1="0" x2="720" :y1="overlay.y" :y2="overlay.y" :stroke="overlay.color" stroke-width="1.2" stroke-dasharray="5 4"></line>
+                                            <text x="624" :y="overlay.y - 5" :fill="overlay.color" font-size="11" font-family="IBM Plex Mono, monospace" x-text="overlay.label + ' ' + overlay.valueLabel"></text>
+                                        </g>
+                                    </template>
+                                    <template x-for="candle in marketChartCandles()" :key="candle.id">
+                                        <g>
+                                            <line :x1="candle.xCenter" :x2="candle.xCenter" :y1="candle.wickTop" :y2="candle.wickBottom" :stroke="candle.bullish ? '#10b981' : '#ef4444'" stroke-width="1.4"></line>
+                                            <rect :x="candle.bodyX" :y="candle.bodyY" :width="candle.bodyWidth" :height="candle.bodyHeight" :fill="candle.bullish ? '#10b981' : '#ef4444'" rx="1.5"></rect>
+                                        </g>
+                                    </template>
+                                    <template x-for="label in marketChartTimeLabels()" :key="label.id">
+                                        <text :x="label.x" y="295" fill="rgba(16,32,39,0.45)" font-size="11" font-family="IBM Plex Mono, monospace" x-text="label.label"></text>
+                                    </template>
+                                </svg>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="rounded-2xl border border-ink/10 bg-white/80 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">Quote Snapshot</p>
+                            <p class="mono mt-1 text-lg font-semibold text-ink" x-text="marketChart.symbol || '--'"></p>
+                            <p class="mt-1 text-xs text-ink/60" x-text="marketChart.name || '等待图表打开' "></p>
+
+                            <div class="mt-3 grid grid-cols-2 gap-2">
+                                <div class="rounded-2xl border border-ink/10 bg-panel/70 p-3">
+                                    <p class="text-[11px] uppercase tracking-[0.16em] text-ink/45">Last</p>
+                                    <p class="mono mt-1 text-base font-semibold text-ink" x-text="marketChart.quote && marketChart.quote.latest_close ? toFixed(marketChart.quote.latest_close, 2) : '--'"></p>
+                                </div>
+                                <div class="rounded-2xl border p-3" :class="marketQuoteDirectionBadgeClass()">
+                                    <p class="text-[11px] uppercase tracking-[0.16em]">Move</p>
+                                    <p class="mono mt-1 text-base font-semibold" x-text="marketChart.quote && marketChart.quote.change_pct ? formatPct(marketChart.quote.change_pct, 2) : '0.00%'"></p>
+                                </div>
+                                <div class="rounded-2xl border border-ink/10 bg-panel/70 p-3">
+                                    <p class="text-[11px] uppercase tracking-[0.16em] text-ink/45">High / Low</p>
+                                    <p class="mono mt-1 text-sm font-semibold text-ink" x-text="(marketChart.quote && marketChart.quote.session_high ? toFixed(marketChart.quote.session_high, 2) : '--') + ' / ' + (marketChart.quote && marketChart.quote.session_low ? toFixed(marketChart.quote.session_low, 2) : '--')"></p>
+                                </div>
+                                <div class="rounded-2xl border border-ink/10 bg-panel/70 p-3">
+                                    <p class="text-[11px] uppercase tracking-[0.16em] text-ink/45">Volume</p>
+                                    <p class="mono mt-1 text-sm font-semibold text-ink" x-text="marketChart.quote ? formatInt(marketChart.quote.session_volume || 0) : '--'"></p>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                                <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-ink/60" x-text="marketChart.assetType ? ('类型 ' + marketChart.assetType) : '类型 --'"></span>
+                                <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-ink/60" x-text="'数据源 ' + marketSourceLabel()"></span>
+                                <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-ink/60" x-text="selectedSymbolPinned() ? '已加入桌面盯盘' : '未加入桌面盯盘'"></span>
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl border border-ink/10 bg-white/80 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-ink/45">Signal Overlay</p>
+                            <template x-if="selectedSignal()">
+                                <div>
+                                    <p class="mt-1 text-sm font-semibold text-ink" x-text="selectedSignal().symbol + ' · ' + selectedSignal().strategy"></p>
+                                    <p class="mt-1 text-xs text-ink/60" x-text="signalStrategyNarrative(selectedSignal())"></p>
+                                    <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                                        <span class="rounded-full border border-ink/10 bg-panel/70 px-2.5 py-1 text-ink/60" x-text="selectedSignal().entryPrice > 0 ? ('Entry ' + toFixed(selectedSignal().entryPrice, 2)) : 'Entry --'"></span>
+                                        <span class="rounded-full border border-ink/10 bg-panel/70 px-2.5 py-1 text-ink/60" x-text="selectedSignal().stopLoss > 0 ? ('Stop ' + toFixed(selectedSignal().stopLoss, 2)) : 'Stop --'"></span>
+                                        <span class="rounded-full border border-ink/10 bg-panel/70 px-2.5 py-1 text-ink/60" x-text="selectedSignal().takeProfit1 > 0 ? ('TP1 ' + toFixed(selectedSignal().takeProfit1, 2)) : 'TP1 --'"></span>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="!selectedSignal()">
+                                <div>
+                                    <p class="mt-1 text-sm font-semibold text-ink">等待桌面焦点</p>
+                                    <p class="mt-1 text-xs text-ink/60">当聚焦标的来自盯盘雷达或市场工作台时，这里会叠加 Entry / Stop / TP1 水位。</p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section id="watchlist-panel" x-show="sectionVisible(['overview', 'signals'])" x-cloak class="reveal rounded-3xl border border-ink/10 bg-panel p-4 shadow-panel lg:col-span-4">
-                <div class="mb-4 flex items-center justify-between">
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <h2 class="text-lg font-semibold">盯盘雷达</h2>
                         <p class="mt-1 text-xs text-ink/60">点击标的会同步判定流，并准备执行台、回测和 TradingAgents 的接力上下文。</p>
@@ -719,6 +896,19 @@
                         <button @click="watchFilter='all'" :class="watchFilter === 'all' ? 'bg-ink text-panel' : 'bg-ink/5 text-ink/60'" class="rounded-full px-3 py-1 transition">全部</button>
                         <button @click="watchFilter='alert'" :class="watchFilter === 'alert' ? 'bg-coral text-panel' : 'bg-coral/10 text-coral'" class="rounded-full px-3 py-1 transition">预警</button>
                     </div>
+                </div>
+
+                <div class="mb-3 flex flex-wrap items-center gap-2 text-xs">
+                    <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-ink/60" x-text="'手动盯盘 ' + formatInt(deskPinnedCount())"></span>
+                    <label class="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-white/85 px-3 py-1.5 text-ink/60">
+                        <span>排序</span>
+                        <select x-model="watchSort" @change="rebuildMarketWatchlist()" class="bg-transparent outline-none">
+                            <option value="priority">priority</option>
+                            <option value="confidence">confidence</option>
+                            <option value="price">price</option>
+                            <option value="symbol">symbol</option>
+                        </select>
+                    </label>
                 </div>
 
                 <div class="max-h-[430px] overflow-y-auto">
@@ -738,15 +928,18 @@
                             <div class="flex items-center justify-between gap-3">
                                 <div>
                                     <p class="mono text-sm font-semibold" x-text="item.symbol"></p>
-                                    <p class="text-xs text-ink/60" x-text="item.strategy"></p>
+                                    <div class="mt-1 flex flex-wrap items-center gap-2">
+                                        <p class="text-xs text-ink/60" x-text="item.strategy"></p>
+                                        <span x-show="item.manualPinned" x-cloak class="rounded-full border border-tide/20 bg-tide/10 px-2 py-0.5 text-[11px] text-tide">桌面盯盘</span>
+                                    </div>
                                 </div>
                                 <div class="text-right">
-                                    <p class="mono text-sm" x-text="toFixed(item.entryPrice, 2)"></p>
-                                    <p class="text-xs" :class="item.target1Pct >= 0 ? 'text-mint' : 'text-coral'" x-text="'目标1 ' + formatPct(item.target1Pct, 2)"></p>
+                                    <p class="mono text-sm" x-text="item.entryPrice > 0 ? toFixed(item.entryPrice, 2) : '--'"></p>
+                                    <p class="text-xs" :class="item.target1Pct >= 0 ? 'text-mint' : 'text-coral'" x-text="item.manualPinned ? ('变动 ' + formatPct(item.target1Pct, 2)) : ('目标1 ' + formatPct(item.target1Pct, 2))"></p>
                                 </div>
                             </div>
                             <div class="mt-2 flex items-center justify-between text-xs">
-                                <span class="rounded-full px-2 py-0.5" :class="isAlertSignal(item) ? 'bg-coral/15 text-coral' : 'bg-tide/10 text-tide'" x-text="isAlertSignal(item) ? '触发预警' : '监控中'"></span>
+                                <span class="rounded-full px-2 py-0.5" :class="item.manualPinned ? 'bg-tide/10 text-tide' : (isAlertSignal(item) ? 'bg-coral/15 text-coral' : 'bg-tide/10 text-tide')" x-text="item.manualPinned ? '桌面关注' : (isAlertSignal(item) ? '触发预警' : '监控中')"></span>
                                 <span class="mono text-ink/55" x-text="item.atrLabel"></span>
                             </div>
                         </button>
@@ -1298,6 +1491,7 @@
 
     <script src="./js/platform-deck-constants.js"></script>
     <script src="./js/platform-deck-utils.js"></script>
+    <script src="./js/platform-deck-market.js"></script>
     <script src="./js/platform-deck-tradingagents.js"></script>
     <script src="./js/platform-deck-workspace.js"></script>
     <script src="./js/platform-deck.js"></script>

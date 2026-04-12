@@ -68,13 +68,15 @@ OPENAPI_BASELINE_DIR ?= tests/contract/snapshots
 OPENAPI_ARTIFACT_DIR ?= $(CUTOVER_REPORT_DIR)/openapi
 ADMIN_RUNTIME_METRICS_URL ?= $(ADMIN_RUNTIME_URL)/v1/admin/runtime/metrics
 ADMIN_RUNTIME_ALERTS_URL ?= $(ADMIN_RUNTIME_URL)/v1/admin/runtime/alerts
+LINT_TARGETS ?= apps/__init__.py apps/admin_api/routers/tradingagents.py domains/analytics/backtest/experiment_tracking.py domains/analytics/backtest/repository.py domains/analytics/backtest/service.py domains/signals/active_symbols_service.py infra/analytics/clickhouse_client.py infra/cache/registry.py infra/core/config.py infra/core/local_rehearsal.py infra/db/session.py infra/db/uow.py tests/unit/apps/test_admin_main.py tests/unit/backtest/test_service.py tests/unit/core/test_config.py
+TYPECHECK_TARGETS ?= infra/core/config.py infra/cache/registry.py infra/db/session.py infra/db/uow.py domains/analytics/backtest/experiment_tracking.py domains/analytics/backtest/repository.py domains/analytics/backtest/service.py domains/signals/active_symbols_service.py
 RELEASE_SHA ?=
 QA_OWNER ?=
 BACKEND_OWNER ?=
 ON_CALL_REVIEWER ?=
 BACKUP_DIR ?=
 
-.PHONY: install format lint test test-unit test-integration test-contract test-e2e test-qa test-load-import qa-ci smoke-platform-workbench smoke-platform-workbench-interaction load-check-env load-help load-bootstrap-fixtures load-report-init load-report-finalize load-report-capture load-baseline cutover-bootstrap-fixtures cutover-report-init cutover-evidence-capture cutover-shadow-read cutover-dual-write cutover-rollback-verify cutover-signoff cutover-threshold-calibrate cutover-k8s-overlay cutover-openapi-diff migrate migrate-down migration-revision run-public-api run-admin-api run-scheduler ops-stack-up ops-compose-load-baseline ops-compose-cutover-rehearsal ops-real-cutover-validation ops-real-k8s-runtime-validation ops-k8s-validate ops-backup-baseline ops-restore-baseline
+.PHONY: install format lint lint-eol typecheck security test test-unit test-integration test-contract test-e2e test-qa test-load-import qa-ci smoke-platform-workbench smoke-platform-workbench-interaction load-check-env load-help load-bootstrap-fixtures load-report-init load-report-finalize load-report-capture load-baseline cutover-bootstrap-fixtures cutover-report-init cutover-evidence-capture cutover-shadow-read cutover-dual-write cutover-rollback-verify cutover-signoff cutover-threshold-calibrate cutover-k8s-overlay cutover-openapi-diff migrate migrate-down migration-revision run-public-api run-admin-api run-scheduler ops-stack-up ops-compose-load-baseline ops-compose-cutover-rehearsal ops-real-cutover-validation ops-real-k8s-runtime-validation ops-k8s-validate ops-backup-baseline ops-restore-baseline
 
 install:
 	$(PIP) install -r requirements.txt
@@ -84,8 +86,19 @@ format:
 	$(PYTHON) -m isort .
 
 lint:
-	$(PYTHON) -m black --check .
-	$(PYTHON) -m isort --check-only .
+	$(PYTHON) -m black --check $(LINT_TARGETS)
+	$(PYTHON) -m isort --check-only $(LINT_TARGETS)
+	$(MAKE) lint-eol
+
+lint-eol:
+	$(PYTHON) -c "from pathlib import Path; import sys; offenders=[str(path) for path in Path('.').rglob('*.py') if '.venv' not in path.parts and '.git' not in path.parts and '__pycache__' not in path.parts and b'\\r\\n' in path.read_bytes()]; print('\\n'.join(offenders)); raise SystemExit(1 if offenders else 0)"
+
+typecheck:
+	$(PYTHON) -m mypy --no-incremental --explicit-package-bases --follow-imports=skip --ignore-missing-imports $(TYPECHECK_TARGETS)
+
+security:
+	$(PYTHON) -m bandit -q -r apps domains infra
+	$(PYTHON) -m pip_audit -r requirements.txt --ignore-vuln GHSA-3936-cmfr-pm3m
 
 test:
 	$(PYTHON) -m pytest
@@ -115,7 +128,7 @@ smoke-platform-workbench:
 smoke-platform-workbench-interaction:
 	node run_platform_workbench_interaction_smoke.cjs --public-base-url "$(PLATFORM_SMOKE_PUBLIC_BASE_URL)" --admin-base-url "$(PLATFORM_SMOKE_ADMIN_BASE_URL)" --timeout "$(PLATFORM_SMOKE_TIMEOUT)" $(if $(strip $(PLATFORM_SMOKE_EMAIL)),--email "$(PLATFORM_SMOKE_EMAIL)",)
 
-qa-ci: test-unit test-integration test-qa test-load-import
+qa-ci: typecheck security test-unit test-integration test-qa test-load-import
 
 load-check-env:
 	$(PYTHON) -m tests.load.validate_env

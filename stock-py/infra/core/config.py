@@ -6,8 +6,15 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from pydantic import AliasChoices, Field, ValidationInfo, field_validator
+from pydantic import AliasChoices, Field, ValidationInfo, field_validator, model_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+
+DEFAULT_PUBLIC_API_HOST = "0.0.0.0"  # nosec B104 - service containers bind externally by default
+DEFAULT_ADMIN_API_HOST = "0.0.0.0"  # nosec B104 - service containers bind externally by default
+DEFAULT_SECRET_KEY = "change-me-in-production"  # nosec B105 - explicit bootstrap sentinel
+DEFAULT_TRADE_LINK_SECRET = (
+    "change-me-trade-link-secret"  # nosec B105 - explicit bootstrap sentinel
+)
 
 
 def resolve_file_backed_env_value(field: Any, field_name: str) -> str | None:
@@ -52,6 +59,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
         populate_by_name=True,
+        validate_by_name=True,
     )
 
     @classmethod
@@ -96,7 +104,7 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", validation_alias=AliasChoices("LOG_LEVEL"))
 
     public_api_host: str = Field(
-        default="0.0.0.0",
+        default=DEFAULT_PUBLIC_API_HOST,
         validation_alias=AliasChoices("PUBLIC_API_HOST", "HOST"),
     )
     public_api_port: int = Field(
@@ -104,7 +112,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("PUBLIC_API_PORT", "PORT"),
     )
     admin_api_host: str = Field(
-        default="0.0.0.0",
+        default=DEFAULT_ADMIN_API_HOST,
         validation_alias=AliasChoices("ADMIN_API_HOST"),
     )
     admin_api_port: int = Field(
@@ -174,7 +182,7 @@ class Settings(BaseSettings):
     )
 
     secret_key: str = Field(
-        default="change-me-in-production",
+        default=DEFAULT_SECRET_KEY,
         validation_alias=AliasChoices("SECRET_KEY"),
     )
     algorithm: str = Field(default="HS256", validation_alias=AliasChoices("ALGORITHM"))
@@ -223,7 +231,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("TRADINGAGENTS_WEBHOOK_SECRET"),
     )
     trade_link_secret: str = Field(
-        default="change-me-trade-link-secret",
+        default=DEFAULT_TRADE_LINK_SECRET,
         validation_alias=AliasChoices("TRADE_LINK_SECRET"),
     )
     internal_signal_ingest_secret: str = Field(
@@ -532,6 +540,18 @@ class Settings(BaseSettings):
                 "EVENT_BROKER_KAFKA_AUTO_OFFSET_RESET must be either 'earliest' or 'latest'"
             )
         return normalized
+
+    @model_validator(mode="after")
+    def validate_production_safety(self) -> "Settings":
+        if str(self.environment).strip().lower() != "production":
+            return self
+        if self.secret_key == DEFAULT_SECRET_KEY:
+            raise ValueError("SECRET_KEY must be set in production")
+        if self.debug:
+            raise ValueError("DEBUG must be False in production")
+        if "*" in self.allowed_origins:
+            raise ValueError("ALLOWED_ORIGINS must not contain wildcard in production")
+        return self
 
     @classmethod
     def from_env(cls) -> "Settings":

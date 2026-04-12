@@ -163,10 +163,58 @@ class LiveStrategyEngineTest(unittest.TestCase):
 
         payload = _as_dict(candidate)
         self.assertEqual(payload["analysis"]["exit_levels"]["source"], "server_default")
+        self.assertEqual(
+            payload["analysis"]["exit_levels"]["atr_multiplier_source"],
+            "client",
+        )
+        self.assertEqual(payload["analysis"]["exit_levels"]["atr_multiplier_key"], "trend")
         self.assertEqual(payload["stop_loss"], 92.0)
         self.assertEqual(payload["take_profit_1"], 106.0)
         self.assertEqual(payload["take_profit_2"], 110.0)
         self.assertEqual(payload["take_profit_3"], 120.0)
+
+    def test_build_signal_candidate_uses_snapshot_atr_and_preserves_regime_duration(self) -> None:
+        engine = LiveStrategyEngine()
+
+        candidate = engine.build_signal_candidate(
+            "AAPL",
+            {
+                "direction": "buy",
+                "price": 100.0,
+                "timeframe": "1d",
+                "market_regime_detail": "trend_strong_up",
+                "momentum_score": 0.88,
+                "trend_strength": 0.9,
+                "probability": 0.8,
+                "confidence": 87,
+                "analysis": {
+                    "atr_value": 4.0,
+                    "regime_duration_bars": 11,
+                    "trend_confirmed": True,
+                    "setup_quality": 84,
+                    "calibration_snapshot": {
+                        "version": "signals-v2-review-20260412",
+                        "atr_multipliers": {"trend_strong_up": 2.75},
+                    },
+                },
+            },
+        )
+
+        payload = _as_dict(candidate)
+        self.assertEqual(payload["analysis"]["market_regime"], "trend")
+        self.assertEqual(payload["analysis"]["market_regime_detail"], "trend_strong_up")
+        self.assertEqual(payload["analysis"]["regime_duration_bars"], 11)
+        self.assertEqual(
+            payload["analysis"]["strategy_selection"]["regime_duration_bars"],
+            11,
+        )
+        self.assertEqual(payload["analysis"]["exit_levels"]["atr_multiplier"], 2.75)
+        self.assertEqual(
+            payload["analysis"]["exit_levels"]["atr_multiplier_source"],
+            "calibration_snapshot",
+        )
+        self.assertEqual(payload["analysis"]["exit_levels"]["atr_multiplier_key"], "trend_strong_up")
+        self.assertEqual(payload["stop_loss"], 89.0)
 
     def test_score_candidate_breakdown_exposes_factor_breakout(self) -> None:
         engine = LiveStrategyEngine()

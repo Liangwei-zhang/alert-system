@@ -1081,7 +1081,7 @@
                                 <div class="rounded-2xl border border-ink/10 bg-white/70 p-3 text-xs">
                                     <p class="text-ink/55">市场状态</p>
                                     <p class="mt-1 text-sm font-semibold text-ink" x-text="signalRegimeLabel(sig)"></p>
-                                    <p class="mt-1 text-ink/65" x-text="sig.marketRegime ? ('family ' + sig.marketRegime) : 'family --'"></p>
+                                    <p class="mt-1 text-ink/65" x-text="sig.regimeDurationBars > 0 ? ('family ' + sig.marketRegime + ' · 持续 ' + formatInt(sig.regimeDurationBars) + ' bars') : (sig.marketRegime ? ('family ' + sig.marketRegime) : 'family --')"></p>
                                 </div>
                                 <div class="rounded-2xl border border-ink/10 bg-white/70 p-3 text-xs">
                                     <p class="text-ink/55">退出位责任</p>
@@ -1091,7 +1091,7 @@
                                 <div class="rounded-2xl border border-ink/10 bg-white/70 p-3 text-xs">
                                     <p class="text-ink/55">校准版本</p>
                                     <p class="mono mt-1 text-sm font-semibold text-ink" x-text="sig.calibrationVersion"></p>
-                                    <p class="mt-1 text-ink/65" x-text="sig.selectionStable ? '当前策略稳定' : '当前策略待复核'"></p>
+                                    <p class="mt-1 text-ink/65" x-text="selectedCalibrationSnapshot(sig) && selectedCalibrationSnapshot(sig).effectiveFrom ? ('生效 ' + formatDateTime(selectedCalibrationSnapshot(sig).effectiveFrom)) : (sig.selectionStable ? '当前策略稳定' : '当前策略待复核')"></p>
                                 </div>
                             </div>
 
@@ -1132,14 +1132,87 @@
                                 </template>
                             </div>
 
+                            <div class="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+                                <div class="rounded-2xl border border-tide/20 bg-white/75 p-3">
+                                    <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                                        <div>
+                                            <p class="text-[11px] uppercase tracking-[0.18em] text-tide">Calibration Snapshot</p>
+                                            <p class="mt-1 text-sm font-semibold text-ink" x-text="selectedCalibrationSnapshot(sig) ? (selectedCalibrationSnapshot(sig).version + ' · ' + calibrationSourceLabel(selectedCalibrationSnapshot(sig).source)) : '等待校准快照'"></p>
+                                            <p class="mt-1 text-xs text-ink/65" x-text="selectedCalibrationSnapshot(sig) && selectedCalibrationSnapshot(sig).effectiveFrom ? ('effective_from ' + formatDateTime(selectedCalibrationSnapshot(sig).effectiveFrom)) : '当前信号还没有生效时间戳，将回退到活动校准快照。'"></p>
+                                        </div>
+                                        <div class="flex flex-wrap gap-2 text-xs">
+                                            <span class="rounded-full border border-tide/20 bg-tide/10 px-2.5 py-1 text-tide" x-text="sig.exitAtrMultiplierSource ? atrMultiplierSourceLabel(sig.exitAtrMultiplierSource) : 'ATR 来源待补'"></span>
+                                            <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-ink/60" x-text="sig.exitAtrMultiplierKey ? ('key ' + sig.exitAtrMultiplierKey) : 'key --'"></span>
+                                            <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-ink/60" x-text="sig.regimeDurationBars > 0 ? ('持续 ' + formatInt(sig.regimeDurationBars) + ' bars') : '持续 --'"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2" x-show="selectedRegimeMetricCards(sig).length" x-cloak>
+                                        <template x-for="card in selectedRegimeMetricCards(sig)" :key="card.id">
+                                            <div class="rounded-2xl border border-ink/10 bg-panel/70 p-3 text-xs">
+                                                <p class="text-ink/55" x-text="card.label"></p>
+                                                <p class="mono mt-1 text-sm font-semibold text-ink" x-text="card.value"></p>
+                                                <p class="mt-1 text-ink/60" x-text="card.meta"></p>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <div class="mt-3 flex flex-wrap gap-2">
+                                        <template x-if="!selectedCalibrationAtrEntries(sig).length">
+                                            <span class="rounded-full border border-dashed border-ink/15 bg-white/80 px-3 py-1.5 text-xs text-ink/55">当前校准没有 regime-specific ATR 系数，继续使用信号上的 ATR 数据。</span>
+                                        </template>
+                                        <template x-for="entry in selectedCalibrationAtrEntries(sig)" :key="entry.key">
+                                            <span class="rounded-full border px-3 py-1.5 text-xs" :class="entry.active ? 'border-tide/20 bg-tide/10 text-tide' : 'border-ink/10 bg-white/85 text-ink/60'" x-text="entry.label + ' x ' + toFixed(entry.value, 2)"></span>
+                                        </template>
+                                    </div>
+
+                                    <p class="mt-3 text-xs text-ink/60" x-text="selectedRegimeReasons(sig).length ? ('Regime reasons · ' + selectedRegimeReasons(sig).join(' · ')) : '当前信号没有附带 regime reasons。'"></p>
+                                </div>
+
+                                <div class="rounded-2xl border border-coral/20 bg-white/75 p-3">
+                                    <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                                        <div>
+                                            <p class="text-[11px] uppercase tracking-[0.18em] text-coral">Client vs Server Exits</p>
+                                            <p class="mt-1 text-sm font-semibold text-ink">退出位对照</p>
+                                            <p class="mt-1 text-xs text-ink/65">展示客户端原始退出位、服务端 ATR 计算值，以及当前最终采用的 live 值。</p>
+                                        </div>
+                                        <span class="rounded-full border border-coral/20 bg-coral/10 px-2.5 py-1 text-xs text-coral" x-text="exitLevelSourceLabel(sig.exitLevelSource)"></span>
+                                    </div>
+
+                                    <div class="mt-3 space-y-2">
+                                        <template x-if="!selectedExitComparisonRows(sig).length">
+                                            <div class="rounded-2xl border border-dashed border-ink/15 bg-panel/65 px-3 py-4 text-sm text-ink/55">当前信号没有可对比的 client/server 退出位。</div>
+                                        </template>
+                                        <template x-for="row in selectedExitComparisonRows(sig)" :key="row.key">
+                                            <div class="rounded-2xl border border-ink/10 bg-panel/70 px-3 py-2.5">
+                                                <div class="grid grid-cols-[72px_repeat(4,minmax(0,1fr))] gap-2 text-xs text-ink/60">
+                                                    <span class="font-semibold text-ink" x-text="row.label"></span>
+                                                    <span>Client</span>
+                                                    <span>Server</span>
+                                                    <span>Live</span>
+                                                    <span>Diff</span>
+                                                </div>
+                                                <div class="mt-1 grid grid-cols-[72px_repeat(4,minmax(0,1fr))] gap-2 mono text-sm text-ink">
+                                                    <span class="text-ink/45">值</span>
+                                                    <span x-text="row.clientLabel"></span>
+                                                    <span x-text="row.serverLabel"></span>
+                                                    <span x-text="row.liveLabel"></span>
+                                                    <span x-text="row.deltaLabel"></span>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                                 <div class="formula-strip">
-                                    <p class="text-xs uppercase tracking-[0.18em] text-ink/45">买入公式</p>
-                                    <p class="mono mt-1 text-xs text-ink/75">SL = P - ATR * 1.5 · TP1 = P + ATR * 2.0 · TP2 = P + ATR * 3.2 · TP3 = P + ATR * 4.4</p>
+                                    <p class="text-xs uppercase tracking-[0.18em] text-ink/45">当前公式</p>
+                                    <p class="mono mt-1 text-xs text-ink/75" x-text="exitFormulaSummary(sig)"></p>
                                 </div>
                                 <div class="formula-strip">
-                                    <p class="text-xs uppercase tracking-[0.18em] text-ink/45">卖出公式</p>
-                                    <p class="mono mt-1 text-xs text-ink/75">SL = P + ATR * 1.5 · TP1 = P - ATR * 2.0 · TP2 = P - ATR * 3.2 · TP3 = P - ATR * 4.4</p>
+                                    <p class="text-xs uppercase tracking-[0.18em] text-ink/45">ATR 来源</p>
+                                    <p class="mono mt-1 text-xs text-ink/75" x-text="sig.exitAtrMultiplierSource ? (atrMultiplierSourceLabel(sig.exitAtrMultiplierSource) + ' · ' + (sig.exitAtrMultiplierKey || 'default')) : '等待 ATR 来源补齐'"></p>
                                 </div>
                             </div>
 
@@ -1199,6 +1272,252 @@
                         <button x-show="selectedResearchSummary() && selectedResearchSummary().rankingMatch" x-cloak @click="applySelectedResearchPreset()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white" x-text="selectedResearchSummary() ? ('带入最佳窗口 ' + selectedResearchSummary().bestWindowLabel) : '带入最佳窗口'"></button>
                         <button @click="focusSelectedStrategyHealth()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">策略健康</button>
                         <button @click="handoffSelectedToTradingAgents()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">研究任务</button>
+                    </div>
+                </div>
+
+                <div class="mb-3 rounded-2xl border border-sun/20 bg-white/75 p-3">
+                    <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                        <div>
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-sun">Equity Curve</p>
+                            <p class="mt-1 text-sm font-semibold text-ink" x-text="selectedBacktestEquityCurve() ? (selectedBacktestEquityCurve().symbol + ' · ' + strategyLabel(selectedBacktestEquityCurve().strategy_name)) : (selectedSignal() ? (selectedSignal().symbol + ' · 等待权益曲线') : '等待聚焦标的')"></p>
+                            <p class="mt-1 text-xs text-ink/70" x-text="backtestEquityCurveLoading ? '正在重算当前研究策略的权益曲线...' : (selectedBacktestEquityCurve() ? ('窗口 ' + formatInt(selectedBacktestEquityCurve().window_days) + 'd · ' + formatInt(selectedBacktestEquityCurve().equity_series.length) + ' 个采样点') : '聚焦标的后，这里会展示当前研究策略的权益曲线与回撤。')"></p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <span class="rounded-full border border-sun/20 bg-sun/10 px-2.5 py-1 text-sun" x-text="selectedBacktestEquityCurve() ? ('window ' + formatInt(selectedBacktestEquityCurve().window_days) + 'd') : 'window --'"></span>
+                            <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-ink/60" x-text="selectedBacktestEquityCurve() ? ('samples ' + formatInt(selectedBacktestEquityCurve().metrics.samples)) : 'samples --'"></span>
+                            <button id="backtest-equity-refresh-button" @click="loadSelectedBacktestEquity()" :disabled="backtestEquityCurveLoading || !selectedSignal()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60" x-text="backtestEquityCurveLoading ? '刷新中...' : '刷新曲线'"></button>
+                        </div>
+                    </div>
+
+                    <div x-show="backtestEquityCurveError && selectedSignal()" x-cloak class="mt-3 rounded-2xl border border-coral/20 bg-coral/5 px-3 py-2 text-xs text-coral" x-text="backtestEquityCurveError"></div>
+
+                    <div class="mt-3 grid grid-cols-2 gap-3 xl:grid-cols-4" x-show="backtestEquitySummaryCards().length" x-cloak>
+                        <template x-for="card in backtestEquitySummaryCards()" :key="card.id">
+                            <article class="rounded-2xl border border-ink/10 bg-panel/70 p-3 text-xs">
+                                <p class="text-ink/55" x-text="card.label"></p>
+                                <p class="mono mt-1 text-sm font-semibold text-ink" x-text="card.value"></p>
+                                <p class="mt-1 text-ink/65" x-text="card.meta"></p>
+                            </article>
+                        </template>
+                    </div>
+
+                    <div x-show="selectedBacktestEquityCurve() && backtestEquityPlotPoints().length" x-cloak class="mt-3 rounded-2xl border border-ink/10 bg-panel/65 p-3">
+                        <div class="flex items-center justify-between text-xs text-ink/60">
+                            <span class="mono" x-text="backtestEquityRange().maxLabel"></span>
+                            <span x-text="selectedBacktestEquityCurve() ? formatDateTime(selectedBacktestEquityCurve().equity_series[selectedBacktestEquityCurve().equity_series.length - 1].timestamp) : '--'"></span>
+                        </div>
+                        <svg viewBox="0 0 640 220" class="mt-3 h-44 w-full overflow-visible">
+                            <defs>
+                                <linearGradient id="backtest-equity-fill" x1="0" x2="0" y1="0" y2="1">
+                                    <stop offset="0%" stop-color="rgba(199, 140, 74, 0.35)"></stop>
+                                    <stop offset="100%" stop-color="rgba(199, 140, 74, 0.02)"></stop>
+                                </linearGradient>
+                            </defs>
+                            <path d="" :d="backtestEquityAreaPath()" fill="url(#backtest-equity-fill)"></path>
+                            <path d="" :d="backtestEquityLinePath()" fill="none" stroke="#c78c4a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <template x-for="point in backtestEquityPlotMarkers()" :key="point.id">
+                                <circle :cx="point.x" :cy="point.y" r="4.5" fill="#f4f1ea" stroke="#c78c4a" stroke-width="2"></circle>
+                            </template>
+                        </svg>
+                        <div class="mt-3 flex items-center justify-between gap-3 text-xs text-ink/60">
+                            <span x-text="selectedBacktestEquityCurve() ? formatDateTime(selectedBacktestEquityCurve().equity_series[0].timestamp) : '--'"></span>
+                            <span class="mono" x-text="backtestEquityRange().minLabel + ' → ' + backtestEquityRange().latestLabel"></span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap gap-2" x-show="backtestEquityRecentTrades().length" x-cloak>
+                        <template x-for="trade in backtestEquityRecentTrades()" :key="'trade-' + trade.entry_index + '-' + trade.exit_index">
+                            <span class="rounded-full border border-ink/10 bg-white/85 px-3 py-1.5 text-xs text-ink/60" x-text="'Trade ' + formatInt(trade.exit_index) + ' · ' + formatPct(trade.return_percent, 2)"></span>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="mb-3 rounded-2xl border border-tide/20 bg-white/75 p-3">
+                    <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                        <div>
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-tide">Strategy Breakdown</p>
+                            <p class="mt-1 text-sm font-semibold text-ink" x-text="selectedSignal() ? (selectedSignal().symbol + ' · ' + strategyLabel((selectedStrategyCandidate(selectedSignal()) && selectedStrategyCandidate(selectedSignal()).strategy) || selectedSignal().strategyCode)) : '等待聚焦信号'"></p>
+                            <p class="mt-1 text-xs text-ink/70" x-text="selectedSignal() ? (strategyBreakdownLoading ? '正在刷新公开 strategy-breakdown...' : (selectedStrategyBreakdown() ? '公开策略拆解已同步。' : '当前展示信号元数据里的候选策略。')) : '聚焦标的后展示服务端候选策略、权重和 regime 拆解。'"></p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 text-xs" x-show="selectedSignal()" x-cloak>
+                            <span class="rounded-full border border-tide/20 bg-tide/10 px-2.5 py-1 text-tide" x-text="selectedSignal() ? ('来源 ' + strategySelectionSourceLabel((selectedStrategyCandidate(selectedSignal()) && selectedStrategyCandidate(selectedSignal()).source) || selectedSignal().selectionSource)) : '来源 --'"></span>
+                            <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-ink/60" x-text="selectedCalibrationSnapshot(selectedSignal()) && selectedCalibrationSnapshot(selectedSignal()).effectiveFrom ? ('生效 ' + formatDateTime(selectedCalibrationSnapshot(selectedSignal()).effectiveFrom)) : '生效 --'"></span>
+                            <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-ink/60" x-text="selectedSignal() && selectedSignal().regimeDurationBars > 0 ? ('持续 ' + formatInt(selectedSignal().regimeDurationBars) + ' bars') : '持续 --'"></span>
+                        </div>
+                    </div>
+
+                    <div x-show="strategyBreakdownError && selectedSignal()" x-cloak class="mt-3 rounded-2xl border border-coral/20 bg-coral/5 px-3 py-2 text-xs text-coral" x-text="strategyBreakdownError"></div>
+
+                    <div class="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-4" x-show="selectedSignal() && selectedStrategyCandidates(selectedSignal()).length" x-cloak>
+                        <template x-for="candidate in selectedStrategyCandidates(selectedSignal()).slice(0, 4)" :key="(candidate.strategy || '--') + '-' + (candidate.rank || 'na')">
+                            <article class="rounded-2xl border p-3" :class="selectedStrategyCandidate(selectedSignal()) && candidate.strategy === selectedStrategyCandidate(selectedSignal()).strategy ? 'border-tide/25 bg-tide/10' : 'border-ink/10 bg-panel/70'">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="text-[11px] uppercase tracking-[0.16em] text-ink/45" x-text="candidate.rank ? ('候选 #' + candidate.rank) : '候选策略'"></p>
+                                        <p class="mt-1 text-sm font-semibold text-ink" x-text="strategyLabel(candidate.strategy)"></p>
+                                        <p class="mt-1 text-xs text-ink/60" x-text="candidate.source_strategy ? ('source ' + candidate.source_strategy) : ('source ' + candidate.strategy)"></p>
+                                    </div>
+                                    <span class="rounded-full px-2 py-0.5 text-[11px]" :class="candidate.stable ? 'bg-mint/15 text-mint' : 'bg-coral/15 text-coral'" x-text="candidate.stable ? '稳定' : '复核'"></span>
+                                </div>
+                                <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-ink/70 mono">
+                                    <span x-text="'综合 ' + toFixed(candidate.combined_score || 0, 2)"></span>
+                                    <span x-text="'适配 ' + toFixed(candidate.signal_fit_score || 0, 2)"></span>
+                                    <span x-text="'权重 ' + toFixed(candidate.strategy_weight || 0, 2)"></span>
+                                    <span x-text="'regime ' + (candidate.market_regime_detail ? marketRegimeDetailLabel(candidate.market_regime_detail) : '--')"></span>
+                                </div>
+                                <p class="mt-2 text-xs text-ink/60" x-text="candidate.regime_duration_bars ? ('持续 ' + formatInt(candidate.regime_duration_bars) + ' bars · calibration ' + (candidate.calibration_version || '--')) : ('calibration ' + (candidate.calibration_version || '--'))"></p>
+                            </article>
+                        </template>
+                    </div>
+
+                    <template x-if="selectedSignal() && !selectedStrategyCandidates(selectedSignal()).length">
+                        <div class="mt-3 rounded-2xl border border-dashed border-ink/15 bg-panel/65 px-3 py-4 text-sm text-ink/55">当前焦点信号还没有返回候选策略列表。</div>
+                    </template>
+
+                    <p class="mt-3 text-xs text-ink/60" x-text="selectedSignal() && selectedRegimeReasons(selectedSignal()).length ? ('Regime reasons · ' + selectedRegimeReasons(selectedSignal()).join(' · ')) : '聚焦信号后，这里会同步服务端 regime reasons。'"></p>
+                </div>
+
+                <div class="mb-3 rounded-2xl border border-tide/20 bg-white/75 p-3">
+                    <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                        <div>
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-tide">Calibration Proposal</p>
+                            <p class="mt-1 text-sm font-semibold text-ink" x-text="selectedCalibrationProposal() ? (selectedCalibrationProposal().current_version + ' → ' + proposalPreviewVersion()) : '等待下一版校准建议'"></p>
+                            <p class="mt-1 text-xs text-ink/70" x-text="calibrationProposalLoading ? '正在从 strategy-health 和 signal-results 生成建议...' : (selectedCalibrationProposal() ? 'review 当前建议权重、评分与 ATR 调整，然后直接创建 / 激活快照。' : '点击刷新建议后，这里会显示下一版权重与 ATR 调整。')"></p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <span class="rounded-full border border-tide/20 bg-tide/10 px-2.5 py-1 text-tide" x-text="'signal ' + formatInt(proposalSignalWindowHours()) + 'h'"></span>
+                            <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-ink/60" x-text="'ranking ' + formatInt(proposalRankingWindowHours()) + 'h'"></span>
+                            <button id="calibration-proposal-refresh-button" @click="loadCalibrationProposal()" :disabled="calibrationProposalLoading" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60" x-text="calibrationProposalLoading ? '刷新中...' : '刷新建议'"></button>
+                            <button id="calibration-proposal-apply-button" @click="applyCalibrationProposal()" :disabled="!selectedCalibrationProposal() || calibrationProposalLoading || calibrationApplyLoading" class="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-panel transition hover:bg-ink/85 disabled:cursor-not-allowed disabled:bg-ink/40" x-text="calibrationApplyLoading ? '应用中...' : '应用建议校准'"></button>
+                        </div>
+                    </div>
+
+                    <div x-show="calibrationProposalError" x-cloak class="mt-3 rounded-2xl border border-coral/20 bg-coral/5 px-3 py-2 text-xs text-coral" x-text="calibrationProposalError"></div>
+                    <div x-show="calibrationApplyError" x-cloak class="mt-3 rounded-2xl border border-coral/20 bg-coral/5 px-3 py-2 text-xs text-coral" x-text="calibrationApplyError"></div>
+                    <div x-show="calibrationApplySuccess" x-cloak class="mt-3 rounded-2xl border border-mint/20 bg-mint/10 px-3 py-2 text-xs text-mint" x-text="calibrationApplySuccess"></div>
+
+                    <div class="mt-3 grid grid-cols-2 gap-3 xl:grid-cols-4" x-show="calibrationProposalSummaryCards().length" x-cloak>
+                        <template x-for="card in calibrationProposalSummaryCards()" :key="card.id">
+                            <article class="rounded-2xl border border-ink/10 bg-white/80 p-3 text-xs">
+                                <p class="text-ink/55" x-text="card.label"></p>
+                                <p class="mono mt-1 text-sm font-semibold text-ink" x-text="card.value"></p>
+                                <p class="mt-1 text-ink/65" x-text="card.meta"></p>
+                            </article>
+                        </template>
+                    </div>
+
+                    <div class="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+                        <div class="rounded-2xl border border-ink/10 bg-panel/70 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.16em] text-ink/45">Operator Controls</p>
+                            <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <label class="space-y-1 text-xs text-ink/60">
+                                    <span class="block">Signal Window Hours</span>
+                                    <input x-model.number="calibrationProposalForm.signalWindowHours" type="number" min="1" max="720" class="mono w-full rounded-xl border border-ink/15 bg-white px-3 py-1.5 text-xs outline-none focus:border-tide">
+                                </label>
+                                <label class="space-y-1 text-xs text-ink/60">
+                                    <span class="block">Ranking Window Hours</span>
+                                    <input x-model.number="calibrationProposalForm.rankingWindowHours" type="number" min="1" max="2160" class="mono w-full rounded-xl border border-ink/15 bg-white px-3 py-1.5 text-xs outline-none focus:border-tide">
+                                </label>
+                                <label class="space-y-1 text-xs text-ink/60 md:col-span-2">
+                                    <span class="block">Version Override</span>
+                                    <input x-model="calibrationProposalForm.version" type="text" class="mono w-full rounded-xl border border-ink/15 bg-white px-3 py-1.5 text-xs outline-none focus:border-tide" :placeholder="selectedCalibrationProposal() ? selectedCalibrationProposal().proposed_version : 'signals-v2-proposal-YYYYMMDD'">
+                                </label>
+                                <label class="space-y-1 text-xs text-ink/60 md:col-span-2">
+                                    <span class="block">Operator Notes</span>
+                                    <textarea x-model="calibrationProposalForm.notes" rows="3" class="w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-xs outline-none focus:border-tide" placeholder="补充本次 review / apply 的备注"></textarea>
+                                </label>
+                                <label class="inline-flex items-center gap-2 text-xs text-ink/60 md:col-span-2">
+                                    <input x-model="calibrationProposalForm.activate" type="checkbox" class="h-3.5 w-3.5 accent-tide">
+                                    <span>Apply 后立即激活快照</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl border border-tide/20 bg-white/80 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.16em] text-tide">Snapshot Payload</p>
+                            <p class="mt-1 text-sm font-semibold text-ink" x-text="selectedCalibrationProposal() ? (proposalPreviewVersion() + ' · ' + (selectedCalibrationProposal().snapshot_payload.source || 'proposal')) : '等待建议生成'"></p>
+                            <p class="mt-1 text-xs text-ink/65" x-text="selectedCalibrationProposal() && selectedCalibrationProposal().snapshot_payload.effective_from ? ('effective_from ' + formatDateTime(selectedCalibrationProposal().snapshot_payload.effective_from)) : '应用后将生成新的 effective_from。'"></p>
+                            <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                                <span class="rounded-full border border-tide/20 bg-tide/10 px-2.5 py-1 text-tide" x-text="'样本 ' + formatInt(selectedCalibrationProposal() ? selectedCalibrationProposal().snapshot_payload.sample_size : 0)"></span>
+                                <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-ink/60" x-text="selectedCalibrationProposal() && selectedCalibrationProposal().snapshot_payload.derived_from ? selectedCalibrationProposal().snapshot_payload.derived_from : 'derived_from --'"></span>
+                            </div>
+                            <p class="mt-3 text-xs text-ink/60" x-text="selectedCalibrationProposal() && selectedCalibrationProposal().strategy_health_refreshed_at ? ('strategy-health ' + formatDateTime(selectedCalibrationProposal().strategy_health_refreshed_at)) : '等待 strategy-health 刷新时间。'"></p>
+                            <p class="mt-1 text-xs text-ink/60" x-text="selectedCalibrationProposal() && selectedCalibrationProposal().signal_generated_after ? ('signal baseline ' + formatDateTime(selectedCalibrationProposal().signal_generated_after)) : '等待 signal-results baseline。'"></p>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-3" x-show="selectedCalibrationProposal()" x-cloak>
+                        <article class="rounded-2xl border border-ink/10 bg-white/80 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.16em] text-ink/45">Strategy Weights</p>
+                            <div class="mt-2 space-y-2">
+                                <template x-if="!proposalAdjustmentItems('strategy_weights').length">
+                                    <div class="rounded-2xl border border-dashed border-ink/15 bg-panel/65 px-3 py-3 text-xs text-ink/55">当前没有策略权重建议。</div>
+                                </template>
+                                <template x-for="item in proposalAdjustmentItems('strategy_weights')" :key="'strategy-' + item.key">
+                                    <div class="rounded-2xl border border-ink/10 bg-panel/70 px-3 py-2.5 text-xs">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p class="font-semibold text-ink" x-text="proposalAdjustmentLabel('strategy_weights', item.key)"></p>
+                                                <p class="mono mt-1 text-ink/65" x-text="toFixed(item.current_value, 2) + ' → ' + toFixed(item.proposed_value, 2)"></p>
+                                            </div>
+                                            <span class="rounded-full border px-2 py-0.5" :class="proposalAdjustmentDeltaClass(item.delta)" x-text="proposalAdjustmentDeltaLabel(item.delta)"></span>
+                                        </div>
+                                        <p class="mt-2 text-ink/60" x-text="item.reasons.length ? item.reasons[0] : '没有额外说明。'"></p>
+                                    </div>
+                                </template>
+                            </div>
+                        </article>
+
+                        <article class="rounded-2xl border border-ink/10 bg-white/80 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.16em] text-ink/45">Score Multipliers</p>
+                            <div class="mt-2 space-y-2">
+                                <template x-if="!proposalAdjustmentItems('score_multipliers').length">
+                                    <div class="rounded-2xl border border-dashed border-ink/15 bg-panel/65 px-3 py-3 text-xs text-ink/55">当前没有评分因子建议。</div>
+                                </template>
+                                <template x-for="item in proposalAdjustmentItems('score_multipliers')" :key="'score-' + item.key">
+                                    <div class="rounded-2xl border border-ink/10 bg-panel/70 px-3 py-2.5 text-xs">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p class="font-semibold text-ink" x-text="proposalAdjustmentLabel('score_multipliers', item.key)"></p>
+                                                <p class="mono mt-1 text-ink/65" x-text="toFixed(item.current_value, 2) + ' → ' + toFixed(item.proposed_value, 2)"></p>
+                                            </div>
+                                            <span class="rounded-full border px-2 py-0.5" :class="proposalAdjustmentDeltaClass(item.delta)" x-text="proposalAdjustmentDeltaLabel(item.delta)"></span>
+                                        </div>
+                                        <p class="mt-2 text-ink/60" x-text="item.reasons.length ? item.reasons[0] : '没有额外说明。'"></p>
+                                    </div>
+                                </template>
+                            </div>
+                        </article>
+
+                        <article class="rounded-2xl border border-ink/10 bg-white/80 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.16em] text-ink/45">ATR Multipliers</p>
+                            <div class="mt-2 space-y-2">
+                                <template x-if="!proposalAdjustmentItems('atr_multipliers').length">
+                                    <div class="rounded-2xl border border-dashed border-ink/15 bg-panel/65 px-3 py-3 text-xs text-ink/55">当前没有 ATR 系数建议。</div>
+                                </template>
+                                <template x-for="item in proposalAdjustmentItems('atr_multipliers')" :key="'atr-' + item.key">
+                                    <div class="rounded-2xl border border-ink/10 bg-panel/70 px-3 py-2.5 text-xs">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p class="font-semibold text-ink" x-text="proposalAdjustmentLabel('atr_multipliers', item.key)"></p>
+                                                <p class="mono mt-1 text-ink/65" x-text="toFixed(item.current_value, 2) + ' → ' + toFixed(item.proposed_value, 2)"></p>
+                                            </div>
+                                            <span class="rounded-full border px-2 py-0.5" :class="proposalAdjustmentDeltaClass(item.delta)" x-text="proposalAdjustmentDeltaLabel(item.delta)"></span>
+                                        </div>
+                                        <p class="mt-2 text-ink/60" x-text="item.reasons.length ? item.reasons[0] : '没有额外说明。'"></p>
+                                    </div>
+                                </template>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <template x-if="!proposalNotes().length">
+                            <span class="rounded-full border border-dashed border-ink/15 bg-white/80 px-3 py-1.5 text-xs text-ink/55">当前建议还没有附带额外 review notes。</span>
+                        </template>
+                        <template x-for="note in proposalNotes()" :key="note">
+                            <span class="rounded-full border border-ink/10 bg-white/85 px-3 py-1.5 text-xs text-ink/60" x-text="note"></span>
+                        </template>
                     </div>
                 </div>
 
@@ -1274,6 +1593,81 @@
                     <div class="mt-3 flex flex-wrap gap-2">
                         <button @click="handoffSelectedToBacktest()" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">回到回测</button>
                         <button @click="handoffToExecution(selectedSignal().symbol, { source: 'research-handoff', announce: true })" class="rounded-full border border-ink/15 bg-white/85 px-3 py-1.5 text-xs text-ink/70 transition hover:bg-white">回到执行台</button>
+                    </div>
+                </div>
+
+                <div class="mb-3 rounded-2xl border border-mint/20 bg-mint/5 p-3">
+                    <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                        <div>
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-mint">Exit Quality</p>
+                            <p class="mt-1 text-sm font-semibold text-ink">退出位读模型</p>
+                            <p class="mt-1 text-xs text-ink/70" x-text="exitQualityMetrics.generated_after ? ('统计起点 ' + formatDateTime(exitQualityMetrics.generated_after)) : '当前窗口会聚合 exit source、ATR source、market regime 和 symbol 命中。'"></p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <span class="rounded-full border border-mint/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'窗口 ' + formatInt(exitQualityMetrics.window_hours || config.windowHours) + 'h'"></span>
+                            <span class="rounded-full border border-mint/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'信号 ' + formatInt(exitQualityMetrics.total_signals)"></span>
+                            <span class="rounded-full border border-mint/20 bg-white/80 px-2.5 py-1 text-ink/70" x-text="'可比退出位 ' + formatInt(exitQualityMetrics.exits_available)"></span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 grid grid-cols-2 gap-3 xl:grid-cols-4">
+                        <template x-for="card in selectedExitQualityCards()" :key="card.id">
+                            <article class="rounded-2xl border border-ink/10 bg-white/80 p-3 text-xs">
+                                <p class="text-ink/55" x-text="card.label"></p>
+                                <p class="mono mt-1 text-sm font-semibold text-ink" x-text="card.value"></p>
+                                <p class="mt-1 text-ink/65" x-text="card.meta"></p>
+                            </article>
+                        </template>
+                    </div>
+
+                    <div class="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-4">
+                        <div class="rounded-2xl border border-ink/10 bg-white/80 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.16em] text-ink/45">退出来源</p>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <template x-if="!exitQualityMetrics.exit_sources.length">
+                                    <span class="rounded-full border border-dashed border-ink/15 bg-panel/70 px-2.5 py-1 text-xs text-ink/55">暂无样本</span>
+                                </template>
+                                <template x-for="bucket in exitQualityMetrics.exit_sources" :key="bucket.key">
+                                    <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-xs text-ink/60" x-text="bucket.key + ' · ' + formatInt(bucket.count)"></span>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl border border-ink/10 bg-white/80 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.16em] text-ink/45">ATR 来源</p>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <template x-if="!exitQualityMetrics.atr_multiplier_sources.length">
+                                    <span class="rounded-full border border-dashed border-ink/15 bg-panel/70 px-2.5 py-1 text-xs text-ink/55">暂无样本</span>
+                                </template>
+                                <template x-for="bucket in exitQualityMetrics.atr_multiplier_sources" :key="bucket.key">
+                                    <span class="rounded-full border border-ink/10 bg-white/85 px-2.5 py-1 text-xs text-ink/60" x-text="bucket.key + ' · ' + formatInt(bucket.count)"></span>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl border border-ink/10 bg-white/80 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.16em] text-ink/45">Market Regimes</p>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <template x-if="!exitQualityMetrics.market_regimes.length">
+                                    <span class="rounded-full border border-dashed border-ink/15 bg-panel/70 px-2.5 py-1 text-xs text-ink/55">暂无样本</span>
+                                </template>
+                                <template x-for="bucket in exitQualityMetrics.market_regimes" :key="bucket.key">
+                                    <span class="rounded-full border px-2.5 py-1 text-xs" :class="selectedSignal() && bucket.key === selectedSignal().marketRegimeDetail ? 'border-coral/20 bg-coral/10 text-coral' : 'border-ink/10 bg-white/85 text-ink/60'" x-text="marketRegimeDetailLabel(bucket.key) + ' · ' + formatInt(bucket.count)"></span>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl border border-ink/10 bg-white/80 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.16em] text-ink/45">Top Symbols</p>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <template x-if="!exitQualityMetrics.top_symbols.length">
+                                    <span class="rounded-full border border-dashed border-ink/15 bg-panel/70 px-2.5 py-1 text-xs text-ink/55">暂无样本</span>
+                                </template>
+                                <template x-for="bucket in exitQualityMetrics.top_symbols" :key="bucket.key">
+                                    <span class="rounded-full border px-2.5 py-1 text-xs" :class="selectedSignal() && bucket.key === selectedSignal().symbol ? 'border-coral/20 bg-coral/10 text-coral' : 'border-ink/10 bg-white/85 text-ink/60'" x-text="bucket.key + ' · ' + formatInt(bucket.count)"></span>
+                                </template>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

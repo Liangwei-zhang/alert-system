@@ -3,6 +3,7 @@ import unittest
 from run_live_strategy_goal_benchmark import (
     aggregate_trade_metrics,
     build_goal_evaluation,
+    calculate_relative_uplift_percent,
     resolve_baseline_strategy,
     resolve_concrete_strategy,
 )
@@ -75,6 +76,27 @@ class LiveStrategyGoalBenchmarkTest(unittest.TestCase):
         self.assertTrue(goal["met"])
         self.assertTrue(goal["checks"]["new_win_rate"]["passed"])
         self.assertTrue(goal["checks"]["absolute_uplift_pp"]["passed"])
+        self.assertTrue(goal["checks"]["relative_uplift_percent"]["passed"])
+
+    def test_zero_baseline_win_rate_is_treated_as_unbounded_relative_uplift(self):
+        self.assertIsNone(
+            calculate_relative_uplift_percent(new_win_rate=100.0, baseline_win_rate=0.0)
+        )
+
+        goal = build_goal_evaluation(
+            new_win_rate=100.0,
+            baseline_win_rate=0.0,
+            target_new_win_rate=65.58,
+            target_absolute_uplift=10.89,
+            target_relative_uplift=19.92,
+        )
+
+        self.assertTrue(goal["met"])
+        self.assertIsNone(goal["checks"]["relative_uplift_percent"]["actual"])
+        self.assertEqual(
+            goal["checks"]["relative_uplift_percent"]["basis"],
+            "baseline_win_rate_zero",
+        )
         self.assertTrue(goal["checks"]["relative_uplift_percent"]["passed"])
 
 

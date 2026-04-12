@@ -106,3 +106,20 @@ class SignalResultMetricsResponse(BaseModel):
     trade_statuses: list[AnalyticsBucketCountResponse] = Field(default_factory=list)
     symbol_alignment: list[SignalTradeAlignmentItem] = Field(default_factory=list)
     comparable_field_sets: list[ComparableFieldSetResponse] = Field(default_factory=list)
+
+
+class ExitQualityMetricsResponse(BaseModel):
+    window_hours: int
+    generated_after: datetime
+    total_signals: int = 0
+    exits_available: int = 0
+    calibrated_exit_count: int = 0
+    client_exit_count: int = 0
+    avg_risk_reward_ratio: float = 0.0
+    avg_atr_multiplier: float = 0.0
+    avg_stop_distance_pct: float = 0.0
+    avg_tp1_distance_pct: float = 0.0
+    exit_sources: list[AnalyticsBucketCountResponse] = Field(default_factory=list)
+    atr_multiplier_sources: list[AnalyticsBucketCountResponse] = Field(default_factory=list)
+    market_regimes: list[AnalyticsBucketCountResponse] = Field(default_factory=list)
+    top_symbols: list[AnalyticsBucketCountResponse] = Field(default_factory=list)

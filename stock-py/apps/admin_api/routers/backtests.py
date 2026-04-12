@@ -8,8 +8,12 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from apps.admin_api.dependencies import get_analytics_repository
 from domains.analytics.backtest.repository import BacktestRepository
 from domains.analytics.backtest.service import BacktestService
+from domains.analytics.repository import AnalyticsRepository
+from domains.signals.calibration_feedback_loop_service import CalibrationFeedbackLoopService
+from domains.signals.calibration_repository import SignalCalibrationSnapshotRepository
 from infra.core.errors import AppError
 from infra.db.session import get_db_session
 
@@ -45,6 +49,31 @@ class AdminBacktestRunListResponse(BaseModel):
     has_more: bool
 
 
+class AdminBacktestTradeResponse(BaseModel):
+    entry_index: int
+    exit_index: int
+    entry_price: float
+    exit_price: float
+    return_percent: float
+
+
+class AdminBacktestEquityPointResponse(BaseModel):
+    timestamp: datetime
+    equity: float
+    drawdown_percent: float = 0.0
+
+
+class AdminBacktestEquityCurveResponse(BaseModel):
+    symbol: str
+    strategy_name: str
+    timeframe: str
+    window_days: int
+    metrics: dict[str, Any] | list[Any] | None = None
+    trades: list[AdminBacktestTradeResponse] = Field(default_factory=list)
+    equity_points: list[float] = Field(default_factory=list)
+    equity_series: list[AdminBacktestEquityPointResponse] = Field(default_factory=list)
+
+
 class AdminBacktestRankingResponse(BaseModel):
     id: int | None = None
     strategy_name: str
@@ -69,6 +98,22 @@ class TriggerBacktestRefreshRequest(BaseModel):
     windows: list[int] | None = Field(default=None)
     timeframe: str = Field(default="1d", min_length=1, max_length=16)
     experiment_name: str | None = Field(default=None, min_length=1, max_length=120)
+    auto_feedback_loop: bool = True
+    activate_feedback_snapshot: bool = True
+    feedback_signal_window_hours: int = Field(default=24, ge=1, le=24 * 30)
+    feedback_ranking_window_hours: int = Field(default=24 * 7, ge=1, le=24 * 90)
+
+
+class AdminBacktestCalibrationFeedbackResponse(BaseModel):
+    generated_at: datetime
+    applied_version: str
+    previous_version: str | None = None
+    activated: bool
+    effective_from: datetime | None = None
+    strategy_weights: dict[str, float] = Field(default_factory=dict)
+    score_multipliers: dict[str, float] = Field(default_factory=dict)
+    atr_multipliers: dict[str, float] = Field(default_factory=dict)
+    notes: list[str] = Field(default_factory=list)
 
 
 class TriggerBacktestRefreshResponse(BaseModel):
@@ -79,6 +124,8 @@ class TriggerBacktestRefreshResponse(BaseModel):
     dataset_fingerprint: str | None = None
     ranking_count: int
     rankings: list[AdminBacktestRankingResponse]
+    calibration_feedback: AdminBacktestCalibrationFeedbackResponse | None = None
+    calibration_feedback_error: str | None = None
 
 
 def _load_payload(value: str | None) -> dict[str, Any] | list[Any] | None:
@@ -145,9 +192,52 @@ def _ranking_payload_to_response(ranking: dict[str, Any]) -> AdminBacktestRankin
 @router.get("", response_model=dict)
 async def get_backtests_root() -> dict[str, object]:
     return {
-        "areas": ["runs", "rankings"],
-        "actions": ["runs:list", "runs:get", "runs:create", "rankings:list-latest"],
+        "areas": ["runs", "rankings", "equity-curve"],
+        "actions": [
+            "runs:list",
+            "runs:get",
+            "runs:create",
+            "rankings:list-latest",
+            "equity-curve:get",
+        ],
     }
+
+
+@router.get("/equity-curve", response_model=AdminBacktestEquityCurveResponse)
+async def get_equity_curve(
+    symbol: str = Query(..., min_length=1, description="Ticker symbol"),
+    strategy_name: str = Query(..., min_length=1, description="Backtest strategy name or alias"),
+    window_days: int = Query(90, ge=20, le=3650, description="Backtest lookback window in days"),
+    timeframe: str = Query("1d", min_length=1, max_length=16, description="Timeframe"),
+    db: AsyncSession = Depends(get_db_session),
+) -> AdminBacktestEquityCurveResponse:
+    service = BacktestService(db)
+    result = await service.run_backtest_window(
+        symbol=symbol,
+        strategy_name=strategy_name,
+        window_days=window_days,
+        timeframe=timeframe,
+    )
+    if result is None:
+        raise AppError(
+            code="backtest_equity_curve_unavailable",
+            message="Backtest equity curve unavailable for the requested input",
+            status_code=404,
+        )
+    return AdminBacktestEquityCurveResponse(
+        symbol=str(result["symbol"]),
+        strategy_name=str(result["strategy_name"]),
+        timeframe=str(result["timeframe"]),
+        window_days=int(result["window_days"]),
+        metrics=result.get("metrics"),
+        trades=[AdminBacktestTradeResponse(**trade) for trade in list(result.get("trades") or [])],
+        equity_points=[float(value) for value in list(result.get("equity_points") or [])],
+        equity_series=[
+            AdminBacktestEquityPointResponse(**point)
+            for point in list(result.get("equity_series") or [])
+            if isinstance(point, dict)
+        ],
+    )
 
 
 @router.get("/runs", response_model=AdminBacktestRunListResponse)
@@ -227,6 +317,7 @@ async def list_latest_rankings(
 async def create_run(
     request: TriggerBacktestRefreshRequest,
     db: AsyncSession = Depends(get_db_session),
+    analytics_repository: AnalyticsRepository = Depends(get_analytics_repository),
 ) -> TriggerBacktestRefreshResponse:
     result = await BacktestService(db).refresh_rankings(
         symbols=request.symbols,
@@ -247,6 +338,23 @@ async def create_run(
         for ranking in list(result.get("rankings") or [])
         if isinstance(ranking, dict)
     ]
+    feedback_payload = None
+    feedback_error = None
+    if request.auto_feedback_loop:
+        try:
+            feedback_payload = await CalibrationFeedbackLoopService(
+                analytics_repository=analytics_repository,
+                calibration_repository=SignalCalibrationSnapshotRepository(db),
+            ).create_feedback_snapshot(
+                run_id=int(result.get("run_id") or 0) or None,
+                timeframe=request.timeframe,
+                signal_window_hours=request.feedback_signal_window_hours,
+                ranking_window_hours=request.feedback_ranking_window_hours,
+                activate=request.activate_feedback_snapshot,
+                experiment_name=result.get("experiment_name"),
+            )
+        except Exception as exc:  # pragma: no cover - non-fatal guardrail around the feedback loop
+            feedback_error = str(exc)
     return TriggerBacktestRefreshResponse(
         run_id=int(result.get("run_id") or 0),
         experiment_name=result.get("experiment_name"),
@@ -255,4 +363,10 @@ async def create_run(
         dataset_fingerprint=result.get("dataset_fingerprint"),
         ranking_count=int(result.get("ranking_count") or len(rankings)),
         rankings=rankings,
+        calibration_feedback=(
+            AdminBacktestCalibrationFeedbackResponse(**feedback_payload)
+            if isinstance(feedback_payload, dict)
+            else None
+        ),
+        calibration_feedback_error=feedback_error,
     )

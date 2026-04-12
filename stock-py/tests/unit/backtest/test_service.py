@@ -41,7 +41,10 @@ class FakeRepository:
                 "timeframe": timeframe,
             }
         )
-        return {str(symbol): list(self.window_data.get(symbol, [])) for symbol in symbols}
+        return {
+            str(symbol): list(self.window_data.get(symbol, []))
+            for symbol in symbols
+        }
 
 
 class FakePublisher:
@@ -106,6 +109,9 @@ class BacktestServiceTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["symbol"], "AAPL")
         self.assertGreaterEqual(result["metrics"]["trade_count"], 1)
         self.assertGreater(result["metrics"]["total_return_percent"], 0)
+        self.assertTrue(result["equity_series"])
+        self.assertIn("timestamp", result["equity_series"][0])
+        self.assertIn("equity", result["equity_series"][0])
 
     async def test_refresh_rankings_builds_ranked_output_and_emits_audit(self):
         repository = FakeRepository({"AAPL": build_trending_bars(), "MSFT": build_choppy_bars()})
@@ -141,9 +147,7 @@ class BacktestServiceTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(repository.saved_runs[0]["code_version"], "main@abc123def456")
         self.assertTrue(repository.saved_runs[0]["dataset_fingerprint"])
-        self.assertEqual(
-            repository.saved_results[0][1]["artifacts"]["entries"][0]["name"], "backtest_run"
-        )
+        self.assertEqual(repository.saved_results[0][1]["artifacts"]["entries"][0]["name"], "backtest_run")
         self.assertEqual(
             repository.saved_results[0][1]["artifacts"]["entries"][1]["name"],
             "strategy_rankings",
@@ -178,6 +182,26 @@ class BacktestServiceTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["metrics"]["trade_count"], 1)
         self.assertGreater(result["metrics"]["total_return_percent"], 0)
 
+    async def test_run_backtest_window_normalizes_signal_strategy_aliases(self):
+        repository = FakeRepository({"AAPL": build_trending_bars()})
+        service = BacktestService(repository=repository)
+
+        result = await service.run_backtest_window(
+            symbol="AAPL", window_days=30, strategy_name="trend_continuation"
+        )
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result["strategy_name"], "trend_following")
+
+    async def test_run_backtest_window_rejects_unsupported_strategies(self):
+        repository = FakeRepository({"AAPL": build_trending_bars()})
+        service = BacktestService(repository=repository)
+
+        with self.assertRaisesRegex(ValueError, "unsupported strategy_name"):
+            await service.run_backtest_window(
+                symbol="AAPL", window_days=30, strategy_name="unsupported_alpha"
+            )
+
     def test_compute_rsi_handles_flat_series(self):
         service = BacktestService(repository=FakeRepository({}))
 
@@ -211,9 +235,7 @@ class BacktestServiceTest(unittest.IsolatedAsyncioTestCase):
             repository.saved_results[-1][1]["error_message"],
             "rankings write failed",
         )
-        self.assertEqual(
-            repository.saved_results[-1][1]["artifacts"]["entries"][0]["name"], "backtest_run"
-        )
+        self.assertEqual(repository.saved_results[-1][1]["artifacts"]["entries"][0]["name"], "backtest_run")
 
 
 if __name__ == "__main__":

@@ -4,16 +4,19 @@ from fastapi import APIRouter, Depends, Query
 
 from apps.admin_api.dependencies import (
     get_distribution_read_model_service,
+    get_exit_quality_read_model_service,
     get_overview_read_model_service,
     get_signal_results_read_model_service,
     get_strategy_read_model_service,
     get_tradingagents_read_model_service,
 )
 from domains.analytics.distribution_read_model_service import DistributionReadModelService
+from domains.analytics.exit_quality_read_model_service import ExitQualityReadModelService
 from domains.analytics.overview_read_model_service import OverviewReadModelService
 from domains.analytics.signal_results_read_model_service import SignalResultsReadModelService
 from domains.analytics.schemas import (
     DistributionMetricsResponse,
+    ExitQualityMetricsResponse,
     OverviewMetricsResponse,
     SignalResultMetricsResponse,
     StrategyHealthResponse,
@@ -55,6 +58,14 @@ async def get_signal_results(
     service: SignalResultsReadModelService = Depends(get_signal_results_read_model_service),
 ) -> SignalResultMetricsResponse:
     return await service.build_signal_results_view(window_hours)
+
+
+@router.get("/exit-quality", response_model=ExitQualityMetricsResponse)
+async def get_exit_quality(
+    window_hours: int = Query(24, ge=1, le=24 * 30),
+    service: ExitQualityReadModelService = Depends(get_exit_quality_read_model_service),
+) -> ExitQualityMetricsResponse:
+    return await service.build_exit_quality_view(window_hours)
 
 
 @router.get("/tradingagents", response_model=TradingAgentsMetricsResponse)

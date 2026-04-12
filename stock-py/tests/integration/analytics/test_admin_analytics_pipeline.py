@@ -45,8 +45,20 @@ class AdminAnalyticsPipelineIntegrationTest(unittest.IsolatedAsyncioTestCase):
                         "signal_id": 1,
                         "symbol": "AAPL",
                         "signal_type": "buy",
+                        "price": 100.0,
                         "user_ids": [7, 9],
-                        "analysis": {"strategy": "momentum", "market_regime": "trend"},
+                        "analysis": {
+                            "strategy": "momentum",
+                            "market_regime": "trend",
+                            "market_regime_detail": "trend_strong_up",
+                            "exit_levels": {
+                                "source": "server_default",
+                                "atr_multiplier_source": "calibration_snapshot",
+                                "atr_multiplier": 2.25,
+                                "stop_loss": 94.0,
+                                "take_profit_1": 109.0,
+                            },
+                        },
                     },
                 ),
                 (
@@ -56,8 +68,20 @@ class AdminAnalyticsPipelineIntegrationTest(unittest.IsolatedAsyncioTestCase):
                         "signal_id": 2,
                         "symbol": "MSFT",
                         "signal_type": "buy",
+                        "price": 200.0,
                         "user_ids": [5],
-                        "analysis": {"strategy": "breakout", "market_regime": "trend"},
+                        "analysis": {
+                            "strategy": "breakout",
+                            "market_regime": "trend",
+                            "market_regime_detail": "volatile_breakout",
+                            "exit_levels": {
+                                "source": "client",
+                                "atr_multiplier_source": "client",
+                                "atr_multiplier": 1.85,
+                                "stop_loss": 190.0,
+                                "take_profit_1": 220.0,
+                            },
+                        },
                     },
                 ),
                 (
@@ -345,6 +369,42 @@ class AdminAnalyticsPipelineIntegrationTest(unittest.IsolatedAsyncioTestCase):
                         ],
                         "note": "与 live signal 的可比字段已明确，但当前响应暂不直接联表 backtest_runs。",
                     },
+                ],
+            },
+        )
+
+        exit_quality = self.http_client.get(
+            "/v1/admin/analytics/exit-quality", params={"window_hours": 24}
+        )
+        self.assertEqual(exit_quality.status_code, 200)
+        self.assertEqual(
+            exit_quality.json(),
+            {
+                "window_hours": 24,
+                "generated_after": exit_quality.json()["generated_after"],
+                "total_signals": 2,
+                "exits_available": 2,
+                "calibrated_exit_count": 1,
+                "client_exit_count": 1,
+                "avg_risk_reward_ratio": 1.75,
+                "avg_atr_multiplier": 2.05,
+                "avg_stop_distance_pct": 5.5,
+                "avg_tp1_distance_pct": 9.5,
+                "exit_sources": [
+                    {"key": "client", "count": 1},
+                    {"key": "server_default", "count": 1},
+                ],
+                "atr_multiplier_sources": [
+                    {"key": "calibration_snapshot", "count": 1},
+                    {"key": "client", "count": 1},
+                ],
+                "market_regimes": [
+                    {"key": "trend_strong_up", "count": 1},
+                    {"key": "volatile_breakout", "count": 1},
+                ],
+                "top_symbols": [
+                    {"key": "AAPL", "count": 1},
+                    {"key": "MSFT", "count": 1},
                 ],
             },
         )

@@ -70,6 +70,10 @@ class CalibrationProposalService:
             current_snapshot=current_snapshot,
             signal_results=signal_results,
         )
+        proposed_atr_multipliers, atr_multiplier_adjustments = self._propose_atr_multipliers(
+            current_snapshot=current_snapshot,
+            signal_results=signal_results,
+        )
 
         generated_at = utcnow()
         proposed_version = self._proposal_version(generated_at)
@@ -98,6 +102,9 @@ class CalibrationProposalService:
         score_multiplier_adjustments.sort(
             key=lambda item: (-abs(float(item["delta"])), item["key"])
         )
+        atr_multiplier_adjustments.sort(
+            key=lambda item: (-abs(float(item["delta"])), item["key"])
+        )
 
         return {
             "generated_at": generated_at,
@@ -110,12 +117,15 @@ class CalibrationProposalService:
             "summary": summary,
             "strategy_weights": strategy_adjustments,
             "score_multipliers": score_multiplier_adjustments,
+            "atr_multipliers": atr_multiplier_adjustments,
             "notes": notes,
             "snapshot_payload": {
                 "version": proposed_version,
                 "source": "proposal",
+                "effective_from": generated_at,
                 "strategy_weights": proposed_strategy_weights,
                 "score_multipliers": proposed_score_multipliers,
+                "atr_multipliers": proposed_atr_multipliers,
                 "derived_from": derived_from,
                 "sample_size": summary["total_signals"],
                 "notes": "; ".join(notes),
@@ -272,6 +282,72 @@ class CalibrationProposalService:
                     "proposed_value": round(proposed_value, 4),
                     "delta": round(proposed_value - current_value, 4),
                     "reasons": reasons or ["No directional evidence; keep current multiplier."],
+                }
+            )
+
+        return proposed, adjustments
+
+    def _propose_atr_multipliers(
+        self,
+        *,
+        current_snapshot: Any,
+        signal_results: dict[str, Any],
+    ) -> tuple[dict[str, float], list[dict[str, Any]]]:
+        total_signals = int(signal_results.get("total_signals") or 0)
+        dominant_regime = str(
+            self._dominant_bucket_key(signal_results.get("market_regimes") or []) or "range"
+        ).strip()
+        executed_trade_rate = float(signal_results.get("executed_trade_rate") or 0.0)
+        dampening = 0.6 if total_signals < 25 else 1.0
+
+        proposed: dict[str, float] = {}
+        adjustments: list[dict[str, Any]] = []
+        for key in self.calibration_service.DEFAULT_ATR_MULTIPLIERS:
+            current_value, resolved_key = self.calibration_service.atr_multiplier(key, current_snapshot)
+            adjustment = 0.0
+            reasons: list[str] = []
+
+            if resolved_key.startswith("trend"):
+                if dominant_regime.startswith("trend"):
+                    adjustment += 0.18
+                    reasons.append("Trend-dominant live regime gives trend exits more room.")
+                elif dominant_regime.startswith("range"):
+                    adjustment -= 0.08
+                    reasons.append("Range-dominant live regime tightens trend exits.")
+            elif resolved_key.startswith("volatile") or resolved_key == "breakout_candidate":
+                if dominant_regime.startswith("volatile"):
+                    adjustment += 0.2
+                    reasons.append("Volatile live regime expands breakout ATR buffers.")
+                else:
+                    adjustment -= 0.06
+                    reasons.append("Non-volatile regime trims breakout ATR buffers.")
+            elif resolved_key.startswith("range"):
+                if dominant_regime.startswith("range"):
+                    adjustment -= 0.1
+                    reasons.append("Range regime supports tighter range exits.")
+                elif dominant_regime.startswith("volatile"):
+                    adjustment += 0.08
+                    reasons.append("Volatile regime requires wider range fail-safe exits.")
+
+            if executed_trade_rate < 20.0:
+                adjustment += 0.05
+                reasons.append("Low executed-trade rate slightly widens ATR stops.")
+            elif executed_trade_rate >= 35.0:
+                adjustment -= 0.03
+                reasons.append("Healthy conversion allows slightly tighter ATR stops.")
+
+            adjustment *= dampening
+            proposed_value = self.calibration_service._bounded_atr_multiplier(
+                current_value + adjustment
+            )
+            proposed[key] = round(proposed_value, 4)
+            adjustments.append(
+                {
+                    "key": key,
+                    "current_value": round(current_value, 4),
+                    "proposed_value": round(proposed_value, 4),
+                    "delta": round(proposed_value - current_value, 4),
+                    "reasons": reasons or ["No directional ATR evidence; keep current multiplier."],
                 }
             )
 

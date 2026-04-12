@@ -19,6 +19,10 @@ PLATFORM_SMOKE_PUBLIC_BASE_URL ?= http://127.0.0.1:8000
 PLATFORM_SMOKE_ADMIN_BASE_URL ?= http://127.0.0.1:8001
 PLATFORM_SMOKE_EMAIL ?=
 PLATFORM_SMOKE_TIMEOUT ?= 20
+PLAYWRIGHT ?= npx playwright
+BENCHMARK_FIXTURE_DB ?= .local/benchmarks/live-strategy-goal-ci.sqlite3
+BENCHMARK_FIXTURE_DATABASE_URL ?= sqlite+aiosqlite:///$(abspath $(BENCHMARK_FIXTURE_DB))
+BENCHMARK_GOAL_REPORT ?= .local/benchmarks/live-strategy-goal-ci.json
 CUTOVER_ENVIRONMENT ?= staging
 CUTOVER_RUN_ID ?= $(shell date -u +%Y%m%dT%H%M%SZ)
 CUTOVER_REPORT_DIR ?= ops/reports/cutover/$(CUTOVER_RUN_ID)
@@ -76,7 +80,7 @@ BACKEND_OWNER ?=
 ON_CALL_REVIEWER ?=
 BACKUP_DIR ?=
 
-.PHONY: install format lint lint-eol typecheck security test test-unit test-integration test-contract test-e2e test-qa test-load-import qa-ci smoke-platform-workbench smoke-platform-workbench-interaction load-check-env load-help load-bootstrap-fixtures load-report-init load-report-finalize load-report-capture load-baseline cutover-bootstrap-fixtures cutover-report-init cutover-evidence-capture cutover-shadow-read cutover-dual-write cutover-rollback-verify cutover-signoff cutover-threshold-calibrate cutover-k8s-overlay cutover-openapi-diff migrate migrate-down migration-revision run-public-api run-admin-api run-scheduler ops-stack-up ops-compose-load-baseline ops-compose-cutover-rehearsal ops-real-cutover-validation ops-real-k8s-runtime-validation ops-k8s-validate ops-backup-baseline ops-restore-baseline
+.PHONY: install format lint lint-eol typecheck security test test-unit test-integration test-contract test-e2e test-qa test-load-import test-playwright qa-ci smoke-platform-workbench smoke-platform-workbench-interaction benchmark-live-strategy-goal-ci load-check-env load-help load-bootstrap-fixtures load-report-init load-report-finalize load-report-capture load-baseline cutover-bootstrap-fixtures cutover-report-init cutover-evidence-capture cutover-shadow-read cutover-dual-write cutover-rollback-verify cutover-signoff cutover-threshold-calibrate cutover-k8s-overlay cutover-openapi-diff migrate migrate-down migration-revision run-public-api run-admin-api run-scheduler ops-stack-up ops-compose-load-baseline ops-compose-cutover-rehearsal ops-real-cutover-validation ops-real-k8s-runtime-validation ops-k8s-validate ops-backup-baseline ops-restore-baseline
 
 install:
 	$(PIP) install -r requirements.txt
@@ -122,11 +126,19 @@ test-load-import:
 	$(PYTHON) -m compileall -q tests/load
 	$(PYTHON) -c "import tests.load.locustfile"
 
+test-playwright:
+	$(PLAYWRIGHT) test
+
 smoke-platform-workbench:
 	$(PYTHON) run_platform_workbench_smoke.py --public-base-url "$(PLATFORM_SMOKE_PUBLIC_BASE_URL)" --admin-base-url "$(PLATFORM_SMOKE_ADMIN_BASE_URL)" --timeout "$(PLATFORM_SMOKE_TIMEOUT)" $(if $(strip $(PLATFORM_SMOKE_EMAIL)),--email "$(PLATFORM_SMOKE_EMAIL)",)
 
 smoke-platform-workbench-interaction:
 	node run_platform_workbench_interaction_smoke.cjs --public-base-url "$(PLATFORM_SMOKE_PUBLIC_BASE_URL)" --admin-base-url "$(PLATFORM_SMOKE_ADMIN_BASE_URL)" --timeout "$(PLATFORM_SMOKE_TIMEOUT)" $(if $(strip $(PLATFORM_SMOKE_EMAIL)),--email "$(PLATFORM_SMOKE_EMAIL)",)
+
+benchmark-live-strategy-goal-ci:
+	@mkdir -p "$(dir $(BENCHMARK_FIXTURE_DB))" "$(dir $(BENCHMARK_GOAL_REPORT))"
+	DATABASE_URL="$(BENCHMARK_FIXTURE_DATABASE_URL)" $(PYTHON) -m tests.helpers.goal_benchmark_fixture --database-url "$(BENCHMARK_FIXTURE_DATABASE_URL)"
+	DATABASE_URL="$(BENCHMARK_FIXTURE_DATABASE_URL)" $(PYTHON) run_live_strategy_goal_benchmark.py --limit 8 --min-bars 120 --lookback-bars 120 --test-bars 30 --substantial-ranking-count 7 --substantial-symbols-covered 8 --output "$(BENCHMARK_GOAL_REPORT)"
 
 qa-ci: typecheck security test-unit test-integration test-qa test-load-import
 

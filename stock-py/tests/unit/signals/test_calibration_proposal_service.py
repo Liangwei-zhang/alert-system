@@ -85,6 +85,7 @@ class FakeCalibrationRepository:
                 "stale_penalty": 1.0,
                 "liquidity_penalty": 1.0,
             },
+            "effective_from": "2026-04-10T08:00:00Z",
         }
 
 
@@ -101,6 +102,7 @@ class CalibrationProposalServiceTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(proposal["proposed_version"].startswith("signals-v2-proposal-"))
         self.assertEqual(proposal["summary"]["total_signals"], 64)
         self.assertEqual(proposal["snapshot_payload"]["source"], "proposal")
+        self.assertIsNotNone(proposal["snapshot_payload"]["effective_from"])
 
         strategy_weights = {item["key"]: item for item in proposal["strategy_weights"]}
         self.assertGreater(
@@ -118,6 +120,20 @@ class CalibrationProposalServiceTest(unittest.IsolatedAsyncioTestCase):
         self.assertLess(score_multipliers["confidence"]["proposed_value"], 1.0)
         self.assertGreater(score_multipliers["trend"]["proposed_value"], 1.0)
         self.assertGreater(score_multipliers["stale_penalty"]["proposed_value"], 1.0)
+
+        atr_multipliers = {item["key"]: item for item in proposal["atr_multipliers"]}
+        self.assertGreater(
+            atr_multipliers["trend"]["proposed_value"],
+            atr_multipliers["trend"]["current_value"],
+        )
+        self.assertLess(
+            atr_multipliers["breakout_candidate"]["proposed_value"],
+            atr_multipliers["breakout_candidate"]["current_value"],
+        )
+        self.assertEqual(
+            proposal["snapshot_payload"]["atr_multipliers"]["trend"],
+            atr_multipliers["trend"]["proposed_value"],
+        )
 
 
 if __name__ == "__main__":

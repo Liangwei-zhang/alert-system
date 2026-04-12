@@ -38,9 +38,13 @@ class BacktestService:
     STRATEGY_ALIASES = {
         "trend_following": "trend_following",
         "momentum": "trend_following",
+        "trend_continuation": "trend_following",
+        "trend-continuation": "trend_following",
         "mean_reversion": "mean_reversion",
         "mean-reversion": "mean_reversion",
         "breakout": "breakout",
+        "volatility_breakout": "breakout",
+        "volatility-breakout": "breakout",
         "buy_and_hold": "buy_and_hold",
         "buy-and-hold": "buy_and_hold",
         "hold": "buy_and_hold",
@@ -90,9 +94,9 @@ class BacktestService:
         resolved_strategies = self._normalize_strategy_names(strategy_names)
         resolved_windows = tuple(int(window) for window in (windows or self.DEFAULT_WINDOWS))
         normalized_timeframe = timeframe.strip().lower()
-        normalized_experiment_name = (
-            str(experiment_name or "backtest.ranking-refresh").strip() or "backtest.ranking-refresh"
-        )
+        normalized_experiment_name = str(
+            experiment_name or "backtest.ranking-refresh"
+        ).strip() or "backtest.ranking-refresh"
         normalized_experiment_context = dict(experiment_context or {})
         started_at = datetime.now(timezone.utc)
         config_snapshot = build_experiment_config(
@@ -277,14 +281,26 @@ class BacktestService:
         strategy_name: str,
         timeframe: str = "1d",
     ) -> dict[str, Any] | None:
+        resolved_strategy_name = self.resolve_strategy_name(strategy_name)
+        if not resolved_strategy_name:
+            raise ValueError(f"unsupported strategy_name: {strategy_name}")
         bars = await self._get_repository().load_window_data(symbol, window_days, timeframe)
         return self._run_backtest_from_bars(
             symbol=symbol,
             window_days=window_days,
-            strategy_name=strategy_name,
+            strategy_name=resolved_strategy_name,
             timeframe=timeframe,
             bars=bars,
         )
+
+    def resolve_strategy_name(self, strategy_name: Any) -> str | None:
+        raw = str(strategy_name or "").strip().lower()
+        if not raw:
+            return None
+        canonical = self.STRATEGY_ALIASES.get(raw, raw)
+        if canonical not in self.SUPPORTED_STRATEGIES:
+            return None
+        return canonical
 
     def _run_backtest_from_bars(
         self,
@@ -307,6 +323,7 @@ class BacktestService:
         entry_index = 0
         trades: list[dict[str, Any]] = []
         equity_points: list[float] = []
+        equity_series: list[dict[str, Any]] = []
 
         for index in range(20, len(bars)):
             price = float(bars[index]["close"])
@@ -317,10 +334,16 @@ class BacktestService:
             else:
                 mark_equity = cash
             peak_equity = max(peak_equity, mark_equity)
-            max_drawdown = max(
-                max_drawdown, (peak_equity - mark_equity) / peak_equity if peak_equity else 0.0
-            )
+            current_drawdown = (peak_equity - mark_equity) / peak_equity if peak_equity else 0.0
+            max_drawdown = max(max_drawdown, current_drawdown)
             equity_points.append(mark_equity)
+            equity_series.append(
+                {
+                    "timestamp": bars[index]["timestamp"],
+                    "equity": round(mark_equity, 6),
+                    "drawdown_percent": round(current_drawdown * 100, 4),
+                }
+            )
 
             if not in_position and signal == "buy":
                 in_position = True
@@ -391,6 +414,7 @@ class BacktestService:
             "metrics": metrics,
             "trades": trades,
             "equity_points": equity_points,
+            "equity_series": equity_series,
         }
 
     @staticmethod

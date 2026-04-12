@@ -4,6 +4,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domains.analytics.distribution_read_model_service import DistributionReadModelService
+from domains.analytics.exit_quality_read_model_service import ExitQualityReadModelService
 from domains.analytics.overview_read_model_service import OverviewReadModelService
 from domains.analytics.repository import AnalyticsRepository
 from domains.analytics.signal_results_read_model_service import SignalResultsReadModelService
@@ -52,6 +53,12 @@ async def get_signal_results_read_model_service(
     repository: AnalyticsRepository = Depends(get_analytics_repository),
 ) -> SignalResultsReadModelService:
     return SignalResultsReadModelService(repository)
+
+
+async def get_exit_quality_read_model_service(
+    repository: AnalyticsRepository = Depends(get_analytics_repository),
+) -> ExitQualityReadModelService:
+    return ExitQualityReadModelService(repository)
 
 
 async def get_tradingagents_read_model_service(

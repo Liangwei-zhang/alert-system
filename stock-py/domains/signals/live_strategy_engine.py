@@ -25,7 +25,9 @@ class LiveStrategyEngine:
         self.strategy_selector = strategy_selector or StrategySelector(
             calibration_service=self.calibration_service,
         )
-        self.exit_level_calculator = exit_level_calculator or ExitLevelCalculator()
+        self.exit_level_calculator = exit_level_calculator or ExitLevelCalculator(
+            calibration_service=self.calibration_service,
+        )
 
     def select_strategy(
         self,
@@ -151,6 +153,10 @@ class LiveStrategyEngine:
         analysis.setdefault("market_regime", strategy["market_regime"])
         if strategy.get("market_regime_detail"):
             analysis.setdefault("market_regime_detail", strategy["market_regime_detail"])
+        if strategy.get("regime_duration_bars") is not None:
+            analysis.setdefault("regime_duration_bars", strategy["regime_duration_bars"])
+        if strategy.get("regime_metrics"):
+            analysis.setdefault("regime_metrics", dict(strategy["regime_metrics"]))
         analysis["strategy_selection"] = {
             "strategy": strategy["strategy"],
             "source": strategy.get("source", "heuristic"),
@@ -163,6 +169,8 @@ class LiveStrategyEngine:
             "degradation_penalty": strategy.get("degradation_penalty"),
             "stable": bool(strategy.get("stable", False)),
             "market_regime_detail": strategy.get("market_regime_detail"),
+            "regime_duration_bars": strategy.get("regime_duration_bars"),
+            "regime_metrics": dict(strategy.get("regime_metrics") or {}),
             "regime_reasons": list(strategy.get("regime_reasons") or []),
             "calibration_version": strategy.get("calibration_version"),
             "strategy_weight": strategy.get("strategy_weight"),

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+import json
 from typing import Any
 
 from infra.analytics.clickhouse_client import ClickHouseClient
@@ -338,6 +339,98 @@ class AnalyticsRepository:
             ],
         }
 
+    async def query_exit_quality(self, window_hours: int = 24) -> dict[str, Any]:
+        cutoff = utcnow() - timedelta(hours=window_hours)
+        signal_rows = await self.client.query_rows("signal_events", start_at=cutoff)
+
+        exit_sources: dict[str, int] = defaultdict(int)
+        atr_sources: dict[str, int] = defaultdict(int)
+        market_regimes: dict[str, int] = defaultdict(int)
+        symbols: dict[str, int] = defaultdict(int)
+        risk_reward_values: list[float] = []
+        atr_multiplier_values: list[float] = []
+        stop_distance_values: list[float] = []
+        tp1_distance_values: list[float] = []
+
+        exits_available = 0
+        calibrated_exit_count = 0
+        client_exit_count = 0
+        for row in signal_rows:
+            analysis = self._coerce_object(row.get("analysis"))
+            exit_levels = self._coerce_object(analysis.get("exit_levels"))
+            symbol = str(row.get("symbol") or analysis.get("symbol") or "UNKNOWN").upper()
+            entry_price = self._coerce_float(
+                row.get("price") or row.get("entry_price") or analysis.get("entry_price")
+            )
+            stop_loss = self._coerce_float(
+                exit_levels.get("stop_loss") or row.get("stop_loss") or analysis.get("stop_loss")
+            )
+            take_profit_1 = self._coerce_float(
+                exit_levels.get("take_profit_1")
+                or row.get("take_profit_1")
+                or analysis.get("take_profit_1")
+            )
+            exit_source = str(
+                exit_levels.get("source")
+                or ("legacy_or_client" if stop_loss is not None or take_profit_1 is not None else "unavailable")
+            ).strip() or "unavailable"
+            exit_sources[exit_source] += 1
+            if exit_source == "client":
+                client_exit_count += 1
+
+            atr_source = str(exit_levels.get("atr_multiplier_source") or "unknown").strip() or "unknown"
+            atr_sources[atr_source] += 1
+            if atr_source == "calibration_snapshot":
+                calibrated_exit_count += 1
+
+            regime_value = str(
+                analysis.get("market_regime_detail")
+                or analysis.get("market_regime")
+                or row.get("market_regime")
+                or "unknown"
+            ).strip() or "unknown"
+            market_regimes[regime_value] += 1
+            symbols[symbol] += 1
+
+            if entry_price and entry_price > 0 and stop_loss is not None and take_profit_1 is not None:
+                exits_available += 1
+                stop_distance = abs(entry_price - stop_loss)
+                tp1_distance = abs(take_profit_1 - entry_price)
+                risk_reward_values.append(tp1_distance / stop_distance if stop_distance > 0 else 0.0)
+                stop_distance_values.append(stop_distance / entry_price * 100.0)
+                tp1_distance_values.append(tp1_distance / entry_price * 100.0)
+
+            atr_multiplier = self._coerce_float(
+                exit_levels.get("atr_multiplier") or row.get("atr_multiplier") or analysis.get("atr_multiplier")
+            )
+            if atr_multiplier is not None:
+                atr_multiplier_values.append(atr_multiplier)
+
+        return {
+            "window_hours": window_hours,
+            "generated_after": cutoff,
+            "total_signals": len(signal_rows),
+            "exits_available": exits_available,
+            "calibrated_exit_count": calibrated_exit_count,
+            "client_exit_count": client_exit_count,
+            "avg_risk_reward_ratio": round(sum(risk_reward_values) / len(risk_reward_values), 4)
+            if risk_reward_values
+            else 0.0,
+            "avg_atr_multiplier": round(sum(atr_multiplier_values) / len(atr_multiplier_values), 4)
+            if atr_multiplier_values
+            else 0.0,
+            "avg_stop_distance_pct": round(sum(stop_distance_values) / len(stop_distance_values), 4)
+            if stop_distance_values
+            else 0.0,
+            "avg_tp1_distance_pct": round(sum(tp1_distance_values) / len(tp1_distance_values), 4)
+            if tp1_distance_values
+            else 0.0,
+            "exit_sources": self._bucket_rows(exit_sources),
+            "atr_multiplier_sources": self._bucket_rows(atr_sources),
+            "market_regimes": self._bucket_rows(market_regimes),
+            "top_symbols": self._bucket_rows(symbols),
+        }
+
     @classmethod
     def _latest_timestamp(cls, *row_sets: list[dict[str, Any]]) -> datetime | None:
         latest: datetime | None = None
@@ -371,3 +464,24 @@ class AnalyticsRepository:
             {"key": key, "count": int(count)}
             for key, count in sorted(items.items(), key=lambda entry: (-entry[1], entry[0]))[:limit]
         ]
+
+    @staticmethod
+    def _coerce_object(value: Any) -> dict[str, Any]:
+        if isinstance(value, dict):
+            return value
+        if isinstance(value, str) and value.strip():
+            try:
+                parsed = json.loads(value)
+            except json.JSONDecodeError:
+                return {}
+            return parsed if isinstance(parsed, dict) else {}
+        return {}
+
+    @staticmethod
+    def _coerce_float(value: Any) -> float | None:
+        if value in (None, ""):
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None

@@ -22,9 +22,11 @@ class AdminCalibrationSnapshotItemResponse(BaseModel):
     source: str
     strategy_weights: dict[str, float] = Field(default_factory=dict)
     score_multipliers: dict[str, float] = Field(default_factory=dict)
+    atr_multipliers: dict[str, float] = Field(default_factory=dict)
     derived_from: str | None = None
     sample_size: int | None = None
     is_active: bool
+    effective_from: datetime | None = None
     effective_at: datetime | None = None
     notes: str | None = None
     created_at: datetime
@@ -48,9 +50,11 @@ class CreateCalibrationSnapshotRequest(BaseModel):
     source: str = Field(default="manual_review", min_length=1, max_length=48)
     strategy_weights: dict[str, float] = Field(default_factory=dict)
     score_multipliers: dict[str, float] = Field(default_factory=dict)
+    atr_multipliers: dict[str, float] = Field(default_factory=dict)
     derived_from: str | None = Field(default=None, max_length=160)
     sample_size: int | None = Field(default=None, ge=0)
     activate: bool = False
+    effective_from: datetime | None = None
     effective_at: datetime | None = None
     notes: str | None = None
 
@@ -75,8 +79,10 @@ class AdminCalibrationProposalSummaryResponse(BaseModel):
 class AdminCalibrationProposalSnapshotPayloadResponse(BaseModel):
     version: str
     source: str
+    effective_from: datetime | None = None
     strategy_weights: dict[str, float] = Field(default_factory=dict)
     score_multipliers: dict[str, float] = Field(default_factory=dict)
+    atr_multipliers: dict[str, float] = Field(default_factory=dict)
     derived_from: str | None = None
     sample_size: int | None = None
     notes: str | None = None
@@ -93,6 +99,7 @@ class AdminCalibrationProposalResponse(BaseModel):
     summary: AdminCalibrationProposalSummaryResponse
     strategy_weights: list[AdminCalibrationProposalAdjustmentResponse] = Field(default_factory=list)
     score_multipliers: list[AdminCalibrationProposalAdjustmentResponse] = Field(default_factory=list)
+    atr_multipliers: list[AdminCalibrationProposalAdjustmentResponse] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
     snapshot_payload: AdminCalibrationProposalSnapshotPayloadResponse
 
@@ -194,9 +201,11 @@ async def apply_calibration_proposal(
             source="proposal_review",
             strategy_weights=dict(snapshot_payload.get("strategy_weights") or {}),
             score_multipliers=dict(snapshot_payload.get("score_multipliers") or {}),
+            atr_multipliers=dict(snapshot_payload.get("atr_multipliers") or {}),
             derived_from=snapshot_payload.get("derived_from"),
             sample_size=snapshot_payload.get("sample_size"),
             activate=request.activate,
+            effective_from=snapshot_payload.get("effective_from"),
             notes=notes,
         )
     except ValueError as exc:
@@ -224,9 +233,11 @@ async def create_calibration_snapshot(
             source=payload.source,
             strategy_weights=payload.strategy_weights,
             score_multipliers=payload.score_multipliers,
+            atr_multipliers=payload.atr_multipliers,
             derived_from=payload.derived_from,
             sample_size=payload.sample_size,
             activate=payload.activate,
+            effective_from=payload.effective_from,
             effective_at=payload.effective_at,
             notes=payload.notes,
         )

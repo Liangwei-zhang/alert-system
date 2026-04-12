@@ -218,6 +218,12 @@ def aggregate_trade_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def calculate_relative_uplift_percent(*, new_win_rate: float, baseline_win_rate: float) -> float | None:
+    if baseline_win_rate <= 0:
+        return None if new_win_rate > baseline_win_rate else 0.0
+    return round(((new_win_rate - baseline_win_rate) / baseline_win_rate) * 100.0, 4)
+
+
 def build_goal_evaluation(
     *,
     new_win_rate: float,
@@ -227,10 +233,22 @@ def build_goal_evaluation(
     target_relative_uplift: float,
 ) -> dict[str, Any]:
     absolute_uplift = round(new_win_rate - baseline_win_rate, 4)
-    relative_uplift = round(
-        ((absolute_uplift / baseline_win_rate) * 100.0) if baseline_win_rate > 0 else 0.0,
-        4,
+    relative_uplift = calculate_relative_uplift_percent(
+        new_win_rate=new_win_rate,
+        baseline_win_rate=baseline_win_rate,
     )
+    relative_check: dict[str, Any] = {
+        "actual": relative_uplift,
+        "target": round(target_relative_uplift, 4),
+        "passed": (
+            new_win_rate > baseline_win_rate
+            if relative_uplift is None
+            else relative_uplift >= round(target_relative_uplift, 4)
+        ),
+    }
+    if relative_uplift is None:
+        relative_check["basis"] = "baseline_win_rate_zero"
+
     checks = {
         "new_win_rate": {
             "actual": round(new_win_rate, 4),
@@ -242,11 +260,7 @@ def build_goal_evaluation(
             "target": round(target_absolute_uplift, 4),
             "passed": absolute_uplift >= round(target_absolute_uplift, 4),
         },
-        "relative_uplift_percent": {
-            "actual": relative_uplift,
-            "target": round(target_relative_uplift, 4),
-            "passed": relative_uplift >= round(target_relative_uplift, 4),
-        },
+        "relative_uplift_percent": relative_check,
     }
     return {
         "met": all(item["passed"] for item in checks.values()),
@@ -493,6 +507,10 @@ async def run_goal_benchmark(args: argparse.Namespace) -> dict[str, Any]:
         target_absolute_uplift=args.target_absolute_uplift,
         target_relative_uplift=args.target_relative_uplift,
     )
+    relative_uplift_percent = calculate_relative_uplift_percent(
+        new_win_rate=float(new_metrics["win_rate"]),
+        baseline_win_rate=float(baseline_metrics["win_rate"]),
+    )
 
     report = {
         "timeframe": timeframe,
@@ -504,15 +522,11 @@ async def run_goal_benchmark(args: argparse.Namespace) -> dict[str, Any]:
             "baseline_win_rate": baseline_metrics["win_rate"],
             "new_win_rate": new_metrics["win_rate"],
             "absolute_uplift_pp": round(new_metrics["win_rate"] - baseline_metrics["win_rate"], 4),
-            "relative_uplift_percent": round(
-                (
-                    (new_metrics["win_rate"] - baseline_metrics["win_rate"])
-                    / baseline_metrics["win_rate"]
-                    * 100.0
-                )
-                if baseline_metrics["win_rate"] > 0
-                else 0.0,
-                4,
+            "relative_uplift_percent": relative_uplift_percent,
+            "relative_uplift_basis": (
+                "baseline_win_rate_zero"
+                if relative_uplift_percent is None and new_metrics["win_rate"] > baseline_metrics["win_rate"]
+                else None
             ),
         },
         "universe": {

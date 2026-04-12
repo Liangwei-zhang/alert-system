@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from domains.signals.calibration_service import CalibrationService
 from domains.signals.market_regime import MarketRegimeDetector
 
 
@@ -15,7 +16,11 @@ class ExitLevelSet:
     source: str
     atr_value: float | None
     atr_multiplier: float | None
+    atr_multiplier_key: str | None
+    atr_multiplier_source: str
     field_sources: dict[str, str]
+    client_levels: dict[str, float | None]
+    server_levels: dict[str, float | None]
     notes: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
@@ -27,18 +32,23 @@ class ExitLevelSet:
             "source": self.source,
             "atr_value": self.atr_value,
             "atr_multiplier": self.atr_multiplier,
+            "atr_multiplier_key": self.atr_multiplier_key,
+            "atr_multiplier_source": self.atr_multiplier_source,
             "field_sources": dict(self.field_sources),
+            "client_levels": dict(self.client_levels),
+            "server_levels": dict(self.server_levels),
             "notes": list(self.notes),
         }
 
 
 class ExitLevelCalculator:
-    DEFAULT_ATR_MULTIPLIERS = {
-        "trend": 2.2,
-        "volatile": 2.8,
-        "range": 1.8,
-    }
     TAKE_PROFIT_MULTIPLIERS = (1.5, 2.5, 4.0)
+
+    def __init__(
+        self,
+        calibration_service: CalibrationService | None = None,
+    ) -> None:
+        self.calibration_service = calibration_service or CalibrationService()
 
     def calculate(
         self,
@@ -53,22 +63,60 @@ class ExitLevelCalculator:
         snapshot = market_snapshot if isinstance(market_snapshot, dict) else {}
         analysis_payload = analysis if isinstance(analysis, dict) else {}
         explicit_levels = {
-            "stop_loss": self._first_present(snapshot.get("stop_loss"), analysis_payload.get("stop_loss")),
-            "take_profit_1": self._first_present(snapshot.get("take_profit_1"), analysis_payload.get("take_profit_1")),
-            "take_profit_2": self._first_present(snapshot.get("take_profit_2"), analysis_payload.get("take_profit_2")),
-            "take_profit_3": self._first_present(snapshot.get("take_profit_3"), analysis_payload.get("take_profit_3")),
+            "stop_loss": self._first_present(
+                snapshot.get("stop_loss"), analysis_payload.get("stop_loss")
+            ),
+            "take_profit_1": self._first_present(
+                snapshot.get("take_profit_1"), analysis_payload.get("take_profit_1")
+            ),
+            "take_profit_2": self._first_present(
+                snapshot.get("take_profit_2"), analysis_payload.get("take_profit_2")
+            ),
+            "take_profit_3": self._first_present(
+                snapshot.get("take_profit_3"), analysis_payload.get("take_profit_3")
+            ),
         }
         explicit_levels = {
             key: self._coerce_float(value)
             for key, value in explicit_levels.items()
         }
-        explicit_fields = {key for key, value in explicit_levels.items() if value is not None}
 
-        normalized_regime = MarketRegimeDetector.normalize_family(str(market_regime or analysis_payload.get("market_regime") or snapshot.get("market_regime") or "range"))
-        atr_value = self._coerce_float(self._first_present(snapshot.get("atr_value"), analysis_payload.get("atr_value")))
-        atr_multiplier = self._coerce_float(self._first_present(snapshot.get("atr_multiplier"), analysis_payload.get("atr_multiplier")))
+        normalized_regime = MarketRegimeDetector.normalize_family(
+            str(
+                market_regime
+                or analysis_payload.get("market_regime")
+                or snapshot.get("market_regime")
+                or "range"
+            )
+        )
+        regime_detail = self._normalize_key(
+            analysis_payload.get("market_regime_detail")
+            or snapshot.get("market_regime_detail")
+            or market_regime
+            or analysis_payload.get("market_regime")
+            or snapshot.get("market_regime")
+            or normalized_regime
+        )
+        atr_value = self._coerce_float(
+            self._first_present(snapshot.get("atr_value"), analysis_payload.get("atr_value"))
+        )
+        atr_multiplier = self._coerce_float(
+            self._first_present(
+                snapshot.get("atr_multiplier"), analysis_payload.get("atr_multiplier")
+            )
+        )
+        atr_multiplier_source = "client"
+        atr_multiplier_key = None
         if atr_multiplier is None:
-            atr_multiplier = self.DEFAULT_ATR_MULTIPLIERS.get(normalized_regime, 2.0)
+            calibration_snapshot = self.calibration_service.current_snapshot(
+                {"analysis": analysis_payload},
+                None,
+            )
+            atr_multiplier, atr_multiplier_key = self.calibration_service.atr_multiplier(
+                regime_detail,
+                calibration_snapshot,
+            )
+            atr_multiplier_source = "calibration_snapshot"
 
         computed_levels, notes = self._compute_default_levels(
             signal_type=signal_type,
@@ -102,7 +150,11 @@ class ExitLevelCalculator:
             source=source,
             atr_value=atr_value,
             atr_multiplier=atr_multiplier,
+            atr_multiplier_key=atr_multiplier_key or normalized_regime,
+            atr_multiplier_source=atr_multiplier_source,
             field_sources=field_sources,
+            client_levels=explicit_levels,
+            server_levels=computed_levels,
             notes=tuple(notes),
         ).to_dict()
 
@@ -148,9 +200,18 @@ class ExitLevelCalculator:
         direction = 1.0 if is_long else -1.0
         return {
             "stop_loss": round(entry_price - (direction * stop_distance), 4),
-            "take_profit_1": round(entry_price + (direction * atr_value * tp_multipliers[0]), 4),
-            "take_profit_2": round(entry_price + (direction * atr_value * tp_multipliers[1]), 4),
-            "take_profit_3": round(entry_price + (direction * atr_value * tp_multipliers[2]), 4),
+            "take_profit_1": round(
+                entry_price + (direction * atr_value * tp_multipliers[0]),
+                4,
+            ),
+            "take_profit_2": round(
+                entry_price + (direction * atr_value * tp_multipliers[1]),
+                4,
+            ),
+            "take_profit_3": round(
+                entry_price + (direction * atr_value * tp_multipliers[2]),
+                4,
+            ),
         }, notes
 
     @staticmethod
@@ -179,3 +240,7 @@ class ExitLevelCalculator:
             return float(value)
         except (TypeError, ValueError):
             return None
+
+    @staticmethod
+    def _normalize_key(value: Any) -> str:
+        return str(value or "").strip().lower().replace(" ", "_")

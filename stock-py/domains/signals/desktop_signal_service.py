@@ -154,8 +154,10 @@ class DesktopSignalService:
         return {
             "version": snapshot.get("version"),
             "source": snapshot.get("source"),
+            "effective_from": snapshot.get("effective_from") or snapshot.get("effective_at"),
             "strategy_weights": dict(snapshot.get("strategy_weights") or {}),
             "score_multipliers": dict(snapshot.get("score_multipliers") or {}),
+            "atr_multipliers": dict(snapshot.get("atr_multipliers") or {}),
         }
 
     @staticmethod
@@ -170,8 +172,10 @@ class DesktopSignalService:
             analysis["calibration_snapshot"] = {
                 "version": snapshot.get("version"),
                 "source": snapshot.get("source"),
+                "effective_from": snapshot.get("effective_from") or snapshot.get("effective_at"),
                 "strategy_weights": dict(snapshot.get("strategy_weights") or {}),
                 "score_multipliers": dict(snapshot.get("score_multipliers") or {}),
+                "atr_multipliers": dict(snapshot.get("atr_multipliers") or {}),
             }
 
         version = str(snapshot.get("version") or "").strip()

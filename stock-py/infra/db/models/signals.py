@@ -92,6 +92,11 @@ class SignalCalibrationSnapshotModel(Base, TimestampMixin):
     derived_from: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
     sample_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
+    effective_from: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
     effective_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

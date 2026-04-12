@@ -18,6 +18,7 @@ from apps.public_api.routers import (
     portfolio,
     search,
     sidecars,
+    strategy_breakdown,
     signal_ingest,
     trades,
     tradingagents_submit,
@@ -129,6 +130,7 @@ app.include_router(watchlist.router, prefix="/v1")
 app.include_router(portfolio.router, prefix="/v1")
 app.include_router(search.router, prefix="/v1")
 app.include_router(chart_data.router, prefix="/v1")
+app.include_router(strategy_breakdown.router, prefix="/v1")
 app.include_router(notifications.router, prefix="/v1")
 app.include_router(sidecars.router)
 app.include_router(signal_ingest.router, prefix="/v1")

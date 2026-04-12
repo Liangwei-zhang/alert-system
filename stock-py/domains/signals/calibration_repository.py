@@ -38,7 +38,12 @@ class SignalCalibrationSnapshotRepository:
             statement
             .order_by(
                 SignalCalibrationSnapshotModel.is_active.desc(),
-                SignalCalibrationSnapshotModel.effective_at.desc().nullslast(),
+                func.coalesce(
+                    SignalCalibrationSnapshotModel.effective_from,
+                    SignalCalibrationSnapshotModel.effective_at,
+                )
+                .desc()
+                .nullslast(),
                 SignalCalibrationSnapshotModel.created_at.desc(),
                 SignalCalibrationSnapshotModel.id.desc(),
             )
@@ -59,7 +64,12 @@ class SignalCalibrationSnapshotRepository:
             select(SignalCalibrationSnapshotModel)
             .where(SignalCalibrationSnapshotModel.is_active.is_(True))
             .order_by(
-                SignalCalibrationSnapshotModel.effective_at.desc().nullslast(),
+                func.coalesce(
+                    SignalCalibrationSnapshotModel.effective_from,
+                    SignalCalibrationSnapshotModel.effective_at,
+                )
+                .desc()
+                .nullslast(),
                 SignalCalibrationSnapshotModel.created_at.desc(),
                 SignalCalibrationSnapshotModel.id.desc(),
             )
@@ -87,6 +97,7 @@ class SignalCalibrationSnapshotRepository:
             .values(is_active=False)
         )
         model.is_active = True
+        model.effective_from = now
         model.effective_at = now
         await self.session.flush()
         return self._serialize_model(model)
@@ -98,18 +109,23 @@ class SignalCalibrationSnapshotRepository:
         source: str = "manual_review",
         strategy_weights: dict[str, Any] | None = None,
         score_multipliers: dict[str, Any] | None = None,
+        atr_multipliers: dict[str, Any] | None = None,
         derived_from: str | None = None,
         sample_size: int | None = None,
         activate: bool = False,
+        effective_from: datetime | None = None,
         effective_at: datetime | None = None,
         notes: str | None = None,
     ) -> dict[str, Any]:
+        resolved_effective_from = effective_from or effective_at
         normalized = self.calibration_service.normalize_snapshot(
             {
                 "version": version,
                 "source": source,
+                "effective_from": resolved_effective_from,
                 "strategy_weights": dict(strategy_weights or {}),
                 "score_multipliers": dict(score_multipliers or {}),
+                "atr_multipliers": dict(atr_multipliers or {}),
             }
         )
 
@@ -128,6 +144,8 @@ class SignalCalibrationSnapshotRepository:
                 .values(is_active=False)
             )
 
+        applied_effective_from = normalized.effective_from or (utcnow() if activate else None)
+
         model = SignalCalibrationSnapshotModel(
             version=normalized.version,
             source=normalized.source,
@@ -138,7 +156,8 @@ class SignalCalibrationSnapshotRepository:
             derived_from=(str(derived_from).strip() if derived_from else None),
             sample_size=sample_size,
             is_active=bool(activate),
-            effective_at=effective_at or (utcnow() if activate else None),
+            effective_from=applied_effective_from,
+            effective_at=applied_effective_from,
             notes=(str(notes).strip() if notes else None),
         )
         self.session.add(model)
@@ -150,15 +169,18 @@ class SignalCalibrationSnapshotRepository:
         payload.setdefault("version", getattr(model, "version", None))
         payload.setdefault("source", getattr(model, "source", None))
         snapshot = self.calibration_service.normalize_snapshot(payload)
+        effective_from = getattr(model, "effective_from", None) or snapshot.effective_from
         return {
             "id": int(model.id),
             "version": snapshot.version,
             "source": snapshot.source,
             "strategy_weights": dict(snapshot.strategy_weights),
             "score_multipliers": dict(snapshot.score_multipliers),
+            "atr_multipliers": dict(snapshot.atr_multipliers),
             "derived_from": getattr(model, "derived_from", None),
             "sample_size": getattr(model, "sample_size", None),
             "is_active": bool(getattr(model, "is_active", False)),
+            "effective_from": effective_from,
             "effective_at": getattr(model, "effective_at", None),
             "notes": getattr(model, "notes", None),
             "created_at": getattr(model, "created_at", None),

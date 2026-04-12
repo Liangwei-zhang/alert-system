@@ -10,8 +10,10 @@ from unittest.mock import patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from apps.admin_api.dependencies import get_analytics_repository
 from apps.admin_api.routers import backtests as backtests_router
 from apps.admin_api.routers import scanner as scanner_router
+from domains.signals.calibration_service import CalibrationService
 from infra.core.errors import register_exception_handlers
 from infra.db.session import get_db_session
 
@@ -106,7 +108,9 @@ class FakeBacktestRepository:
 
 class FakeBacktestService:
     calls = []
+    window_calls = []
     return_value = {}
+    window_result = None
 
     def __init__(self, db) -> None:
         self.db = db
@@ -114,7 +118,9 @@ class FakeBacktestService:
     @classmethod
     def reset(cls) -> None:
         cls.calls = []
+        cls.window_calls = []
         cls.return_value = {}
+        cls.window_result = None
 
     async def refresh_rankings(
         self,
@@ -139,6 +145,180 @@ class FakeBacktestService:
             }
         )
         return deepcopy(self.return_value)
+
+    async def run_backtest_window(
+        self,
+        *,
+        symbol,
+        window_days,
+        strategy_name,
+        timeframe="1d",
+    ):
+        self.window_calls.append(
+            {
+                "symbol": symbol,
+                "window_days": window_days,
+                "strategy_name": strategy_name,
+                "timeframe": timeframe,
+            }
+        )
+        return deepcopy(self.window_result)
+
+
+class FakeAnalyticsRepository:
+    calls: dict[str, list[int]] = {}
+
+    @classmethod
+    def reset(cls) -> None:
+        cls.calls = {"query_strategy_health": [], "query_signal_results": []}
+
+    async def query_strategy_health(self, window_hours: int = 24 * 7):
+        self.calls["query_strategy_health"].append(window_hours)
+        refreshed_at = datetime(2026, 4, 5, 7, 0, tzinfo=timezone.utc)
+        return {
+            "window_hours": window_hours,
+            "strategies": [
+                {
+                    "strategy_name": "trend_following",
+                    "rank": 1,
+                    "score": 1.18,
+                    "degradation": 1.4,
+                    "signals_generated": 22,
+                    "stable": True,
+                },
+                {
+                    "strategy_name": "breakout",
+                    "rank": 2,
+                    "score": 1.05,
+                    "degradation": 3.2,
+                    "signals_generated": 14,
+                    "stable": True,
+                },
+                {
+                    "strategy_name": "mean_reversion",
+                    "rank": 4,
+                    "score": 0.83,
+                    "degradation": 11.2,
+                    "signals_generated": 6,
+                    "stable": False,
+                },
+            ],
+            "refreshed_at": refreshed_at,
+        }
+
+    async def query_signal_results(self, window_hours: int = 24):
+        self.calls["query_signal_results"].append(window_hours)
+        generated_after = datetime(2026, 4, 3, 8, 0, tzinfo=timezone.utc)
+        return {
+            "window_hours": window_hours,
+            "generated_after": generated_after,
+            "total_signals": 42,
+            "total_trade_actions": 14,
+            "trade_action_rate": 33.3333,
+            "executed_trade_rate": 19.0476,
+            "overlapping_symbols": 8,
+            "signal_strategies": [
+                {"key": "trend_following", "count": 21},
+                {"key": "breakout", "count": 13},
+                {"key": "mean_reversion", "count": 5},
+                {"key": "range_rotation", "count": 3},
+            ],
+            "market_regimes": [
+                {"key": "trend_up", "count": 28},
+                {"key": "range_balanced", "count": 14},
+            ],
+        }
+
+
+class FakeSignalCalibrationSnapshotRepository:
+    calls: dict[str, list[dict]] = {}
+    calibration_service = CalibrationService()
+    active_snapshot: dict | None = None
+
+    def __init__(self, db) -> None:
+        self.db = db
+
+    @classmethod
+    def reset(cls) -> None:
+        cls.calls = {"get_active_snapshot": [], "create_snapshot": []}
+        cls.active_snapshot = {
+            "id": 2,
+            "version": "signals-v2-review-20260410",
+            "source": "manual_review",
+            "strategy_weights": dict(cls.calibration_service.DEFAULT_STRATEGY_WEIGHTS),
+            "score_multipliers": dict(cls.calibration_service.DEFAULT_SCORE_MULTIPLIERS),
+            "atr_multipliers": dict(cls.calibration_service.DEFAULT_ATR_MULTIPLIERS),
+            "is_active": True,
+            "effective_from": datetime(2026, 4, 5, 6, 0, tzinfo=timezone.utc),
+            "effective_at": datetime(2026, 4, 5, 6, 0, tzinfo=timezone.utc),
+            "created_at": datetime(2026, 4, 5, 6, 0, tzinfo=timezone.utc),
+            "updated_at": datetime(2026, 4, 5, 6, 0, tzinfo=timezone.utc),
+            "notes": "Active review snapshot.",
+        }
+
+    async def get_active_snapshot(self):
+        self.calls["get_active_snapshot"].append({})
+        return deepcopy(self.active_snapshot)
+
+    async def create_snapshot(
+        self,
+        *,
+        version,
+        source="manual_review",
+        strategy_weights=None,
+        score_multipliers=None,
+        atr_multipliers=None,
+        derived_from=None,
+        sample_size=None,
+        activate=False,
+        effective_from=None,
+        effective_at=None,
+        notes=None,
+    ):
+        self.calls["create_snapshot"].append(
+            {
+                "version": version,
+                "source": source,
+                "strategy_weights": deepcopy(strategy_weights),
+                "score_multipliers": deepcopy(score_multipliers),
+                "atr_multipliers": deepcopy(atr_multipliers),
+                "derived_from": derived_from,
+                "sample_size": sample_size,
+                "activate": activate,
+                "effective_from": effective_from,
+                "effective_at": effective_at,
+                "notes": notes,
+            }
+        )
+        normalized = self.calibration_service.normalize_snapshot(
+            {
+                "version": version,
+                "source": source,
+                "effective_from": effective_from or effective_at,
+                "strategy_weights": strategy_weights or {},
+                "score_multipliers": score_multipliers or {},
+                "atr_multipliers": atr_multipliers or {},
+            }
+        )
+        snapshot = {
+            "id": 3,
+            "version": normalized.version,
+            "source": normalized.source,
+            "strategy_weights": dict(normalized.strategy_weights),
+            "score_multipliers": dict(normalized.score_multipliers),
+            "atr_multipliers": dict(normalized.atr_multipliers),
+            "derived_from": derived_from,
+            "sample_size": sample_size,
+            "is_active": bool(activate),
+            "effective_from": normalized.effective_from,
+            "effective_at": normalized.effective_from,
+            "notes": notes,
+            "created_at": normalized.effective_from,
+            "updated_at": normalized.effective_from,
+        }
+        if activate:
+            self.active_snapshot = deepcopy(snapshot)
+        return snapshot
 
 
 class FakeScannerRunRepository:
@@ -231,6 +411,8 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
         FakeBacktestRepository.reset()
         FakeBacktestService.reset()
         FakeScannerRunRepository.reset()
+        FakeAnalyticsRepository.reset()
+        FakeSignalCalibrationSnapshotRepository.reset()
 
         self.app = FastAPI()
         register_exception_handlers(self.app)
@@ -240,7 +422,11 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
         async def override_db_session():
             yield object()
 
+        async def override_analytics_repository():
+            return FakeAnalyticsRepository()
+
         self.app.dependency_overrides[get_db_session] = override_db_session
+        self.app.dependency_overrides[get_analytics_repository] = override_analytics_repository
 
         self.backtest_repository_patch = patch.object(
             backtests_router,
@@ -252,6 +438,11 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
             "BacktestService",
             FakeBacktestService,
         )
+        self.calibration_repository_patch = patch.object(
+            backtests_router,
+            "SignalCalibrationSnapshotRepository",
+            FakeSignalCalibrationSnapshotRepository,
+        )
         self.scanner_repository_patch = patch.object(
             scanner_router,
             "ScannerRunRepository",
@@ -259,13 +450,16 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
         )
         self.backtest_repository_patch.start()
         self.backtest_service_patch.start()
+        self.calibration_repository_patch.start()
         self.scanner_repository_patch.start()
         self.client = TestClient(self.app)
 
     def tearDown(self) -> None:
         self.client.close()
+        self.app.dependency_overrides.clear()
         self.backtest_repository_patch.stop()
         self.backtest_service_patch.stop()
+        self.calibration_repository_patch.stop()
         self.scanner_repository_patch.stop()
 
     def test_backtests_routes_list_detail_and_refresh(self) -> None:
@@ -372,7 +566,7 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
 
         root_response = self.client.get("/v1/admin/backtests")
         self.assertEqual(root_response.status_code, 200)
-        self.assertEqual(root_response.json()["areas"], ["runs", "rankings"])
+        self.assertEqual(root_response.json()["areas"], ["runs", "rankings", "equity-curve"])
 
         list_response = self.client.get(
             "/v1/admin/backtests/runs",
@@ -482,6 +676,7 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
                 "windows": [30, 90],
                 "timeframe": "1d",
                 "experiment_name": "admin.manual-refresh",
+                "auto_feedback_loop": False,
             },
         )
         self.assertEqual(create_response.status_code, 200)
@@ -512,6 +707,165 @@ class AdminBacktestsAndScannerRouterIntegrationTest(unittest.TestCase):
                 }
             ],
         )
+
+    def test_backtest_equity_curve_route_returns_series(self) -> None:
+        FakeBacktestService.window_result = {
+            "symbol": "AAPL",
+            "strategy_name": "trend_following",
+            "timeframe": "1d",
+            "window_days": 90,
+            "metrics": {
+                "total_return_percent": 14.2,
+                "max_drawdown_percent": 3.8,
+                "trade_count": 3,
+                "win_rate": 66.6667,
+                "avg_trade_return_percent": 4.1,
+                "sharpe_ratio": 1.2,
+                "samples": 90,
+            },
+            "trades": [
+                {
+                    "entry_index": 20,
+                    "exit_index": 32,
+                    "entry_price": 101.2,
+                    "exit_price": 107.8,
+                    "return_percent": 6.5217,
+                }
+            ],
+            "equity_points": [1.0, 1.04, 1.09, 1.142],
+            "equity_series": [
+                {
+                    "timestamp": "2026-04-10T00:00:00Z",
+                    "equity": 1.0,
+                    "drawdown_percent": 0.0,
+                },
+                {
+                    "timestamp": "2026-04-11T00:00:00Z",
+                    "equity": 1.04,
+                    "drawdown_percent": 0.0,
+                },
+                {
+                    "timestamp": "2026-04-12T00:00:00Z",
+                    "equity": 1.09,
+                    "drawdown_percent": 0.0,
+                },
+            ],
+        }
+
+        response = self.client.get(
+            "/v1/admin/backtests/equity-curve",
+            params={
+                "symbol": "AAPL",
+                "strategy_name": "trend_following",
+                "window_days": 90,
+                "timeframe": "1d",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "symbol": "AAPL",
+                "strategy_name": "trend_following",
+                "timeframe": "1d",
+                "window_days": 90,
+                "metrics": {
+                    "total_return_percent": 14.2,
+                    "max_drawdown_percent": 3.8,
+                    "trade_count": 3,
+                    "win_rate": 66.6667,
+                    "avg_trade_return_percent": 4.1,
+                    "sharpe_ratio": 1.2,
+                    "samples": 90,
+                },
+                "trades": [
+                    {
+                        "entry_index": 20,
+                        "exit_index": 32,
+                        "entry_price": 101.2,
+                        "exit_price": 107.8,
+                        "return_percent": 6.5217,
+                    }
+                ],
+                "equity_points": [1.0, 1.04, 1.09, 1.142],
+                "equity_series": [
+                    {
+                        "timestamp": "2026-04-10T00:00:00Z",
+                        "equity": 1.0,
+                        "drawdown_percent": 0.0,
+                    },
+                    {
+                        "timestamp": "2026-04-11T00:00:00Z",
+                        "equity": 1.04,
+                        "drawdown_percent": 0.0,
+                    },
+                    {
+                        "timestamp": "2026-04-12T00:00:00Z",
+                        "equity": 1.09,
+                        "drawdown_percent": 0.0,
+                    },
+                ],
+            },
+        )
+        self.assertEqual(
+            FakeBacktestService.window_calls,
+            [
+                {
+                    "symbol": "AAPL",
+                    "window_days": 90,
+                    "strategy_name": "trend_following",
+                    "timeframe": "1d",
+                }
+            ],
+        )
+
+    def test_create_run_can_return_calibration_feedback_snapshot(self) -> None:
+        FakeBacktestService.return_value = {
+            "run_id": 24,
+            "experiment_name": "admin.manual-refresh",
+            "run_key": "admin-manual-refresh:1d:20260405T010000Z",
+            "code_version": "main@abc123def456",
+            "dataset_fingerprint": "fingerprint-456",
+            "ranking_count": 1,
+            "rankings": [
+                {
+                    "strategy_name": "trend_following",
+                    "timeframe": "1d",
+                    "rank": 1,
+                    "score": 1.51,
+                    "degradation": 0.09,
+                    "symbols_covered": 20,
+                    "evidence": {"best_window": 90},
+                }
+            ],
+        }
+
+        response = self.client.post(
+            "/v1/admin/backtests/runs",
+            json={
+                "symbols": ["AAPL"],
+                "strategy_names": ["trend_following"],
+                "timeframe": "1d",
+                "experiment_name": "admin.manual-refresh",
+                "activate_feedback_snapshot": False,
+                "feedback_signal_window_hours": 48,
+                "feedback_ranking_window_hours": 336,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["run_id"], 24)
+        self.assertEqual(payload["calibration_feedback"]["previous_version"], "signals-v2-review-20260410")
+        self.assertFalse(payload["calibration_feedback"]["activated"])
+        self.assertTrue(payload["calibration_feedback"]["applied_version"].startswith("signals-v2-feedback-"))
+        self.assertGreater(payload["calibration_feedback"]["strategy_weights"]["trend_continuation"], 1.0)
+        self.assertGreater(payload["calibration_feedback"]["atr_multipliers"]["trend"], 2.2)
+        self.assertEqual(FakeAnalyticsRepository.calls["query_signal_results"], [48])
+        self.assertEqual(FakeAnalyticsRepository.calls["query_strategy_health"], [336])
+        self.assertEqual(len(FakeSignalCalibrationSnapshotRepository.calls["create_snapshot"]), 1)
+        self.assertFalse(FakeSignalCalibrationSnapshotRepository.calls["create_snapshot"][0]["activate"])
 
     def test_scanner_routes_observability_and_live_decisions(self) -> None:
         now = datetime(2026, 4, 5, tzinfo=timezone.utc)

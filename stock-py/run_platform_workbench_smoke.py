@@ -26,6 +26,12 @@ PLATFORM_TEXT_CHECKS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "桌面端验证码登录",
             "Execution Relay",
             "Research Relay",
+                "Strategy Breakdown",
+                "Equity Curve",
+                "Calibration Proposal",
+                "退出位读模型",
+                "Client vs Server Exits",
+                "应用建议校准",
         ),
     ),
     (
@@ -63,6 +69,9 @@ READ_ONLY_ENDPOINTS: tuple[tuple[str, str], ...] = (
     ("scanner", "/v1/admin/scanner/observability?limit=4&decision_limit=8"),
     ("rankings", "/v1/admin/backtests/rankings/latest?timeframe=1d&limit=4"),
     ("health", "/v1/admin/analytics/strategy-health?window_hours=168"),
+    ("exit_quality", "/v1/admin/analytics/exit-quality?window_hours=168"),
+    ("active_calibration", "/v1/admin/calibrations/active"),
+    ("proposal", "/v1/admin/calibrations/proposal?signal_window_hours=24&ranking_window_hours=168"),
     ("runs", "/v1/admin/backtests/runs?limit=5&timeframe=1d"),
     ("analyses", "/v1/admin/tradingagents/analyses?limit=5"),
 )
@@ -127,6 +136,25 @@ def summarize_payload(name: str, payload: dict[str, Any]) -> dict[str, Any]:
         return {"count": len(payload.get("data", []))}
     if name == "health":
         return {"count": len(payload.get("strategies", []))}
+    if name == "exit_quality":
+        return {
+            "total_signals": payload.get("total_signals"),
+            "exits_available": payload.get("exits_available"),
+            "avg_atr_multiplier": payload.get("avg_atr_multiplier"),
+        }
+    if name == "active_calibration":
+        data = payload.get("data") or {}
+        return {
+            "version": data.get("version"),
+            "effective_from": data.get("effective_from") or data.get("effective_at"),
+        }
+    if name == "proposal":
+        return {
+            "current_version": payload.get("current_version"),
+            "proposed_version": payload.get("proposed_version"),
+            "strategy_adjustments": len(payload.get("strategy_weights") or []),
+            "atr_adjustments": len(payload.get("atr_multipliers") or []),
+        }
     if name == "runs":
         return {"count": len(payload.get("data", []))}
     if name == "analyses":

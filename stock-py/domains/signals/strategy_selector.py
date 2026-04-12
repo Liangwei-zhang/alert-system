@@ -44,7 +44,12 @@ class StrategySelector:
         ).lower()
         regime_assessment = self.regime_detector.detect(
             market_snapshot,
-            explicit_regime=market_snapshot.get("market_regime") or context.get("market_regime"),
+            explicit_regime=(
+                market_snapshot.get("market_regime_detail")
+                or market_snapshot.get("market_regime")
+                or context.get("market_regime_detail")
+                or context.get("market_regime")
+            ),
         )
         calibration = self.calibration_service.current_snapshot(market_snapshot, context)
 
@@ -86,6 +91,8 @@ class StrategySelector:
             "strategy_window": timeframe,
             "market_regime": regime_assessment.regime,
             "market_regime_detail": regime_assessment.detail,
+            "regime_duration_bars": regime_assessment.duration_bars,
+            "regime_metrics": dict(regime_assessment.metrics),
             "regime_reasons": list(regime_assessment.reasons),
             "source": "heuristic",
             "source_strategy": strategy,
@@ -215,6 +222,8 @@ class StrategySelector:
                 "strategy_window": timeframe,
                 "market_regime": regime_assessment.regime,
                 "market_regime_detail": regime_assessment.detail,
+                "regime_duration_bars": regime_assessment.duration_bars,
+                "regime_metrics": dict(regime_assessment.metrics),
                 "regime_reasons": list(regime_assessment.reasons),
                 "source": "ranking",
                 "source_strategy": ranking["source_strategy"],
@@ -363,6 +372,7 @@ class StrategySelector:
             "degradation_penalty": candidate.get("degradation_penalty"),
             "stable": bool(candidate.get("stable", False)),
             "market_regime_detail": candidate.get("market_regime_detail"),
+            "regime_duration_bars": candidate.get("regime_duration_bars"),
             "strategy_weight": candidate.get("strategy_weight"),
             "calibration_version": candidate.get("calibration_version"),
         }

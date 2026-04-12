@@ -47,16 +47,6 @@ function createPlatformDeckWorkspaceModule() {
             this.activeDesktopSectionId = String(sectionId || '').trim() || 'trading-agents-panel';
             localStorage.setItem(this.storageKeys.workspaceSection, this.activeDesktopSectionId);
             if (userInitiated) {
-                {
-                    id: 'open-market-workbench',
-                    group: '动作',
-                    label: '打开市场工作台',
-                    meta: this.marketChart && this.marketChart.symbol
-                        ? `${this.marketChart.symbol} · 查看图表与报价快照。`
-                        : '搜索标的、查看图表并整理桌面盯盘。',
-                    hint: '信号',
-                    search: 'market chart watchlist search 市场 图表 盯盘',
-                    run: () => this.focusSection('market-workbench-panel', 'signals')
                 this.workspacePinned = true;
             }
         },
@@ -71,6 +61,12 @@ function createPlatformDeckWorkspaceModule() {
             this.executionContextUpdatedAt = new Date().toISOString();
             if (typeof this.loadSelectedMarketChart === 'function') {
                 this.loadSelectedMarketChart({ silent: true, throwOnError: false });
+            }
+            if (typeof this.loadSelectedStrategyBreakdown === 'function') {
+                this.loadSelectedStrategyBreakdown({ silent: true, throwOnError: false });
+            }
+            if (typeof this.loadSelectedBacktestEquity === 'function') {
+                this.loadSelectedBacktestEquity({ silent: true, throwOnError: false });
             }
             if (options.sectionId || options.mode) {
                 this.focusSection(options.sectionId || 'decision-tape-panel', options.mode || null, {

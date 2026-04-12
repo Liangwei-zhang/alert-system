@@ -33,9 +33,11 @@ class FakeSignalCalibrationSnapshotRepository:
                 "source": "default",
                 "strategy_weights": dict(cls.calibration_service.DEFAULT_STRATEGY_WEIGHTS),
                 "score_multipliers": dict(cls.calibration_service.DEFAULT_SCORE_MULTIPLIERS),
+                "atr_multipliers": dict(cls.calibration_service.DEFAULT_ATR_MULTIPLIERS),
                 "derived_from": "bootstrap",
                 "sample_size": None,
                 "is_active": False,
+                "effective_from": None,
                 "effective_at": None,
                 "notes": "Bootstrap fallback snapshot.",
                 "created_at": created_at,
@@ -53,9 +55,14 @@ class FakeSignalCalibrationSnapshotRepository:
                     **dict(cls.calibration_service.DEFAULT_SCORE_MULTIPLIERS),
                     "confidence": 1.08,
                 },
+                "atr_multipliers": {
+                    **dict(cls.calibration_service.DEFAULT_ATR_MULTIPLIERS),
+                    "trend_up": 2.35,
+                },
                 "derived_from": "backtest:30d-ranking + live:24h-results",
                 "sample_size": 128,
                 "is_active": True,
+                "effective_from": created_at,
                 "effective_at": created_at,
                 "notes": "Reviewed and activated after morning calibration pass.",
                 "created_at": created_at,
@@ -80,7 +87,7 @@ class FakeSignalCalibrationSnapshotRepository:
             items,
             key=lambda item: (
                 int(bool(item["is_active"])),
-                item["effective_at"] or item["created_at"],
+                item["effective_from"] or item["effective_at"] or item["created_at"],
                 item["id"],
             ),
             reverse=True,
@@ -113,6 +120,7 @@ class FakeSignalCalibrationSnapshotRepository:
         for item in self.snapshots:
             item["is_active"] = False
         target["is_active"] = True
+        target["effective_from"] = effective_at
         target["effective_at"] = effective_at
         target["updated_at"] = effective_at
         return deepcopy(target)
@@ -124,9 +132,11 @@ class FakeSignalCalibrationSnapshotRepository:
         source="manual_review",
         strategy_weights=None,
         score_multipliers=None,
+        atr_multipliers=None,
         derived_from=None,
         sample_size=None,
         activate=False,
+        effective_from=None,
         effective_at=None,
         notes=None,
     ):
@@ -136,9 +146,11 @@ class FakeSignalCalibrationSnapshotRepository:
                 "source": source,
                 "strategy_weights": strategy_weights,
                 "score_multipliers": score_multipliers,
+                "atr_multipliers": atr_multipliers,
                 "derived_from": derived_from,
                 "sample_size": sample_size,
                 "activate": activate,
+                "effective_from": effective_from,
                 "effective_at": effective_at,
                 "notes": notes,
             }
@@ -150,11 +162,16 @@ class FakeSignalCalibrationSnapshotRepository:
             {
                 "version": version,
                 "source": source,
+                "effective_from": effective_from or effective_at,
                 "strategy_weights": strategy_weights or {},
                 "score_multipliers": score_multipliers or {},
+                "atr_multipliers": atr_multipliers or {},
             }
         )
-        now = effective_at or datetime(2026, 4, 11, 8, 0, tzinfo=timezone.utc)
+        applied_effective_from = normalized.effective_from or (
+            datetime(2026, 4, 11, 8, 0, tzinfo=timezone.utc) if activate else None
+        )
+        now = applied_effective_from or datetime(2026, 4, 11, 8, 0, tzinfo=timezone.utc)
         if activate:
             for item in self.snapshots:
                 item["is_active"] = False
@@ -164,10 +181,12 @@ class FakeSignalCalibrationSnapshotRepository:
             "source": normalized.source,
             "strategy_weights": dict(normalized.strategy_weights),
             "score_multipliers": dict(normalized.score_multipliers),
+            "atr_multipliers": dict(normalized.atr_multipliers),
             "derived_from": derived_from,
             "sample_size": sample_size,
             "is_active": bool(activate),
-            "effective_at": now if activate else effective_at,
+            "effective_from": applied_effective_from,
+            "effective_at": applied_effective_from,
             "notes": notes,
             "created_at": now,
             "updated_at": now,
@@ -271,6 +290,8 @@ class AdminCalibrationsRouterIntegrationTest(unittest.TestCase):
         self.assertFalse(payload["has_more"])
         self.assertEqual(payload["data"][0]["version"], "signals-v2-review-20260411")
         self.assertTrue(payload["data"][0]["is_active"])
+        self.assertEqual(payload["data"][0]["effective_from"], "2026-04-11T07:15:00Z")
+        self.assertEqual(payload["data"][0]["atr_multipliers"]["trend_up"], 2.35)
         self.assertEqual(payload["data"][1]["version"], "signals-v2-default")
 
         active = self.client.get("/v1/admin/calibrations/active")
@@ -278,6 +299,7 @@ class AdminCalibrationsRouterIntegrationTest(unittest.TestCase):
         active_payload = active.json()
         self.assertEqual(active_payload["data"]["version"], "signals-v2-review-20260411")
         self.assertEqual(active_payload["data"]["source"], "manual_review")
+        self.assertEqual(active_payload["data"]["effective_from"], "2026-04-11T07:15:00Z")
 
     def test_create_route_normalizes_and_activates_snapshot(self) -> None:
         response = self.client.post(
@@ -290,6 +312,8 @@ class AdminCalibrationsRouterIntegrationTest(unittest.TestCase):
                 "sample_size": 96,
                 "strategy_weights": {"mean_reversion": 1.8},
                 "score_multipliers": {"liquidity_penalty": 0.2},
+                "atr_multipliers": {"trend_strong_up": 4.8},
+                "effective_from": "2026-04-11T10:15:00Z",
                 "notes": "Activate reviewed canary snapshot.",
             },
         )
@@ -299,6 +323,8 @@ class AdminCalibrationsRouterIntegrationTest(unittest.TestCase):
         self.assertTrue(payload["is_active"])
         self.assertEqual(payload["strategy_weights"]["mean_reversion"], 1.25)
         self.assertEqual(payload["score_multipliers"]["liquidity_penalty"], 0.75)
+        self.assertEqual(payload["atr_multipliers"]["trend_strong_up"], 4.0)
+        self.assertEqual(payload["effective_from"], "2026-04-11T10:15:00Z")
 
         active = self.client.get("/v1/admin/calibrations/active")
         self.assertEqual(active.status_code, 200)
@@ -331,6 +357,7 @@ class AdminCalibrationsRouterIntegrationTest(unittest.TestCase):
         self.assertEqual(payload["summary"]["active_calibration_version"], "signals-v2-review-20260411")
         self.assertTrue(payload["proposed_version"].startswith("signals-v2-proposal-"))
         self.assertEqual(payload["snapshot_payload"]["source"], "proposal")
+        self.assertIsNotNone(payload["snapshot_payload"]["effective_from"])
 
         strategy_weights = {item["key"]: item for item in payload["strategy_weights"]}
         self.assertGreater(
@@ -346,12 +373,19 @@ class AdminCalibrationsRouterIntegrationTest(unittest.TestCase):
         self.assertGreater(score_multipliers["trend"]["proposed_value"], 1.0)
         self.assertGreater(score_multipliers["stale_penalty"]["proposed_value"], 1.0)
 
+        atr_multipliers = {item["key"]: item for item in payload["atr_multipliers"]}
+        self.assertGreater(
+            atr_multipliers["trend"]["proposed_value"],
+            atr_multipliers["trend"]["current_value"],
+        )
+
     def test_activate_route_switches_active_snapshot(self) -> None:
         response = self.client.post("/v1/admin/calibrations/1/activate")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["id"], 1)
         self.assertTrue(payload["is_active"])
+        self.assertEqual(payload["effective_from"], "2026-04-11T09:00:00Z")
 
         active = self.client.get("/v1/admin/calibrations/active")
         self.assertEqual(active.status_code, 200)
@@ -382,6 +416,8 @@ class AdminCalibrationsRouterIntegrationTest(unittest.TestCase):
         self.assertEqual(payload["source"], "proposal_review")
         self.assertTrue(payload["is_active"])
         self.assertGreater(payload["strategy_weights"]["trend_continuation"], 1.0)
+        self.assertIn("trend", payload["atr_multipliers"])
+        self.assertIsNotNone(payload["effective_from"])
 
     def test_apply_proposal_route_returns_conflict_for_duplicate_version(self) -> None:
         response = self.client.post(

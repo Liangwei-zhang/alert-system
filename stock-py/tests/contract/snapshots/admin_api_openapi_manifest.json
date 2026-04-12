@@ -65,10 +65,10 @@
         ]
       }
     },
-    "/v1/admin/analytics/signal-results": {
+    "/v1/admin/analytics/exit-quality": {
       "get": {
-        "operationId": "get_signal_results_v1_admin_analytics_signal_results_get",
-        "summary": "Get Signal Results",
+        "operationId": "get_exit_quality_v1_admin_analytics_exit_quality_get",
+        "summary": "Get Exit Quality",
         "tags": [
           "admin",
           "analytics"
@@ -79,6 +79,16 @@
       "get": {
         "operationId": "get_overview_v1_admin_analytics_overview_get",
         "summary": "Get Overview",
+        "tags": [
+          "admin",
+          "analytics"
+        ]
+      }
+    },
+    "/v1/admin/analytics/signal-results": {
+      "get": {
+        "operationId": "get_signal_results_v1_admin_analytics_signal_results_get",
+        "summary": "Get Signal Results",
         "tags": [
           "admin",
           "analytics"
@@ -129,6 +139,16 @@
       "get": {
         "operationId": "get_backtests_root_v1_admin_backtests_get",
         "summary": "Get Backtests Root",
+        "tags": [
+          "admin",
+          "backtests"
+        ]
+      }
+    },
+    "/v1/admin/backtests/equity-curve": {
+      "get": {
+        "operationId": "get_equity_curve_v1_admin_backtests_equity_curve_get",
+        "summary": "Get Equity Curve",
         "tags": [
           "admin",
           "backtests"
